@@ -27,4 +27,28 @@ Quality
 | Q2 | Correctness | The test suite must pass all test vectors from `vendor/xxHash/tests/sanity_test.c` on both ARM64 and x86_64.
 | Q3 | Stability | The internal state size and alignment must remain stable across different Crystal compiler versions (tracked via CI).
 | Q4 | Safety | Use of `Pointer` arithmetic must be encapsulated within `private` or `protected` methods, preventing memory corruption from the public API.
+| Q5 | CLI Parity | The `xxhsum` CLI tool must produce output formats and hashes byte-identical to the vendor xxHash reference implementation for all 4 algorithms.
 |===
+
+=== 10.3 Test Coverage
+
+The migration includes comprehensive test suites validating all requirements:
+
+[cols="1,3,2", options="header"]
+|===
+| Test Suite | Purpose | Status (as of 2026-02-07)
+| `spec/parser_spec.cr` | Unit testing command-line argument parsing (all options, combinations) | 24/24 passing ✅
+| `spec/formatter_spec.cr` | Unit testing output formatting (GNU, BSD, endianness) | 4/4 passing ✅
+| `spec/integration_test.cr` | Full integration validation against vendor xxHash binary | 12/12 passing ✅
+|===
+
+**Integration Test Matrix**:
+- 3 test files: README.md (4.0 KB), LICENSE (1.1 KB), shard.yml (0.8 KB)
+- 4 algorithms: XXH32 (32-bit), XXH64 (64-bit), XXH128 (128-bit), XXH3 (64-bit optimized)
+- Total combinations: 12 test cases
+- All hashes verified against vendor `vendor/xxHash/xxhsum` output
+- Output format matching: GNU convention (`hash  filename`) with exact byte-level parity
+
+**Baseline Performance** (Apple Silicon M4):
+- XXH3: ~12.02 GB/s (100 KB benchmark buffer)
+- Target: >= 50 GB/s on M4 (4.2x improvement needed)

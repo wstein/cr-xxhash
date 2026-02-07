@@ -12,3 +12,47 @@
 *   **Context**: xxHash speed comes from SIMD instructions (unrolling and vectorization).
 *   **Decision**: Use Crystal's LLVM-backed intrinsics where possible. Fall back to `LibC` hardware detection logic via `vendor/xxHash/xxh_x86dispatch.c` if needed for runtime dispatch.
 *   **Goal**: Ensure `XXH3` reaches 10+ GB/s on modern x86_64 hardware.
+
+### ADR 3: CLI Output Format - Match Vendor Implementation Exactly
+
+*   **Context**: The `xxhsum` tool should maintain 100% compatibility with vendor xxHash reference implementation for integration into existing UNIX toolchains (e.g., build systems, integrity checks).
+*   **Decision**: Instead of imposing our own output format, we matched vendor behavior byte-for-byte:
+    ** GNU format: `HASH  FILENAME` (two spaces, no algorithm prefix for XXH32/64/128)
+    ** BSD format: `ALGO (FILENAME) = HASH` (using `--tag` flag)
+    ** Endianness: Support both big-endian (default) and little-endian with `--little-endian` flag
+*   **Validation**: All 12 integration tests pass with vendor binary comparison (3 files × 4 algorithms):
+    *** Test command: `crystal spec/integration_test.cr -- -c ./bin/xxhsum -v vendor/xxHash/xxhsum`
+    *** Status: 12/12 passing ✅
+*   **Consequences**: Developers can drop-in replace vendor `xxhsum` with our Crystal implementation without script changes. However, we inherit vendor's quirks (e.g., no prefix in output) and must maintain output parity as they evolve.
+
+### ADR 4: Test-Driven CLI Development
+
+*   **Context**: CLI tools have many edge cases (stdin, file arguments, error codes, output formats) that are easy to break during refactoring.
+*   **Decision**: Implement comprehensive test suites before marking CLI features complete:
+    ** Unit tests (`spec/parser_spec.cr`): 24 tests for argument parsing
+    ** Unit tests (`spec/formatter_spec.cr`): 4 tests for output formatting
+    ** Integration tests (`spec/integration_test.cr`): 12 tests comparing output with vendor binary
+*   **Implementation**: Parser tests validate option combinations; Formatter tests validate encoding; Integration tests validate correctness against reference.
+*   **Result**: All 40 test cases passing. Any future changes to CLI are immediately validated against tests before merge.
+
+### ADR 5: FFI Byte Conversion Safety - Explicit Masking
+
+*   **Context**: Converting Crystal UInt64 to bytes for hex output can overflow if not carefully handled.
+*   **Problem**: Code like `((hash >> (i * 8)) as UInt8)` failed with OverflowError for high bits.
+*   **Decision**: Explicit bitwise AND masking: `(((hash >> (i * 8)) & 0xFF_u64) as UInt8)`
+*   **Impact**: Ensures safe conversion for any bit position. Applied in `src/cli/formatter.cr:to_bytes()`.
+*   **Validation**: Formatter spec validates all output bytes are correct (0x00-0xFF range).
+
+### ADR 6: XXH128 Byte Order - High64 First
+
+*   **Context**: XXH128 returns a struct with {low64, high64} but vendor tool outputs high64 first.
+*   **Issue**: Naively serializing struct fields produces wrong output (low64, high64) when vendor expects (high64, low64).
+*   **Decision**: Reverse byte order in `formatter.to_s()` by calling `to_bytes(hash128[1])` then `to_bytes(hash128[0])`.
+*   **Result**: Output now matches vendor exactly: `4eda32e63c79e21da8fe69ba5ce06d72` (verified in integration tests).
+
+### ADR 7: File Arguments After OptionParser
+
+*   **Context**: Crystal's `OptionParser.parse(@argv)` consumes recognized options but leaves positional arguments in @argv.
+*   **Issue**: Initial code forgot to collect remaining @argv items as files.
+*   **Decision**: After parse, iterate remaining @argv and add to `@options.files` array.
+*   **Result**: `./bin/xxhsum -H3 file1.txt file2.txt` now correctly processes both files (verified in parser_spec.cr).

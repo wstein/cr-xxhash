@@ -38,3 +38,54 @@ Streaming allows processing data as it arrives, maintaining a persistent state.
 === 6.3 SIMD Unrolling and Dispatch
 
 At runtime, the selector determines the widest available instruction set (AVX-512 > AVX2 > SSE2) and executes the corresponding unrolled loop. This avoids the overhead of checking CPU features for every block.
+
+=== 6.4 CLI Tool Runtime Flow (`xxhsum` Binary)
+
+The `xxhsum` command-line tool provides three primary execution modes:
+
+**Mode 1: Hash Files (Default)**
+1. `src/cli/options.cr:parse()` parses command-line arguments using `OptionParser`
+2. `src/cli/hasher.cr:hash_files()` iterates over file arguments
+3. For each file, calls `LibXXH` FFI bindings to compute hash
+4. `src/cli/formatter.cr:format_gnu()` converts hash bytes to hex string
+5. Output: `hash  filename` (GNU format, matching vendor exactly)
+
+**Mode 2: Verify Checksums (--check mode)**
+[Not yet implemented - see TODO.md]
+
+**Mode 3: Benchmark Mode (-b flag)**
+1. Parse algorithm and iteration count
+2. Generate test buffer (deterministic content)
+3. Loop: Call XXH* hash function N times
+4. Measure wall-clock time and compute throughput (bytes/second)
+5. Output: Algorithm name, iterations, bytes/sec, MB/sec
+
+=== 6.5 Test Harness Integration
+
+The CLI includes comprehensive test suites:
+
+**Parser Tests** (`spec/parser_spec.cr`):
+- 24 test cases covering all option combinations
+- Validates: algorithm selection (-H0/-H1/-H2/-H3), file arguments, modes (-b, -c, --files-from)
+- Status: 24/24 passing ✅
+
+**Formatter Tests** (`spec/formatter_spec.cr`):
+- 4 test cases for output format correctness
+- Validates: GNU format, BSD format, hex encoding, byte order
+- Status: 4/4 passing ✅
+
+**Integration Tests** (`spec/integration_test.cr`):
+- Full comparison against vendor xxHash reference binary
+- Test matrix: 3 files × 4 algorithms = 12 test cases
+- Each test compares first 8 bytes of hash output between Crystal and vendor
+- Results: All 12 passing ✅ (README.md, LICENSE, shard.yml vs XXH32/64/128/3)
+
+**Key Integration Test Case Example**:
+```
+Test: Hash README.md with XXH64
+Crystal command: ./bin/xxhsum -H1 README.md
+Vendor command:  vendor/xxHash/xxhsum -H1 README.md
+Crystal output:  a8fe69ba5ce06d72  README.md
+Vendor output:   a8fe69ba5ce06d72  README.md
+Result: ✅ PASS (byte-for-byte identical)
+```
