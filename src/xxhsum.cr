@@ -229,24 +229,37 @@ module XXH::CLI
   private def self.run_benchmark_mode(options : Options)
     sample_size = options.sample_size
 
-    # Generate random sample data
-    data = Random::Secure.random_bytes(sample_size)
+    # Generate fast pseudo-random sample data (not cryptographically secure)
+    rng = Random.new
+    data_array = Array(UInt8).new(sample_size) { rng.rand(256).to_u8 }
+    data = Bytes.new(data_array.size) { |i| data_array[i] }
+
+    # Print version header unless -q (quiet) flag is set
+    unless options.quiet
+      puts "xxhsum 0.8.3 by Yann Collet"
+    end
 
     puts "Sample of #{sample_size / 1024} KB..."
 
     # Benchmark selected algorithms
-    algorithms = if options.benchmark_all
-                   [Algorithm::XXH32, Algorithm::XXH64, Algorithm::XXH3, Algorithm::XXH128]
+    # Note: Specific benchmark IDs (1-28) currently expand to all algorithms.
+    # In future, we'll implement the full vendor benchmark suite (aligned/unaligned, seeded, secret, streaming).
+    algorithms = if !options.benchmark_variants.empty?
+                   # Map variants from -b1,2,3 to algorithms
+                   options.benchmark_variants.map do |id|
+                     Parser.map_bench_id(id)
+                   end.compact
                  else
-                   [options.algorithm]
+                   # Both -b (no ID) and -b# (any ID) run all algorithms
+                   [Algorithm::XXH32, Algorithm::XXH64, Algorithm::XXH3, Algorithm::XXH128]
                  end
 
     algorithms.each do |algo|
-      run_single_benchmark(data, algo)
+      run_single_benchmark(data, algo, options.iterations)
     end
   end
 
-  private def self.run_single_benchmark(data : Bytes, algorithm : Algorithm)
+  private def self.run_single_benchmark(data : Bytes, algorithm : Algorithm, user_iterations : Int32 = 0)
     # Determine vendor bench ID and name
     vendor_id, algo_name = case algorithm
                            when Algorithm::XXH32
@@ -261,31 +274,59 @@ module XXH::CLI
                              {0, "Unknown"}
                            end
 
-    # Time a warm-up run
+    # Auto-calibrate iterations if not specified
+    iterations = if user_iterations > 0
+                   user_iterations
+                 else
+                   # Calibrate: run until ~1 second
+                   start_time = Time.instant
+                   count = 0
+                   target_duration = 1.0
+
+                   case algorithm
+                   when Algorithm::XXH32
+                     while Time.instant - start_time < target_duration.seconds
+                       LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
+                       count += 1
+                     end
+                   when Algorithm::XXH64
+                     while Time.instant - start_time < target_duration.seconds
+                       LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
+                       count += 1
+                     end
+                   when Algorithm::XXH3
+                     while Time.instant - start_time < target_duration.seconds
+                       LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+                       count += 1
+                     end
+                   when Algorithm::XXH128
+                     while Time.instant - start_time < target_duration.seconds
+                       LibXXH.XXH3_128bits(data.to_unsafe, data.size)
+                       count += 1
+                     end
+                   end
+                   count
+                 end
+
+    # Run benchmark with specified/calibrated iterations
     start_time = Time.instant
-    iterations = 0
-    target_duration = 1.0 # Target 1 second
 
     case algorithm
     when Algorithm::XXH32
-      while Time.instant - start_time < target_duration.seconds
+      iterations.times do
         LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
-        iterations += 1
       end
     when Algorithm::XXH64
-      while Time.instant - start_time < target_duration.seconds
+      iterations.times do
         LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
-        iterations += 1
       end
     when Algorithm::XXH3
-      while Time.instant - start_time < target_duration.seconds
+      iterations.times do
         LibXXH.XXH3_64bits(data.to_unsafe, data.size)
-        iterations += 1
       end
     when Algorithm::XXH128
-      while Time.instant - start_time < target_duration.seconds
+      iterations.times do
         LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-        iterations += 1
       end
     end
 

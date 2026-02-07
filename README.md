@@ -78,9 +78,11 @@ echo "test data" | ./bin/xxhsum
 
 # Benchmark mode (100 KB sample by default)
 ./bin/xxhsum -b           # Benchmark all algorithms (sample: 100 KB)
-./bin/xxhsum -b3          # Benchmark XXH3 variant (vendor id 5)
-./bin/xxhsum -b11         # Benchmark XXH128 (vendor id 11)
+./bin/xxhsum -b0          # Benchmark all vendor benchmark IDs (alias: -b29, -b77)
+./bin/xxhsum -b3          # Benchmark XXH64 (vendor benchmark id 3)
+./bin/xxhsum -b11         # Benchmark XXH128 (vendor benchmark id 11)
 
+Note: `-b#` uses vendor benchmark IDs (1-28). Use a comma-separated list `-b1,3,5` to run specific variants. IDs 0, 29 and larger, and `-b77` expand to "benchmark all" per vendor behavior.
 Sample output (example):
  1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
  3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
@@ -109,9 +111,10 @@ All algorithms validated against vendor xxHash implementation:
 # Output: a8fe69ba5ce06d72  README.md
 ```
 
-**Integration Test Status**: 60/60 passing (expanded test matrix)
+**Integration Test Status**: 99/99 passing (expanded test matrix)
 
-Matrix: 3 files (README.md, LICENSE, shard.yml) × 4 algorithms × 5 test types (basic, BSD, stdin, check, little-endian) = **60** cases
+Matrix: 3 files (README.md, LICENSE, shard.yml) × 4 algorithms × 5 test types (basic, BSD, stdin, check, little-endian) = **60** cases,
+plus 39 flag/benchmark validations = **99** total
 
 * XXH32: ✅ (all checks)
 * XXH64: ✅ (all checks)
@@ -119,6 +122,41 @@ Matrix: 3 files (README.md, LICENSE, shard.yml) × 4 algorithms × 5 test types 
 * XXH3: ✅ (all checks)
 
 See [TODO.md](TODO.md) for planned features and known issues.
+
+## Vendor benchmark behavior (xxhsum -b)
+
+The upstream C99 `xxhsum` benchmark mode uses **benchmark IDs** (not the `-H` algorithm IDs). These IDs map to specific function variants and are run in **aligned + unaligned** pairs (unaligned = buffer offset +3). The `-b77` shorthand triggers the full 1–28 sweep.
+
+**ID groups (C99 reference):**
+
+* **Basic (1–8)**
+  * 1–2: `XXH32` / `XXH32 unaligned`
+  * 3–4: `XXH64` / `XXH64 unaligned`
+  * 5–6: `XXH3_64b` / `XXH3_64b unaligned`
+  * 7–8: `XXH128` / `XXH128 unaligned`
+* **Seeded (9–14)**
+  * 9–10: `XXH3_64b w/seed` / unaligned
+  * 13–14: `XXH128 w/seed` / unaligned
+* **Secret (11–16)**
+  * 11–12: `XXH3_64b w/secret` / unaligned
+  * 15–16: `XXH128 w/secret` / unaligned
+* **Streaming (17–28)**
+  * 17–18: `XXH32_stream` / unaligned
+  * 19–20: `XXH64_stream` / unaligned
+  * 21–22: `XXH3_stream` / unaligned
+  * 23–24: `XXH3_stream w/seed` / unaligned
+  * 25–26: `XXH128_stream` / unaligned
+  * 27–28: `XXH128_stream w/seed` / unaligned
+
+**Output format (C99 reference):**
+
+`{id}#{name:<28} : {size:>10} -> {iters:>8} it/s ({mbps:>7.1f} MB/s)`
+
+Notes:
+
+* `-H0..-H3` select hash algorithms for **hashing**, while `-b#` selects **benchmark IDs**.
+* Vendor `-b77` expands to the full 1–28 set.
+* Seeded/secret variants vary the seed/secret to prevent the optimizer from removing work.
 
 ## Development
 

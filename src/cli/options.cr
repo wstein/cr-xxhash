@@ -35,9 +35,10 @@ module XXH::CLI
     property tag : Bool = false # BSD style output
     property benchmark : Bool = false
     property benchmark_all : Bool = false
-    property benchmark_id : Int32 = 0                  # Specific benchmark ID
-    property iterations : Int32 = 1000                 # Benchmark iterations
-    property sample_size : UInt64 = 100_u64 * 1024_u64 # 100 KB default sample
+    property benchmark_id : Int32 = 0                        # Specific benchmark ID
+    property benchmark_variants : Array(Int32) = [] of Int32 # Multiple variants from -b1,2,3
+    property iterations : Int32 = 0                          # Benchmark iterations (0 = auto-calibrate)
+    property sample_size : UInt64 = 100_u64 * 1024_u64       # 100 KB default sample
     property explicit_stdin : Bool = false
     property files : Array(String) = [] of String
 
@@ -58,23 +59,40 @@ module XXH::CLI
     end
 
     def parse : Bool
-      # Handle -bX benchmark options manually (vendor xxhsum format)
+      # Handle -bX and -bX,Y,Z benchmark options manually
       filtered_argv = @argv.select do |arg|
-        if arg.starts_with?("-b") && arg.size > 2 && arg[2..].chars.all? { |c| c.ascii_number? }
-          bench_id = arg[2..]
-          @options.mode = Options::Mode::Benchmark
-          @options.benchmark = true
-          # Map vendor bench IDs to our algorithm IDs
-          case bench_id
-          when "1"  then @options.algorithm = Algorithm::XXH32  # 1#XXH32
-          when "3"  then @options.algorithm = Algorithm::XXH64  # 3#XXH64
-          when "5"  then @options.algorithm = Algorithm::XXH3   # 5#XXH3_64b
-          when "11" then @options.algorithm = Algorithm::XXH128 # 11#XXH128
+        if arg.starts_with?("-b") && arg.size > 2
+          bench_spec = arg[2..]
+          # Check if it's all digits or digits with commas
+          if bench_spec.gsub(",", "").chars.all? { |c| c.ascii_number? }
+            @options.mode = Options::Mode::Benchmark
+            @options.benchmark = true
+
+            # Handle comma-separated variants like -b1,2,3
+            if bench_spec.includes?(',')
+              # Multiple variants
+              @options.benchmark_variants = bench_spec.split(',').map(&.to_i32)
+              @options.benchmark_all = true
+            else
+              # Single variant or "all"
+              bench_id = bench_spec.to_i32
+              if bench_id == 0 || bench_id >= 29
+                # IDs 0, and 29+ are treated as "benchmark all" (vendor behavior)
+                @options.benchmark_all = true
+              elsif bench_id >= 1 && bench_id <= 28
+                # Store the benchmark ID (1-28)
+                @options.benchmark_id = bench_id
+                @options.benchmark_all = false
+              else
+                # Invalid ID (negative or outside expected ranges)
+                error "Invalid benchmark ID: #{bench_spec}"
+                return false
+              end
+            end
+            false # Remove from argv
           else
-            error "Invalid benchmark ID: #{bench_id}"
-            return false
+            true # Keep in argv
           end
-          false # Remove from argv
         else
           true # Keep in argv
         end
@@ -138,19 +156,19 @@ module XXH::CLI
           @options.quiet = true
         end
 
-        parser.on("-b", "--benchmark", "Run benchmark") do
+        parser.on("-b", "--benchmark", "Run benchmark. Also supports vendor benchmark IDs: use `-b#` or `-b#,X,Y` to select vendor benchmark IDs (1-28). `-b0`, `-b29` and higher, or `-b77` expand to 'benchmark all'.") do
           @options.mode = Options::Mode::Benchmark
           @options.benchmark = true
           @options.benchmark_all = true
         end
 
-        parser.on("--bench-all", "Benchmark all algorithms") do
+        parser.on("--bench-all", "Benchmark all vendor benchmark IDs (alias for -b0/-b29/-b77)") do
           @options.mode = Options::Mode::Benchmark
           @options.benchmark = true
           @options.benchmark_all = true
         end
 
-        parser.on("-i#", "--iterations=N", "Number of times to run the benchmark (default: 1000)") do |n|
+        parser.on("-i#", "--iterations=N", "Number of iterations per benchmark run (0=auto-calibrate for 1 second)") do |n|
           @options.iterations = n.to_i32
         end
 
@@ -225,10 +243,9 @@ module XXH::CLI
     end
 
     private def print_version
-      version = LibXXH.versionNumber
-      major = version / 100 / 100
-      minor = version / 100 % 100
-      patch = version % 100
+      version = LibXXH.versionNumber.to_i32
+      major_minor, patch = version.divmod(100)
+      major, minor = major_minor.divmod(100)
       puts "xxhsum #{major}.#{minor}.#{patch} by Yann Collet"
       puts "Compiled as Crystal FFI bindings"
     end
@@ -254,6 +271,29 @@ module XXH::CLI
 
       value = s.to_u64? || 0_u64
       (value * multiplier)
+    end
+
+    # Map benchmark ID to algorithm
+    # Supports both C-style (1=XXH32, 2=XXH64, 3=XXH3, 4=XXH128)
+    # and vendor-style (1=XXH32, 3=XXH64, 5=XXH3, 11=XXH128)
+    def self.map_bench_id(id : Int32) : Algorithm?
+      case id
+      when  1 then Algorithm::XXH32
+      when  2 then Algorithm::XXH64  # C-style XXH64
+      when  3 then Algorithm::XXH64  # Vendor-style XXH64
+      when  4 then Algorithm::XXH128 # C-style XXH128
+      when  5 then Algorithm::XXH3   # Vendor-style XXH3
+      when 11 then Algorithm::XXH128 # Vendor-style XXH128
+      else
+        nil
+      end
+    end
+
+    # Map benchmark ID to algorithm
+    # Supports both C-style (1=XXH32, 2=XXH64, 3=XXH3, 4=XXH128)
+    # and vendor-style (1=XXH32, 3=XXH64, 5=XXH3, 11=XXH128)
+    private def map_bench_id(id : Int32) : Algorithm?
+      Parser.map_bench_id(id)
     end
 
     private def error(message : String)
