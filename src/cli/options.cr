@@ -210,50 +210,45 @@ module XXH::CLI
 
     private def print_help
       puts <<-HELP
-        xxhsum - Command line interface for xxhash algorithms
+        Create or verify checksums using fast non-cryptographic algorithm xxHash
+
         Usage: xxhsum [options] [files]
 
         When no filename provided or when '-' is provided, uses stdin as input.
 
         Options:
-          -H#                  Select an xxhash algorithm (default: 1)
-                                 0: XXH32
-                                 1: XXH64 (default)
-                                 2: XXH128
-                                 3: XXH3
-          -c, --check          Read xxHash checksum from [files] and check them
-              --files-from     Generate hashes for files listed in [files]
-              --filelist       Generate hashes for files listed in [files]
+          -H#                  select an xxhash algorithm (default: 1)
+                              0: XXH32
+                              1: XXH64
+                              2: XXH128 (also called XXH3_128bits)
+                              3: XXH3 (also called XXH3_64bits)
+          -c, --check          read xxHash checksum from [files] and check them
+              --files-from     generate hashes for files listed in [files]
+              --filelist       generate hashes for files listed in [files]
+          -                    forces stdin as input, even if it's the console
+          -h, --help           display a long help page about advanced options
+
+        Advanced:
+          -V, --version        Display version information
               --tag            Produce BSD-style checksum lines
-              --little-endian  Checksum values use little endian convention
-              --binary         Read in binary mode (no CRLF conversions on Windows)
+              --little-endian  Checksum values use little endian convention (default: big endian)
+              --binary         Read in binary mode
           -b                   Run benchmark
           -b#                  Bench only algorithm variant #
-              --bench-all      Benchmark all algorithms
-          -i#                  Number of iterations per benchmark run (default: 0=auto-calibrate)
+          -i#                  Number of times to run the benchmark (default: 3)
           -q, --quiet          Don't display version header in benchmark mode
-              --status         Don't output anything, status code shows success
-              --strict         Exit non-zero for improperly formatted lines
-              --warn           Warn about improperly formatted lines
-              --ignore-missing Don't fail or report status for missing files
-          -h, --help           Display this help message
-          -V, --version        Display version information
 
-        The following options are useful only when using lists in [files] to verify:
+        The following five options are useful only when using lists in [files] to verify or generate checksums:
           -q, --quiet          Don't print OK for each successfully verified hash
               --status         Don't output anything, status code shows success
-              --strict         Exit non-zero for improperly formatted lines
-              --warn           Warn about improperly formatted lines
+              --strict         Exit non-zero for improperly formatted lines in [files]
+              --warn           Warn about improperly formatted lines in [files]
               --ignore-missing Don't fail or report status for missing files
       HELP
     end
 
     private def print_version
-      version = LibXXH.versionNumber.to_i32
-      major_minor, patch = version.divmod(100)
-      major, minor = major_minor.divmod(100)
-      puts "xxhsum #{major}.#{minor}.#{patch} by Yann Collet"
-      puts "Compiled as Crystal FFI bindings"
+      puts "Crystal port of xxhsum 0.8.3"
     end
 
     # Parse size with K, KB, KiB, M, MB, MiB suffixes
