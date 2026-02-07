@@ -3,15 +3,9 @@
 # This module provides Crystal FFI bindings to the C99 xxHash implementation.
 # The actual hashing is delegated to the vendored C code in vendor/xxHash/.
 
-require "c/libc"
-
-{% if flag?(:win32) %}
-  @[Link(ldflags: "vendor/xxHash/xxhash.c", framework: "Security")]
-{% else %}
-  @[Link(ldflags: "vendor/xxHash/xxhash.c")]
-{% end %}
-
+@[Link(ldflags: "#{__DIR__}/../../vendor/xxHash/xxhash.o")]
 lib LibXXH
+
   # =========================================
   # Type Definitions
   # =========================================
@@ -51,116 +45,111 @@ lib LibXXH
   # Version Information
   # =========================================
 
-  fun versionNumber : UInt32
+  fun versionNumber = "XXH_versionNumber" : UInt32
 
   # =========================================
   # XXH32 Functions
   # =========================================
 
   # One-shot hashing
-  fun xxh32(input : Void*, length : LibC::Size, seed : XXH32_hash_t) : XXH32_hash_t
+  fun XXH32(input : Void*, length : LibC::SizeT, seed : XXH32_hash_t) : XXH32_hash_t
 
   # Streaming state management
-  fun xxh32_createState : XXH32_state_t*
-  fun xxh32_freeState(state : XXH32_state_t*) : XXH_errorcode
-  fun xxh32_copyState(dst : XXH32_state_t*, src : XXH32_state_t*)
-  fun xxh32_reset(state : XXH32_state_t*, seed : XXH32_hash_t) : XXH_errorcode
-  fun xxh32_update(state : XXH32_state_t*, input : Void*, length : LibC::Size) : XXH_errorcode
-  fun xxh32_digest(state : XXH32_state_t*) : XXH32_hash_t
+  fun XXH32_createState : XXH32_state_t*
+  fun XXH32_freeState(state : XXH32_state_t*) : XXH_errorcode
+  fun XXH32_copyState(dst : XXH32_state_t*, src : XXH32_state_t*)
+  fun XXH32_reset(state : XXH32_state_t*, seed : XXH32_hash_t) : XXH_errorcode
+  fun XXH32_update(state : XXH32_state_t*, input : Void*, length : LibC::SizeT) : XXH_errorcode
+  fun XXH32_digest(state : XXH32_state_t*) : XXH32_hash_t
 
   # Canonical representation conversions
-  fun xxh32_canonicalFromHash(dst : XXH32_canonical_t*, hash : XXH32_hash_t)
-  fun xxh32_hashFromCanonical(src : XXH32_canonical_t*) : XXH32_hash_t
+  fun XXH32_canonicalFromHash(dst : XXH32_canonical_t*, hash : XXH32_hash_t)
+  fun XXH32_hashFromCanonical(src : XXH32_canonical_t*) : XXH32_hash_t
 
   # =========================================
   # XXH64 Functions
   # =========================================
 
   # One-shot hashing
-  fun xxh64(input : Void*, length : LibC::Size, seed : XXH64_hash_t) : XXH64_hash_t
+  fun XXH64(input : Void*, length : LibC::SizeT, seed : XXH64_hash_t) : XXH64_hash_t
 
   # Streaming state management
-  fun xxh64_createState : XXH64_state_t*
-  fun xxh64_freeState(state : XXH64_state_t*) : XXH_errorcode
-  fun xxh64_copyState(dst : XXH64_state_t*, src : XXH64_state_t*)
-  fun xxh64_reset(state : XXH64_state_t*, seed : XXH64_hash_t) : XXH_errorcode
-  fun xxh64_update(state : XXH64_state_t*, input : Void*, length : LibC::Size) : XXH_errorcode
-  fun xxh64_digest(state : XXH64_state_t*) : XXH64_hash_t
+  fun XXH64_createState : XXH64_state_t*
+  fun XXH64_freeState(state : XXH64_state_t*) : XXH_errorcode
+  fun XXH64_copyState(dst : XXH64_state_t*, src : XXH64_state_t*)
+  fun XXH64_reset(state : XXH64_state_t*, seed : XXH64_hash_t) : XXH_errorcode
+  fun XXH64_update(state : XXH64_state_t*, input : Void*, length : LibC::SizeT) : XXH_errorcode
+  fun XXH64_digest(state : XXH64_state_t*) : XXH64_hash_t
 
   # Canonical representation conversions
-  fun xxh64_canonicalFromHash(dst : XXH64_canonical_t*, hash : XXH64_hash_t)
-  fun xxh64_hashFromCanonical(src : XXH64_canonical_t*) : XXH64_hash_t
+  fun XXH64_canonicalFromHash(dst : XXH64_canonical_t*, hash : XXH64_hash_t)
+  fun XXH64_hashFromCanonical(src : XXH64_canonical_t*) : XXH64_hash_t
 
   # =========================================
   # XXH3 64-bit Functions
   # =========================================
 
   # One-shot hashing
-  fun xxh3_64bits(input : Void*, length : LibC::Size) : XXH64_hash_t
-  fun xxh3_64bits_withSeed(input : Void*, length : LibC::Size, seed : XXH64_hash_t) : XXH64_hash_t
-  fun xxh3_64bits_withSecret(input : Void*, length : LibC::Size, secret : Void*, secretSize : LibC::Size) : XXH64_hash_t
-  fun xxh3_64bits_withSecretandSeed(input : Void*, length : LibC::Size, secret : Void*, secretSize : LibC::Size, seed : XXH64_hash_t) : XXH64_hash_t
+  fun XXH3_64bits(input : Void*, length : LibC::SizeT) : XXH64_hash_t
+  fun XXH3_64bits_withSeed(input : Void*, length : LibC::SizeT, seed : XXH64_hash_t) : XXH64_hash_t
+  fun XXH3_64bits_withSecret(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT) : XXH64_hash_t
+  fun XXH3_64bits_withSecretandSeed(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT, seed : XXH64_hash_t) : XXH64_hash_t
 
   # Streaming state management
-  fun xxh3_createState : XXH3_state_t*
-  fun xxh3_freeState(state : XXH3_state_t*) : XXH_errorcode
-  fun xxh3_copyState(dst : XXH3_state_t*, src : XXH3_state_t*)
-  fun xxh3_64bits_reset(state : XXH3_state_t*) : XXH_errorcode
-  fun xxh3_64bits_reset_withSeed(state : XXH3_state_t*, seed : XXH64_hash_t) : XXH_errorcode
-  fun xxh3_64bits_reset_withSecret(state : XXH3_state_t*, secret : Void*, secretSize : LibC::Size) : XXH_errorcode
-  fun xxh3_64bits_reset_withSecretandSeed(state : XXH3_state_t*, secret : Void*, secretSize : LibC::Size, seed : XXH64_hash_t) : XXH_errorcode
-  fun xxh3_64bits_update(state : XXH3_state_t*, input : Void*, length : LibC::Size) : XXH_errorcode
-  fun xxh3_64bits_digest(state : XXH3_state_t*) : XXH64_hash_t
+  fun XXH3_createState : XXH3_state_t*
+  fun XXH3_freeState(state : XXH3_state_t*) : XXH_errorcode
+  fun XXH3_copyState(dst : XXH3_state_t*, src : XXH3_state_t*)
+  fun XXH3_64bits_reset(state : XXH3_state_t*) : XXH_errorcode
+  fun XXH3_64bits_reset_withSeed(state : XXH3_state_t*, seed : XXH64_hash_t) : XXH_errorcode
+  fun XXH3_64bits_reset_withSecret(state : XXH3_state_t*, secret : Void*, secretSize : LibC::SizeT) : XXH_errorcode
+  fun XXH3_64bits_reset_withSecretandSeed(state : XXH3_state_t*, secret : Void*, secretSize : LibC::SizeT, seed : XXH64_hash_t) : XXH_errorcode
+  fun XXH3_64bits_update(state : XXH3_state_t*, input : Void*, length : LibC::SizeT) : XXH_errorcode
+  fun XXH3_64bits_digest(state : XXH3_state_t*) : XXH64_hash_t
 
   # Secret generation
-  fun xxh3_generateSecret(secretBuffer : Void*, secretSize : LibC::Size, customSeed : Void*, customSeedSize : LibC::Size) : XXH_errorcode
-  fun xxh3_generateSecret_fromSeed(secretBuffer : Void*, seed : XXH64_hash_t)
+  fun XXH3_generateSecret(secretBuffer : Void*, secretSize : LibC::SizeT, customSeed : Void*, customSeedSize : LibC::SizeT) : XXH_errorcode
+  fun XXH3_generateSecret_fromSeed(secretBuffer : Void*, seed : XXH64_hash_t)
 
   # =========================================
   # XXH3 128-bit Functions
   # =========================================
 
   # One-shot hashing
-  fun xxh3_128bits(input : Void*, length : LibC::Size) : XXH128_hash_t
-  fun xxh3_128bits_withSeed(input : Void*, length : LibC::Size, seed : XXH64_hash_t) : XXH128_hash_t
-  fun xxh3_128bits_withSecret(input : Void*, length : LibC::Size, secret : Void*, secretSize : LibC::Size) : XXH128_hash_t
-  fun xxh3_128bits_withSecretandSeed(input : Void*, length : LibC::Size, secret : Void*, secretSize : LibC::Size, seed : XXH64_hash_t) : XXH128_hash_t
-  fun xxh128(input : Void*, length : LibC::Size, seed : XXH64_hash_t) : XXH128_hash_t
+  fun XXH3_128bits(input : Void*, length : LibC::SizeT) : XXH128_hash_t
+  fun XXH3_128bits_withSeed(input : Void*, length : LibC::SizeT, seed : XXH64_hash_t) : XXH128_hash_t
+  fun XXH3_128bits_withSecret(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT) : XXH128_hash_t
+  fun XXH3_128bits_withSecretandSeed(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT, seed : XXH64_hash_t) : XXH128_hash_t
+  fun XXH128(input : Void*, length : LibC::SizeT, seed : XXH64_hash_t) : XXH128_hash_t
 
   # Streaming state management (uses same state as XXH3 64-bit)
-  fun xxh3_128bits_reset(state : XXH3_state_t*) : XXH_errorcode
-  fun xxh3_128bits_reset_withSeed(state : XXH3_state_t*, seed : XXH64_hash_t) : XXH_errorcode
-  fun xxh3_128bits_reset_withSecret(state : XXH3_state_t*, secret : Void*, secretSize : LibC::Size) : XXH_errorcode
-  fun xxh3_128bits_reset_withSecretandSeed(state : XXH3_state_t*, secret : Void*, secretSize : LibC::Size, seed : XXH64_hash_t) : XXH_errorcode
-  fun xxh3_128bits_update(state : XXH3_state_t*, input : Void*, length : LibC::Size) : XXH_errorcode
-  fun xxh3_128bits_digest(state : XXH3_state_t*) : XXH128_hash_t
+  fun XXH3_128bits_reset(state : XXH3_state_t*) : XXH_errorcode
+  fun XXH3_128bits_reset_withSeed(state : XXH3_state_t*, seed : XXH64_hash_t) : XXH_errorcode
+  fun XXH3_128bits_reset_withSecret(state : XXH3_state_t*, secret : Void*, secretSize : LibC::SizeT) : XXH_errorcode
+  fun XXH3_128bits_reset_withSecretandSeed(state : XXH3_state_t*, secret : Void*, secretSize : LibC::SizeT, seed : XXH64_hash_t) : XXH_errorcode
+  fun XXH3_128bits_update(state : XXH3_state_t*, input : Void*, length : LibC::SizeT) : XXH_errorcode
+  fun XXH3_128bits_digest(state : XXH3_state_t*) : XXH128_hash_t
 
   # 128-bit comparisons
-  fun xxh128_isEqual(h1 : XXH128_hash_t, h2 : XXH128_hash_t) : Int32
-  fun xxh128_cmp(h128_1 : Void*, h128_2 : Void*) : Int32
+  fun XXH128_isEqual(h1 : XXH128_hash_t, h2 : XXH128_hash_t) : Int32
+  fun XXH128_cmp(h128_1 : Void*, h128_2 : Void*) : Int32
 
   # Canonical representation conversions
-  fun xxh128_canonicalFromHash(dst : XXH128_canonical_t*, hash : XXH128_hash_t)
-  fun xxh128_hashFromCanonical(src : XXH128_canonical_t*) : XXH128_hash_t
+  fun XXH128_canonicalFromHash(dst : XXH128_canonical_t*, hash : XXH128_hash_t)
+  fun XXH128_hashFromCanonical(src : XXH128_canonical_t*) : XXH128_hash_t
 
   # =========================================
   # Opaque State Types (defined internally in C)
   # =========================================
 
   struct XXH32_state_t
-    # Opaque structure - defined in xxhash.c
-    # Do not access directly
-    bytes : UInt8[64] # Enough space for the largest state
+    bytes : UInt8[64]
   end
 
   struct XXH64_state_t
-    # Opaque structure - defined in xxhash.c
-    bytes : UInt8[128] # Enough space for the largest state
+    bytes : UInt8[128]
   end
 
   struct XXH3_state_t
-    # Opaque structure - defined in xxhash.c
-    # Requires 64-byte alignment
-    bytes : UInt8[512] # Enough space for XXH3_state_s
+    bytes : UInt8[512]
   end
 end

@@ -9,9 +9,12 @@ authors:
   - Werner Stein <werner.stein@gmail.com>
 
 targets:
-  cr-xxhash:
-    main: src/app.cr
+  xxhsum:
+    main: src/xxhsum.cr
 
 crystal: ">= 1.19.0"
+
+# Custom build flags to link with vendored xxHash
+LDFLAGS: -Lvendor/xxHash -lxxhash
 
 license: BSD-2-Clause
