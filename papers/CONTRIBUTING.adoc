@@ -23,7 +23,27 @@ This project aims to bridge the gap between low-level C optimization and High-le
     * Run the benchmark and include results in your PR when performance changes are involved:
         **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
     * Use `scripts/tool_versions.rb` to document your environment in the PR description.
-4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
+== Aliases & Local Bin
+
+For developer convenience this project creates lightweight CLI aliases that default to algorithm-specific behavior (matching the vendor tool). The aliases are:
+
+* `./bin/xxh32sum` → XXH32 (equivalent to `./bin/xxhsum -H0`)
+* `./bin/xxh64sum` → XXH64 (equivalent to `./bin/xxhsum -H1`)
+* `./bin/xxh128sum` → XXH128 (equivalent to `./bin/xxhsum -H2`)
+* `./bin/xxh3sum`  → XXH3  (equivalent to `./bin/xxhsum -H3`)
+
+These aliases are created by the `postinstall` script defined in `shard.yml` (runs during `shards install`). The `./bin` directory is ignored by `.gitignore`, so you may need to recreate aliases locally. To recreate them manually, run:
+
+```
+make -C vendor/xxHash libxxhash.a
+mkdir -p bin
+ln -sf ./bin/xxhsum ./bin/xxh32sum
+ln -sf ./bin/xxhsum ./bin/xxh64sum
+ln -sf ./bin/xxhsum ./bin/xxh128sum
+ln -sf ./bin/xxhsum ./bin/xxh3sum
+```
+
+Or simply run `shards install` to execute the `postinstall` hook automatically.4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
 
 == Technical Standards
 

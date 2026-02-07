@@ -78,21 +78,50 @@ echo "test data" | ./bin/xxhsum
 
 # Benchmark mode (100 KB sample by default)
 ./bin/xxhsum -b           # Benchmark default variants 1,3,5,11
+
+# Aliases
+The build creates convenient CLI aliases that default to their corresponding algorithms (same behavior as the C reference):
+
+* `xxh32sum` -> XXH32 (equivalent to `xxhsum -H0`)
+* `xxh64sum` -> XXH64 (equivalent to `xxhsum -H1`)
+* `xxh128sum` -> XXH128 (equivalent to `xxhsum -H2`)
+* `xxh3sum` -> XXH3 (equivalent to `xxhsum -H3`)
+
+Examples:
+
+Help and default algorithm are alias-aware. For example:
+
+```bash
+echo dfdf | ./bin/xxh32sum        # produces an XXH32 hash
+./bin/xxh32sum -h                 # shows "-H# ... (default: 0)"
+```
+
+Usage examples:
+
+```bash
+./bin/xxh32sum README.md   # same as: ./bin/xxhsum -H0 README.md
+./bin/xxh3sum README.md    # same as: ./bin/xxhsum -H3 README.md
+```
+
 ./bin/xxhsum -b0          # Benchmark all 28 variants
 ./bin/xxhsum -b3          # Benchmark specific variant (XXH64)
 ./bin/xxhsum -b1,3,5,11   # Benchmark comma-separated list of variants
 ./bin/xxhsum --bench-all  # Benchmark all 28 variants (same as -b0)
 
-# Custom sample size for benchmarking
+### Custom sample size for benchmarking
+
 ./bin/xxhsum -b -B64K    # Benchmark with 64 KB sample
 ./bin/xxhsum -b -B256K   # Benchmark with 256 KB sample
 ./bin/xxhsum -b -B1M     # Benchmark with 1 MB sample
 
-# Custom calibration iterations for benchmarks
+### Custom calibration iterations for benchmarks
+
 ./bin/xxhsum -b -i1      # Single calibration iteration (faster, less stable)
 ./bin/xxhsum -b -i5      # 5 calibration iterations (slower, more stable)
 
 Sample output (example):
+
+```text
  1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
  3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
  5#XXH3_64b                      :     102400 ->   496518 it/s (48488.1 MB/s)
@@ -104,10 +133,9 @@ Sample output (example):
 * `shards build` automatically compiles the vendored C xxHash library via the postinstall hook
 * Requires `make` and a C compiler (clang/gcc)
 * LLVM optimizations enabled for maximum performance
+* Aliases (`./bin/xxh32sum`, `./bin/xxh64sum`, `./bin/xxh128sum`, `./bin/xxh3sum`) are created by the postinstall hook and `./bin` is gitignored; to recreate aliases run `shards install` or execute the manual commands from the contributing guide.
 
-```
-
-#### Verified Test Results ✅
+### Verified Test Results ✅
 
 All algorithms validated against vendor xxHash implementation:
 
@@ -148,26 +176,26 @@ The `xxhsum` benchmark mode tests hash throughput using **benchmark IDs 1-28** (
 
 All variants test **aligned (offset +0)** and **unaligned (offset +3)** memory access:
 
-**Basic Variants (1–6, 11–12)**
+#### Basic Variants (1–6, 11–12)
 
 * 1–2: `XXH32` (aligned/unaligned)
 * 3–4: `XXH64` (aligned/unaligned)
 * 5–6: `XXH3_64b` (aligned/unaligned)
 * 11–12: `XXH128` (aligned/unaligned)
 
-**Seeded Variants (7–8, 13–14, 23–24, 27–28)**
+#### Seeded Variants (7–8, 13–14, 23–24, 27–28)
 
 * 7–8: `XXH3_64b w/seed` (aligned/unaligned)
 * 13–14: `XXH128 w/seed` (aligned/unaligned)
 * 23–24: `XXH3_stream w/seed` (aligned/unaligned)
 * 27–28: `XXH128_stream w/seed` (aligned/unaligned)
 
-**Secret Variants (9–10, 15–16)**
+#### Secret Variants (9–10, 15–16)
 
 * 9–10: `XXH3_64b w/secret` (aligned/unaligned)
 * 15–16: `XXH128 w/secret` (aligned/unaligned)
 
-**Streaming Variants (17–28)**
+#### Streaming Variants (17–28)
 
 * 17–18: `XXH32_stream` (aligned/unaligned)
 * 19–20: `XXH64_stream` (aligned/unaligned)
@@ -200,7 +228,7 @@ All variants test **aligned (offset +0)** and **unaligned (offset +3)** memory a
 
 ### Output Format
 
-```
+```text
 ID#Name                       :   SizeBytes ->   Throughput (MB/s)
  1#XXH32                      :     102400 ->   100000 it/s (9765.6 MB/s)
  3#XXH64                      :     102400 ->   220000 it/s (21484.4 MB/s)

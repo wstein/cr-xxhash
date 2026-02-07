@@ -21,7 +21,7 @@ module XXH
   end
 end
 
-# Run CLI if this is the main executable
-if File.basename(PROGRAM_NAME) == "xxhsum"
+# Run CLI if this executable looks like the xxHash CLI (support aliases like xxh32sum)
+if File.basename(PROGRAM_NAME).downcase.starts_with?("xxh")
   require "./xxhsum"
 end

@@ -57,6 +57,18 @@ module XXH::CLI
     getter options : Options = Options.new
 
     def initialize(@argv : Array(String))
+      # Detect invocation alias and set default algorithm accordingly
+      prog = File.basename(PROGRAM_NAME).downcase
+      case prog
+      when "xxh32sum"
+        @options.algorithm = Algorithm::XXH32
+      when "xxh64sum"
+        @options.algorithm = Algorithm::XXH64
+      when "xxh128sum"
+        @options.algorithm = Algorithm::XXH128
+      when "xxh3sum"
+        @options.algorithm = Algorithm::XXH3
+      end
     end
 
     def parse : Bool
@@ -209,15 +221,36 @@ module XXH::CLI
     end
 
     private def print_help
+      prog = File.basename(PROGRAM_NAME)
+
+      # Compute default algorithm number based on parser options (alias-aware)
+      default_algo = if @options && @options.algorithm
+                       case @options.algorithm
+                       when Algorithm::XXH32  then 0
+                       when Algorithm::XXH64  then 1
+                       when Algorithm::XXH128 then 2
+                       when Algorithm::XXH3   then 3
+                       else                        1
+                       end
+                     else
+                       case prog.downcase
+                       when "xxh32sum"  then 0
+                       when "xxh64sum"  then 1
+                       when "xxh128sum" then 2
+                       when "xxh3sum"   then 3
+                       else                  1
+                       end
+                     end
+
       puts <<-HELP
         Create or verify checksums using fast non-cryptographic algorithm xxHash
 
-        Usage: xxhsum [options] [files]
+        Usage: #{prog} [options] [files]
 
         When no filename provided or when '-' is provided, uses stdin as input.
 
         Options:
-          -H#                  select an xxhash algorithm (default: 1)
+          -H#                  select an xxhash algorithm (default: #{default_algo})
                               0: XXH32
                               1: XXH64
                               2: XXH128 (also called XXH3_128bits)
@@ -236,6 +269,7 @@ module XXH::CLI
           -b                   Run benchmark
           -b#                  Bench only algorithm variant #
           -i#                  Number of times to run the benchmark (default: 3)
+          -B#                  Benchmark block size (supports K/M/G suffixes)
           -q, --quiet          Don't display version header in benchmark mode
 
         The following five options are useful only when using lists in [files] to verify or generate checksums:
