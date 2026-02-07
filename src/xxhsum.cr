@@ -324,53 +324,117 @@ module XXH::CLI
     # Select data based on alignment
     data = variant.aligned ? aligned_data : unaligned_data
 
-    # Auto-tune iterations to hit ~1 second target
-    iterations = if user_iterations > 0
-                   user_iterations
-                 else
-                   auto_tune_iterations(data, variant)
-                 end
+    # If user specified iterations, use that as max calibration rounds
+    # Otherwise use default calibration
+    max_calibrations = if user_iterations > 0
+                         user_iterations
+                       else
+                         3 # Default per original C code (NBLOOPS_DEFAULT)
+                       end
 
-    # Run the actual benchmark
-    start_time = Time.instant
-    run_benchmark_iterations(data, variant, iterations)
-    elapsed = Time.instant - start_time
-    elapsed_seconds = elapsed.total_seconds
+    run_time_based_benchmark(data, variant, max_calibrations)
+  end
 
-    # Calculate throughput
-    iterations_per_sec = iterations.to_f / elapsed_seconds
-    total_bytes = data.size.to_f * iterations
-    throughput_mb = (total_bytes / (1024 * 1024)) / elapsed_seconds
+  # Time-based benchmark following C99 xxhsum algorithm
+  # max_calibrations: maximum number of calibration rounds
+  private def self.run_time_based_benchmark(data : Bytes, variant : BenchmarkVariant, max_calibrations : Int32 = 3)
+    target_duration = 1.0_f64 # Target: 1 second per iteration
+    min_duration = 0.5_f64    # Minimum: 0.5 second to validate result
 
-    # Format output with live progress (no \r for simplicity in final output, but ready for future enhancement)
+    # Initial estimate based on 10 MB/s speed target
+    initial_throughput = 10_u64 * 1024_u64 * 1024_u64 # 10 MB/s
+    nbh_per_iteration = ((initial_throughput / data.size) + 1).to_u32
+
+    fastest_time_per_hash = Float64::INFINITY
+
+    # Calibration loop
+    max_calibrations.times do |attempt|
+      # Time one iteration - run hashes in a loop until we reach target time
+      start_time = Time.instant
+
+      # The actual hashing loop - run hashes in blocks of nbh_per_iteration
+      # until we hit the target duration
+      actual_iterations = 0_u32
+      result = 0_u64
+      iteration_number = 0_u32
+
+      while (Time.instant - start_time).total_seconds < target_duration
+        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration)
+        actual_iterations += nbh_per_iteration
+        iteration_number += 1
+      end
+
+      elapsed = Time.instant - start_time
+      elapsed_seconds = elapsed.total_seconds
+
+      # Calculate metrics - time per hash across all iterations
+      time_per_hash = elapsed_seconds / actual_iterations.to_f
+
+      if time_per_hash < fastest_time_per_hash
+        fastest_time_per_hash = time_per_hash
+      end
+
+      # Check if measurement is valid
+      if elapsed_seconds >= min_duration
+        # Valid measurement - but keep running for all calibrations to get the fastest
+        # (only break if this is the last iteration)
+      else
+        # Not enough time - extrapolate for next attempt
+        if elapsed_seconds == 0
+          nbh_per_iteration *= 100_u32
+        else
+          # Calculate hashes needed to hit target duration
+          new_nbh = ((target_duration / elapsed_seconds) * nbh_per_iteration).to_u32
+          nbh_per_iteration = new_nbh.clamp(1_u32, 10_000_000_u32)
+        end
+      end
+    end
+
+    # Calculate final throughput from fastest measurement
+    iterations_per_sec = if fastest_time_per_hash > 0 && fastest_time_per_hash != Float64::INFINITY
+                           1.0 / fastest_time_per_hash
+                         else
+                           0.0
+                         end
+    # Throughput = hashes_per_second * bytes_per_hash
+    throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
+
+    # Format output
     printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
       variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
   end
 
-  private def self.auto_tune_iterations(data : Bytes, variant : BenchmarkVariant) : Int32
-    target_duration = 1.0 # 1 second target
-    iterations = 1
-    max_iterations = 10000
+  # Run one batch of nbh_per_iteration hashes with seed variation
+  private def self.run_one_hash_batch(data : Bytes, variant : BenchmarkVariant, batch_seed : UInt32, nbh_per_iteration : UInt32) : UInt64
+    result : UInt64 = 0_u64
 
-    # Quick warmup run
-    run_benchmark_iterations(data, variant, 1)
-
-    # Measure how long one iteration takes
-    start_time = Time.instant
-    run_benchmark_iterations(data, variant, 1)
-    elapsed = Time.instant - start_time
-    elapsed_seconds = elapsed.total_seconds
-
-    # Calculate iterations needed to hit target
-    if elapsed_seconds > 0
-      iterations = (target_duration / elapsed_seconds).to_i32.clamp(1, max_iterations)
-    else
-      # Too fast, do more iterations
-      iterations = (max_iterations / 10).to_i32
+    nbh_per_iteration.times do |hash_idx|
+      seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+      result = run_single_hash(data, variant, seed)
     end
 
-    iterations
+    @@benchmark_result = result
+    result
   end
+
+  # Run a single hash with the given seed variation
+  private def self.run_single_hash(data : Bytes, variant : BenchmarkVariant, seed : UInt32) : UInt64
+    case variant.variant_type
+    when "basic"
+      run_basic_benchmark_one(data, variant.algorithm, seed)
+    when "seeded"
+      run_seeded_benchmark_one(data, variant.algorithm, seed)
+    when "secret"
+      run_secret_benchmark_one(data, variant.algorithm, seed)
+    when "stream"
+      run_streaming_benchmark_one(data, variant.algorithm, seed)
+    else
+      0_u64
+    end
+  end
+
+  # Class variable to store benchmark result (prevents optimization)
+  @@benchmark_result : UInt64 = 0_u64
 
   private def self.run_benchmark_iterations(data : Bytes, variant : BenchmarkVariant, iterations : Int32)
     case variant.variant_type
@@ -385,6 +449,24 @@ module XXH::CLI
     end
   end
 
+  # Single hash with seed variation (for time-based loop)
+  private def self.run_basic_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    case algorithm
+    when Algorithm::XXH32
+      LibXXH.XXH32(data.to_unsafe, data.size, seed_u).to_u64
+    when Algorithm::XXH64
+      LibXXH.XXH64(data.to_unsafe, data.size, seed_u.to_u64)
+    when Algorithm::XXH3
+      LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+    when Algorithm::XXH128
+      result = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
+      (result.high64 ^ result.low64).to_u64
+    else
+      0_u64
+    end
+  end
+
+  # Old: Fixed iteration method (kept for compatibility)
   private def self.run_basic_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     case algorithm
     when Algorithm::XXH32
@@ -406,6 +488,28 @@ module XXH::CLI
     end
   end
 
+  # Single seeded hash with seed variation (for time-based loop)
+  private def self.run_seeded_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    base_seed = 42_u64
+    # Vary seed across iterations to prevent optimization
+    seed = (base_seed + seed_u.to_u64) ^ 0xc4ceb9fe1a85ec53_u64
+
+    case algorithm
+    when Algorithm::XXH32
+      LibXXH.XXH32(data.to_unsafe, data.size, seed.to_u32).to_u64
+    when Algorithm::XXH64
+      LibXXH.XXH64(data.to_unsafe, data.size, seed)
+    when Algorithm::XXH3
+      LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
+    when Algorithm::XXH128
+      result = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
+      (result.high64 ^ result.low64).to_u64
+    else
+      0_u64
+    end
+  end
+
+  # Old: Fixed iteration seeded method (kept for compatibility)
   private def self.run_seeded_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     seed = 42_u64
     case algorithm
@@ -428,6 +532,29 @@ module XXH::CLI
     end
   end
 
+  # Single secret hash with seed variation (for time-based loop)
+  private def self.run_secret_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    # Generate a secret buffer (minimum required size for XXH3)
+    secret_buffer = Bytes.new(136) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
+
+    case algorithm
+    when Algorithm::XXH32
+      # XXH32 doesn't support secret, fall back to seeded
+      run_seeded_benchmark_one(data, algorithm, seed_u)
+    when Algorithm::XXH64
+      # XXH64 doesn't support secret, fall back to seeded
+      run_seeded_benchmark_one(data, algorithm, seed_u)
+    when Algorithm::XXH3
+      LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+    when Algorithm::XXH128
+      result = LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+      (result.high64 ^ result.low64).to_u64
+    else
+      0_u64
+    end
+  end
+
+  # Old: Fixed iteration method (kept for compatibility)
   private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     # Generate a secret buffer (minimum required size for XXH3)
     secret_buffer = Bytes.new(136) { |i| ((i * 17) % 256).to_u8 }
@@ -450,6 +577,59 @@ module XXH::CLI
     end
   end
 
+  # Single streaming hash with seed variation (for time-based loop)
+  private def self.run_streaming_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    case algorithm
+    when Algorithm::XXH32
+      state = LibXXH.XXH32_createState
+      if state
+        LibXXH.XXH32_reset(state, seed_u)
+        LibXXH.XXH32_update(state, data.to_unsafe, data.size)
+        result = LibXXH.XXH32_digest(state)
+        LibXXH.XXH32_freeState(state)
+        result.to_u64
+      else
+        0_u64
+      end
+    when Algorithm::XXH64
+      state = LibXXH.XXH64_createState
+      if state
+        LibXXH.XXH64_reset(state, seed_u.to_u64)
+        LibXXH.XXH64_update(state, data.to_unsafe, data.size)
+        result = LibXXH.XXH64_digest(state)
+        LibXXH.XXH64_freeState(state)
+        result
+      else
+        0_u64
+      end
+    when Algorithm::XXH3
+      state = LibXXH.XXH3_createState
+      if state
+        LibXXH.XXH3_64bits_reset(state)
+        LibXXH.XXH3_64bits_update(state, data.to_unsafe, data.size)
+        result = LibXXH.XXH3_64bits_digest(state)
+        LibXXH.XXH3_freeState(state)
+        result
+      else
+        0_u64
+      end
+    when Algorithm::XXH128
+      state = LibXXH.XXH3_createState
+      if state
+        LibXXH.XXH3_128bits_reset(state)
+        LibXXH.XXH3_128bits_update(state, data.to_unsafe, data.size)
+        result = LibXXH.XXH3_128bits_digest(state)
+        LibXXH.XXH3_freeState(state)
+        (result.high64 ^ result.low64).to_u64
+      else
+        0_u64
+      end
+    else
+      0_u64
+    end
+  end
+
+  # Old: Fixed iteration method (kept for compatibility)
   private def self.run_streaming_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     case algorithm
     when Algorithm::XXH32
