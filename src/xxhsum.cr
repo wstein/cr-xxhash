@@ -143,9 +143,12 @@ module XXH::CLI
         end
       when Algorithm::XXH128
         if (h128 = actual.hash128)
-          low_bytes = endianness_to_bytes(h128[0], is_le)
-          high_bytes = endianness_to_bytes(h128[1], is_le)
-          hash_bytes = low_bytes + high_bytes
+          # Output format: high64 then low64 for big-endian, low64_le then high64_le for little-endian
+          if is_le
+            hash_bytes = endianness_to_bytes(h128[0], true) + endianness_to_bytes(h128[1], true)
+          else
+            hash_bytes = endianness_to_bytes(h128[1], false) + endianness_to_bytes(h128[0], false)
+          end
           hash_ok = hash_bytes == expected_hash
         end
       end
@@ -225,12 +228,11 @@ module XXH::CLI
 
   private def self.run_benchmark_mode(options : Options)
     sample_size = options.sample_size
-    iterations = options.iterations
 
     # Generate random sample data
     data = Random::Secure.random_bytes(sample_size)
 
-    puts "Benchmark: #{sample_size} bytes, #{iterations} iterations"
+    puts "Sample of #{sample_size / 1024} KB..."
 
     # Benchmark selected algorithms
     algorithms = if options.benchmark_all
@@ -240,47 +242,73 @@ module XXH::CLI
                  end
 
     algorithms.each do |algo|
-      run_single_benchmark(data, algo, iterations)
+      run_single_benchmark(data, algo)
     end
   end
 
-  private def self.run_single_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
+  private def self.run_single_benchmark(data : Bytes, algorithm : Algorithm)
+    # Determine vendor bench ID and name
+    vendor_id, algo_name = case algorithm
+                           when Algorithm::XXH32
+                             {1, "XXH32"}
+                           when Algorithm::XXH64
+                             {3, "XXH64"}
+                           when Algorithm::XXH3
+                             {5, "XXH3_64b"}
+                           when Algorithm::XXH128
+                             {11, "XXH128"}
+                           else
+                             {0, "Unknown"}
+                           end
+
+    # Time a warm-up run
     start_time = Time.instant
+    iterations = 0
+    target_duration = 1.0 # Target 1 second
 
     case algorithm
     when Algorithm::XXH32
-      iterations.times do
+      while Time.instant - start_time < target_duration.seconds
         LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
+        iterations += 1
       end
     when Algorithm::XXH64
-      iterations.times do
+      while Time.instant - start_time < target_duration.seconds
         LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
+        iterations += 1
       end
     when Algorithm::XXH3
-      iterations.times do
+      while Time.instant - start_time < target_duration.seconds
         LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+        iterations += 1
       end
     when Algorithm::XXH128
-      iterations.times do
+      while Time.instant - start_time < target_duration.seconds
         LibXXH.XXH3_128bits(data.to_unsafe, data.size)
+        iterations += 1
       end
     end
 
     elapsed = Time.instant - start_time
-    total_bytes = data.size * iterations
-    throughput = total_bytes / elapsed.total_seconds
+    elapsed_seconds = elapsed.total_seconds
 
-    algo_name = Formatter::ALGO_NAMES[algorithm]
-    puts "#{algo_name}: #{(throughput / 1_000_000_000).round(2)} GB/s"
+    # Calculate throughput
+    iterations_per_sec = iterations.to_f / elapsed_seconds
+    total_bytes = data.size.to_f * iterations
+    throughput_mb = (total_bytes / (1024 * 1024)) / elapsed_seconds
+
+    # Format output like vendor: "1#XXH32                         :     102400 ->   133425 it/s (13029.8 MB/s)"
+    printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
+      vendor_id, algo_name, data.size, iterations_per_sec, throughput_mb)
   end
 
   # Helper to convert UInt32 to bytes with endianness
   private def self.endianness_to_bytes(value : UInt32, is_le : Bool) : Bytes
     Slice.new(4) do |i|
       if is_le
-        (value >> (i * 8)).to_u8
+        ((value >> (i * 8)) & 0xFF_u32).to_u8
       else
-        (value >> ((3 - i) * 8)).to_u8
+        ((value >> ((3 - i) * 8)) & 0xFF_u32).to_u8
       end
     end
   end
@@ -289,9 +317,9 @@ module XXH::CLI
   private def self.endianness_to_bytes(value : UInt64, is_le : Bool) : Bytes
     Slice.new(8) do |i|
       if is_le
-        (value >> (i * 8)).to_u8
+        ((value >> (i * 8)) & 0xFF_u64).to_u8
       else
-        (value >> ((7 - i) * 8)).to_u8
+        ((value >> ((7 - i) * 8)) & 0xFF_u64).to_u8
       end
     end
   end

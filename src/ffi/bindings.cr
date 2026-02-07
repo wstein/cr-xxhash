@@ -5,7 +5,6 @@
 
 @[Link(ldflags: "#{__DIR__}/../../vendor/xxHash/xxhash.o")]
 lib LibXXH
-
   # =========================================
   # Type Definitions
   # =========================================

@@ -30,7 +30,7 @@ module XXH::CLI
         return nil unless hash32
         hash_bytes = to_bytes(hash32, endianness)
         hash_str = hash_bytes.map { |b| "%02x" % b }.join
-        "#{ALGO_NAMES[algorithm]}  #{hash_str}  #{filename}"
+        "#{hash_str}  #{filename}"
       when Algorithm::XXH64, Algorithm::XXH3
         hash64 = result.hash64
         return nil unless hash64
@@ -41,11 +41,17 @@ module XXH::CLI
       when Algorithm::XXH128
         hash128 = result.hash128
         return nil unless hash128
-        low_be = to_bytes(hash128[0], DisplayEndianness::Big)
+        # Vendor format: high64 then low64 in big-endian
+        # But for little-endian output, it's low64_le then high64_le
         high_be = to_bytes(hash128[1], DisplayEndianness::Big)
-        hash_bytes = endianness == DisplayEndianness::Little ? (to_bytes(hash128[0], DisplayEndianness::Little) + to_bytes(hash128[1], DisplayEndianness::Little)) : (low_be + high_be)
+        low_be = to_bytes(hash128[0], DisplayEndianness::Big)
+        hash_bytes = if endianness == DisplayEndianness::Little
+                       to_bytes(hash128[0], DisplayEndianness::Little) + to_bytes(hash128[1], DisplayEndianness::Little)
+                     else
+                       high_be + low_be
+                     end
         hash_str = hash_bytes.map { |b| "%02x" % b }.join
-        "XXH128  #{hash_str}  #{filename}"
+        "#{hash_str}  #{filename}"
       end
     end
 
@@ -73,16 +79,22 @@ module XXH::CLI
       when Algorithm::XXH128
         hash128 = result.hash128
         return nil unless hash128
-        low_be = to_bytes(hash128[0], DisplayEndianness::Big)
+        # Vendor format: high64 then low64 in big-endian
+        # But for little-endian output, it's low64_le then high64_le
         high_be = to_bytes(hash128[1], DisplayEndianness::Big)
-        hash_bytes = endianness == DisplayEndianness::Little ? (to_bytes(hash128[0], DisplayEndianness::Little) + to_bytes(hash128[1], DisplayEndianness::Little)) : (low_be + high_be)
+        low_be = to_bytes(hash128[0], DisplayEndianness::Big)
+        hash_bytes = if endianness == DisplayEndianness::Little
+                       to_bytes(hash128[0], DisplayEndianness::Little) + to_bytes(hash128[1], DisplayEndianness::Little)
+                     else
+                       high_be + low_be
+                     end
         hash_str = hash_bytes.map { |b| "%02x" % b }.join
         "XXH128 (#{filename}) = #{hash_str}"
       end
     end
 
     # Helper to convert integer to bytes with specified endianness
-    private def self.to_bytes(value : UInt32, endianness : DisplayEndianness) : Bytes
+    def self.to_bytes(value : UInt32, endianness : DisplayEndianness) : Bytes
       Slice.new(4) do |i|
         if endianness == DisplayEndianness::Little
           ((value >> (i * 8)) & 0xFF_u32).to_u8
@@ -92,7 +104,7 @@ module XXH::CLI
       end
     end
 
-    private def self.to_bytes(value : UInt64, endianness : DisplayEndianness) : Bytes
+    def self.to_bytes(value : UInt64, endianness : DisplayEndianness) : Bytes
       Slice.new(8) do |i|
         if endianness == DisplayEndianness::Little
           ((value >> (i * 8)) & 0xFF_u64).to_u8

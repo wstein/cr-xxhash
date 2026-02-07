@@ -58,6 +58,29 @@ module XXH::CLI
     end
 
     def parse : Bool
+      # Handle -bX benchmark options manually (vendor xxhsum format)
+      filtered_argv = @argv.select do |arg|
+        if arg.starts_with?("-b") && arg.size > 2 && arg[2..].chars.all? { |c| c.ascii_number? }
+          bench_id = arg[2..]
+          @options.mode = Options::Mode::Benchmark
+          @options.benchmark = true
+          # Map vendor bench IDs to our algorithm IDs
+          case bench_id
+          when "1"  then @options.algorithm = Algorithm::XXH32  # 1#XXH32
+          when "3"  then @options.algorithm = Algorithm::XXH64  # 3#XXH64
+          when "5"  then @options.algorithm = Algorithm::XXH3   # 5#XXH3_64b
+          when "11" then @options.algorithm = Algorithm::XXH128 # 11#XXH128
+          else
+            error "Invalid benchmark ID: #{bench_id}"
+            return false
+          end
+          false # Remove from argv
+        else
+          true # Keep in argv
+        end
+      end
+      @argv = filtered_argv
+
       OptionParser.parse(@argv) do |parser|
         parser.banner = "Usage: xxhsum [options] [files]"
 
@@ -118,6 +141,7 @@ module XXH::CLI
         parser.on("-b", "--benchmark", "Run benchmark") do
           @options.mode = Options::Mode::Benchmark
           @options.benchmark = true
+          @options.benchmark_all = true
         end
 
         parser.on("--bench-all", "Benchmark all algorithms") do

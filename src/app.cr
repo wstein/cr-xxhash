@@ -23,5 +23,5 @@ end
 
 # Run CLI if this is the main executable
 if File.basename(PROGRAM_NAME) == "xxhsum"
-  require "./cli/main"
+  require "./xxhsum"
 end
