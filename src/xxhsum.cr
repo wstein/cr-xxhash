@@ -253,10 +253,10 @@ module XXH::CLI
 
     # Print version header unless -q (quiet) flag is set
     unless options.quiet
-      puts "xxhsum 0.8.3 by Yann Collet"
+      puts "Crystal port of xxhsum 0.8.3"
     end
 
-    puts "Sample of #{sample_size / 1024} KB..."
+    puts "Sample of #{sample_size.to_f / 1024.0} KB..."
 
     # Build list of all available benchmark variants
     all_variants = build_benchmark_variants
@@ -272,8 +272,9 @@ module XXH::CLI
                         variant = all_variants.find { |v| v.id == options.benchmark_id }
                         variant ? [variant] : ([] of BenchmarkVariant)
                       else
-                        # No specific variants requested, run all (default behavior)
-                        all_variants
+                        # No specific variants requested, use defaults (1,3,5,11)
+                        default_ids = [1, 3, 5, 11]
+                        all_variants.select { |v| default_ids.includes?(v.id) }
                       end
 
     # Run benchmarks
@@ -318,6 +319,18 @@ module XXH::CLI
       BenchmarkVariant.new(id: 27, name: "XXH128_stream w/seed", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH128),
       BenchmarkVariant.new(id: 28, name: "XXH128_stream w/seed unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH128),
     ]
+  end
+
+  # Print live update showing progress with throughput
+  # Uses \r to return to start of line for overwriting
+  private def self.print_live_update(variant : BenchmarkVariant, buffer_size : Int32, iteration : Int32, iterations_per_sec : Float64, throughput_mb : Float64)
+    printf("%2d-%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\r",
+      iteration,
+      variant.name,
+      buffer_size,
+      iterations_per_sec,
+      throughput_mb)
+    STDOUT.flush
   end
 
   private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : BenchmarkVariant, user_iterations : Int32 = 0)
@@ -374,6 +387,17 @@ module XXH::CLI
         fastest_time_per_hash = time_per_hash
       end
 
+      # Calculate live display metrics
+      iterations_per_sec = if time_per_hash > 0
+                             1.0 / time_per_hash
+                           else
+                             0.0
+                           end
+      throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
+
+      # Print live progress update
+      print_live_update(variant, data.size, attempt + 1, iterations_per_sec, throughput_mb)
+
       # Check if measurement is valid
       if elapsed_seconds >= min_duration
         # Valid measurement - but keep running for all calibrations to get the fastest
@@ -399,7 +423,8 @@ module XXH::CLI
     # Throughput = hashes_per_second * bytes_per_hash
     throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
 
-    # Format output
+    # Clear the live update line and print final result
+    printf("%80s\r", "") # Clean line
     printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
       variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
   end
