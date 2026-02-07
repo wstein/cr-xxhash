@@ -1,6 +1,8 @@
+/.shards/
+/bin/
 /docs/
 /lib/
-/bin/
-/.shards/
-*.dwarf
+/tmp/
+
 .DS_Store
+*.dwarf
