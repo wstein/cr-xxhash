@@ -14,7 +14,8 @@ targets:
 
 crystal: ">= 1.19.0"
 
-# Custom build flags to link with vendored xxHash
-LDFLAGS: -Lvendor/xxHash -lxxhash
+# Automatically compile vendored xxHash C library
+scripts:
+  postinstall: make -C vendor/xxHash libxxhash.a
 
 license: BSD-2-Clause

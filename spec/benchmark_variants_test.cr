@@ -42,6 +42,9 @@ class BenchmarkVariantTester
     # Test all 28 variants exist
     test_all_28_variants
 
+    # Test default variants (1,3,5,11)
+    test_default_variants
+
     # Test single variant selection
     test_single_variant_selection
 
@@ -69,13 +72,17 @@ class BenchmarkVariantTester
     # Test specific iteration count
     test_specific_iterations
 
+    # Test block size option
+    test_block_size_variations
+
     puts
     puts "Results: #{@passed} passed, #{@failed} failed, #{@skipped} skipped"
     exit @failed > 0 ? 1 : 0
   end
 
   private def test_all_28_variants
-    result = run_command(@crystal_bin, ["-q", "-b", "-i1"])
+    # Test all 28 variants with -b0 (or --bench-all)
+    result = run_command(@crystal_bin, ["-q", "-b0", "-i1"])
 
     variant_count = result.lines.count { |line| line.includes?("#") }
     expected_count = 28
@@ -88,7 +95,25 @@ class BenchmarkVariantTester
       @failed += 1
     end
 
-    puts "[#{status}] all 28 variants (expected #{expected_count}, got #{variant_count})"
+    puts "[#{status}] all 28 variants with -b0 (expected #{expected_count}, got #{variant_count})"
+  end
+
+  private def test_default_variants
+    # Test default variants (1,3,5,11) when using -b without number
+    result = run_command(@crystal_bin, ["-q", "-b", "-i1"])
+
+    variant_count = result.lines.count { |line| line.includes?("#") }
+    expected_count = 4 # default: 1,3,5,11
+
+    if variant_count == expected_count && result.includes?("1#") && result.includes?("3#") && result.includes?("5#") && result.includes?("11#")
+      status = "✓ PASS"
+      @passed += 1
+    else
+      status = "✗ FAIL"
+      @failed += 1
+    end
+
+    puts "[#{status}] default variants 1,3,5,11 with -b (expected #{expected_count}, got #{variant_count})"
   end
 
   private def test_single_variant_selection
@@ -248,6 +273,64 @@ class BenchmarkVariantTester
     end
 
     puts "[#{status}] specific iteration count (-i5)"
+  end
+
+  private def test_block_size_variations
+    # Test default block size (100 KB)
+    result_default = run_command(@crystal_bin, ["-q", "-b1", "-i1"])
+
+    # Block size appears in output as "102400" (100 * 1024)
+    if result_default.includes?("102400")
+      status_default = "✓ PASS"
+      @passed += 1
+    else
+      status_default = "✗ FAIL"
+      @failed += 1
+    end
+
+    puts "[#{status_default}] default block size (100 KB)"
+
+    # Test 64 KB block size
+    result_64k = run_command(@crystal_bin, ["-q", "-b1", "-i1", "-B64K"])
+
+    # 64 KB = 65536 bytes
+    if result_64k.includes?("65536")
+      status_64k = "✓ PASS"
+      @passed += 1
+    else
+      status_64k = "✗ FAIL"
+      @failed += 1
+    end
+
+    puts "[#{status_64k}] 64 KB block size (-B64K)"
+
+    # Test 256 KB block size
+    result_256k = run_command(@crystal_bin, ["-q", "-b1", "-i1", "-B256K"])
+
+    # 256 KB = 262144 bytes
+    if result_256k.includes?("262144")
+      status_256k = "✓ PASS"
+      @passed += 1
+    else
+      status_256k = "✗ FAIL"
+      @failed += 1
+    end
+
+    puts "[#{status_256k}] 256 KB block size (-B256K)"
+
+    # Test 1 MB block size
+    result_1m = run_command(@crystal_bin, ["-q", "-b1", "-i1", "-B1M"])
+
+    # 1 MB = 1048576 bytes
+    if result_1m.includes?("1048576")
+      status_1m = "✓ PASS"
+      @passed += 1
+    else
+      status_1m = "✗ FAIL"
+      @failed += 1
+    end
+
+    puts "[#{status_1m}] 1 MB block size (-B1M)"
   end
 
   private def run_command(bin : String, args : Array(String), timeout_secs : Int32 = 3) : String

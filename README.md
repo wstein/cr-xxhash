@@ -58,7 +58,7 @@ puts "XXH3_128: #{hash128.to_s(16)}"
 The included `xxhsum` binary provides a command-line interface compatible with the xxHash reference implementation:
 
 ```bash
-# Build the CLI
+# Build the CLI (automatically compiles vendored xxHash via postinstall hook)
 shards build
 
 # Hash a file (default: XXH3)
@@ -77,20 +77,34 @@ shards build
 echo "test data" | ./bin/xxhsum
 
 # Benchmark mode (100 KB sample by default)
-./bin/xxhsum -b           # Benchmark all algorithms (sample: 100 KB)
-./bin/xxhsum -b0          # Benchmark all vendor benchmark IDs (alias: -b29, -b77)
-./bin/xxhsum -b3          # Benchmark XXH64 (vendor benchmark id 3)
-./bin/xxhsum -b11         # Benchmark XXH128 (vendor benchmark id 11)
+./bin/xxhsum -b           # Benchmark default variants 1,3,5,11
+./bin/xxhsum -b0          # Benchmark all 28 variants
+./bin/xxhsum -b3          # Benchmark specific variant (XXH64)
+./bin/xxhsum -b1,3,5,11   # Benchmark comma-separated list of variants
+./bin/xxhsum --bench-all  # Benchmark all 28 variants (same as -b0)
 
-Note: `-b#` uses vendor benchmark IDs (1-28). Use a comma-separated list `-b1,3,5` to run specific variants. IDs 0, 29 and larger, and `-b77` expand to "benchmark all" per vendor behavior.
-See `BENCHMARK_ID_BEHAVIOR.md` for a Crystal vs C99 feature comparison and the vendor ID mapping.
+# Custom sample size for benchmarking
+./bin/xxhsum -b -B64K    # Benchmark with 64 KB sample
+./bin/xxhsum -b -B256K   # Benchmark with 256 KB sample
+./bin/xxhsum -b -B1M     # Benchmark with 1 MB sample
+
+# Custom calibration iterations for benchmarks
+./bin/xxhsum -b -i1      # Single calibration iteration (faster, less stable)
+./bin/xxhsum -b -i5      # 5 calibration iterations (slower, more stable)
+
 Sample output (example):
  1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
  3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
  5#XXH3_64b                      :     102400 ->   496518 it/s (48488.1 MB/s)
 11#XXH128                        :     102400 ->   483088 it/s (47176.6 MB/s)
+```
 
-See `PERFORMANCE_OPTIMIZATIONS.md` for details and measured throughput on Apple M4 (~45–49 GB/s).
+**Build Notes:**
+
+* `shards build` automatically compiles the vendored C xxHash library via the postinstall hook
+* Requires `make` and a C compiler (clang/gcc)
+* LLVM optimizations enabled for maximum performance
+
 ```
 
 #### Verified Test Results ✅

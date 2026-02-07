@@ -73,7 +73,7 @@ module XXH::CLI
             if bench_spec.includes?(',')
               # Multiple variants
               @options.benchmark_variants = bench_spec.split(',').map(&.to_i32)
-              @options.benchmark_all = true
+              @options.benchmark_all = false # Don't benchmark all, just the specified variants
             else
               # Single variant or "all"
               bench_id = bench_spec.to_i32
@@ -161,10 +161,10 @@ module XXH::CLI
           @options.quiet = true
         end
 
-        parser.on("-b", "--benchmark", "Run benchmark. Also supports vendor benchmark IDs: use `-b#` or `-b#,X,Y` to select vendor benchmark IDs (1-28). `-b0`, `-b29` and higher, or `-b77` expand to 'benchmark all'.") do
+        parser.on("-b", "--benchmark", "Run benchmark with default variants (1,3,5,11). Use -b# for specific variant, -b0/--bench-all for all 28 variants.") do
           @options.mode = Options::Mode::Benchmark
           @options.benchmark = true
-          @options.benchmark_all = true
+          @options.benchmark_all = false # Default: use 1,3,5,11
         end
 
         parser.on("--bench-all", "Benchmark all vendor benchmark IDs (alias for -b0/-b29/-b77)") do

@@ -262,7 +262,11 @@ module XXH::CLI
     all_variants = build_benchmark_variants
 
     # Filter variants to run based on options
-    variants_to_run = if !options.benchmark_variants.empty?
+    variants_to_run = if options.benchmark_all
+                        # User specified -b0, -b29+, --bench-all, or comma-separated list
+                        # Run all 28 variants
+                        all_variants
+                      elsif !options.benchmark_variants.empty?
                         # User specified specific variants with -b1,3,5
                         options.benchmark_variants.map do |id|
                           all_variants.find { |v| v.id == id }
