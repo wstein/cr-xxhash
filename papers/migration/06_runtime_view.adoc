@@ -1,0 +1,40 @@
+[[section-runtime-view]]
+== Runtime View
+
+This section describes how the internal components of `cr-xxhash` interact during the hash calculation.
+
+=== 6.1 One-shot Hashing Sequence
+
+For a fixed-length buffer, the runtime follows a direct execution path to minimize branching:
+
+[mermaid]
+----
+sequenceDiagram
+    participant App as Crystal Application
+    participant API as XXH3 API
+    participant SIMD as LLVM SIMD Kernel
+    participant LLVM as LLVM Backend (Machine Code)
+
+    App->>API: XXH3.hash64(buffer : Bytes)
+    API->>API: Check buffer length
+    ALT Length < 128 bytes
+        API->>LLVM: Scalar Small-Input Path
+    ELSE Length >= 128 bytes
+        API->>SIMD: Load 64-byte blocks (vmovdqu)
+        SIMD->>SIMD: Perform SIMD Multiply/Accumulate cycles
+        SIMD->>API: Return state accumulators
+    END
+    API->>App: Return uint64 hash
+----
+
+=== 6.2 Streaming Lifecycle
+
+Streaming allows processing data as it arrives, maintaining a persistent state.
+
+1.  **Initialization**: `XXH3::State.new` allocates the 64-byte aligned buffer.
+2.  **Feeding**: `state.update(bytes)` fills the internal buffer. When the buffer reaches 1024 bytes (or the internal block size), the SIMD kernel is invoked to consume the block.
+3.  **Finalization**: `state.digest` processes the remaining bytes, applies the final scramble (avalanche), and returns the hash.
+
+=== 6.3 SIMD Unrolling and Dispatch
+
+At runtime, the selector determines the widest available instruction set (AVX-512 > AVX2 > SSE2) and executes the corresponding unrolled loop. This avoids the overhead of checking CPU features for every block.

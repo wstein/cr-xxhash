@@ -1,0 +1,41 @@
+= Migration Paper: High-Performance xxHash Implementation in Crystal Language
+Yann Collet's xxHash Migration Project
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectanchor:
+:source-highlighter: highlightjs
+:doctype: book
+:version: 0.1.0
+:revdate: 2026-02-07
+:author: Werner Stein <werner.stein@gmail.com>
+:audience: Students and Senior Developers
+:throughput_avx2: XXH3 	6 30 GiB/s on AVX2-enabled x86_64 hardware
+:throughput_m4: `XXH3` ≥ 50 GiB/s on ARM64 Apple Silicon !
+
+[abstract]
+This paper documents the academic and technical migration of the xxHash library from C99 to Crystal. It focuses on achieving near-native performance (targeting >90% of C throughput) by leveraging LLVM intrinsics, SIMD unrolling, and zero-allocation streaming patterns. The study targets a numeric throughput goal: {throughput_avx2}, while preserving bit-identical outputs to the reference C implementation.
+
+== Executive summary
+
+This paper documents the design decisions, implementation trade-offs, and empirical benchmarks for porting xxHash to Crystal. Key outcomes sought are: parity with the C reference (bit-identical hashes), high throughput ({throughput_avx2}), and reproducible benchmarking across controlled toolchains.
+
+include::migration/01_introduction_and_goals.adoc[]
+include::migration/02_architecture_constraints.adoc[]
+include::migration/03_context_and_scope.adoc[]
+include::migration/04_solution_strategy.adoc[]
+include::migration/05_building_block_view.adoc[]
+include::migration/06_runtime_view.adoc[]
+include::migration/08_concepts.adoc[]
+include::migration/09_architecture_decisions.adoc[]
+include::migration/10_quality_requirements.adoc[]
+
+== Reproducibility
+
+To aid reproducible measurement, this repository includes helper scripts and guidance:
+
+* link:papers/CONTRIBUTING.adoc[Contributing & Performance Methodology]
+* link:scripts/README.md[Scripts README — tool_versions.rb]
+* link:vendor/xxHash/LICENSE[Upstream xxHash license]
+
+Tips: Include the output of `ruby scripts/tool_versions.rb --json` with each benchmark run and attach it to CI artifacts.

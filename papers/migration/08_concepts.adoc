@@ -1,0 +1,29 @@
+[[section-concepts]]
+== Concepts
+
+### 8.1 Data Locality and Alignment
+
+A core concept in `xxHash` performance is data alignment. 
+*   **XXH3** requires 64-byte alignment for its accumulators. 
+*   In Crystal, we use `Pointer(T).malloc_aligned` or manually padding structures to ensure that these registers can be loaded with single `vmovdqa` (Aligned Move) instructions rather than `vmovdqu` (Unaligned Move).
+
+### 8.2 The "Streaming vs One-shot" Pattern
+
+The implementation provides two primary interface patterns:
+1.  **One-shot**: Fastest path for payloads with known sizes.
+2.  **Streaming**: State-based (`XXH32_state_s`) for large or chunked data. This requires managing an internal buffer of 32/64/512 bytes depending on the algorithm variant.
+
+### 8.3 Compiler Hinting (LLVM)
+
+We leverage `unroll` and `vectorize` hints. Crystal's integration with LLVM allows us to pass metadata to the backend to ensure that the "strip-mining" of buffers is handled efficiently.
+
+### 8.4 Memory Safety in Unsafe Blocks
+
+While performance dictates using `Pointer`, maintainability requires safety. 
+*   **Encapsulation**: All pointer arithmetic is restricted to internal `Lib` or `private` module methods.
+*   **Bound Checking**: Public APIs accept `Bytes` (Slice), which perform mandatory bounds checking before passing raw pointers to the optimized kernels.
+
+### 8.5 Endianness Neutrality
+
+`xxHash` is designed to be fast on little-endian hardware but requires specific rotations for big-endian systems.
+*   The Crystal implementation uses `Int32.to_le` and `Int64.to_le` during byte-swapping phases to ensure parity on system architectures like PowerPC or s390x, matching the C implementation's `XXH_swap` macros.

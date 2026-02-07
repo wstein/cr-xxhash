@@ -1,0 +1,58 @@
+[[section-architecture-constraints]]
+== Architecture Constraints
+
+The current migration study is executed on macOS 26.2 (ARM64) with Crystal 1.19.1 and LLVM 21.1.8. Future expansions aim for Linux and legacy toolchains, but this document records the concrete environment used for benchmarking and validation.
+
+[cols="1,2" options="header"]
+|===
+| Category | Constraint
+| **Language** | The implementation must use Crystal (>= **1.19.1**) and avoid features that degrade to slower bytecode if performance is at stake.
+| **Compiler** | Must be compatible with LLVM (>= 10). See the *Reference environment* section for the toolchain used during benchmarking.
+| **Tooling (installed)** | See *Reference environment* section below.
+| **Binary Compatibility** | The resulting hash values MUST be bit-identical to the reference C implementation (Big-endian and Little-endian).
+| **Memory** | Use of `Pointer` arithmetic is required for zero-copy performance, necessitating a "Crystal-safe" wrapper around "Unsafe" operations.
+|===
+
+=== Reference environment
+
+The reference environment (hardware and toolchain used for benchmarking) is recorded here and reproduced by `scripts/tool_versions.rb`.
+
+[cols="1,2" options="header"]
+|===
+| Tool | Version / Platform
+| Crystal | 1.19.1 (2026-01-20)
+| Shards | 0.20.0 (2025-12-19)
+| LLVM | 21.1.8 (Default target: aarch64-apple-darwin25.2.0)
+| Apple Clang | 17.0.0
+| macOS | 26.2 (ARM64)
+|===
+
+=== Local tooling script
+
+To reproduce the reference environment's detected tool versions and to collect tooling information for CI or provenance, run the included Ruby helper script located at `scripts/tool_versions.rb`.
+
+[source,shell]
+----
+# Print human-friendly versions
+ruby scripts/tool_versions.rb
+
+# Print JSON for automation or CI consumption
+ruby scripts/tool_versions.rb --json
+----
+
+Note: The script is executable (mode: `rwxr-xr-x`) in the repository. If needed, make it executable with:
+
+[source,shell]
+----
+chmod +x scripts/tool_versions.rb
+----
+
+=== Quality Requirements
+
+* Throughput target: {throughput_m4} 
+* Correctness target: pass the upstream `vendor/xxHash/tests/*.c` vectors (match big-endian and little-endian results).
+* Tool stability: tool_versions.rb output must be recorded during each major benchmark so environments can be reproduced.
+
+=== Decision Records
+
+ADR visits and justifications are maintained in link:migration/09_architecture_decisions.adoc[Architecture Decisions]. The documented ADRs cover the native port strategy and SIMD dispatch constraints.

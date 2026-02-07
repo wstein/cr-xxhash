@@ -1,0 +1,32 @@
+= Contributing to cr-xxhash
+:toc:
+:sectnums:
+
+Welcome to the `cr-xxhash` project. As a high-performance migration study, we maintain rigorous standards for code quality, architectural consistency, and performance verification.
+
+== Development Philosophy
+
+This project aims to bridge the gap between low-level C optimization and High-level Crystal abstractions. Contributions should prioritize:
+1. **Performance**: Avoid heap allocations in hot paths. Use `Pointer` and `Intrinsics` where justified.
+2. **Correctness**: Every change must pass the reference test vectors from `vendor/xxHash`.
+3. **Clarity**: Use Crystal-idiomatic wrappers around unsafe operations to ensure the public API remains pleasant to use.
+
+== Workflow
+
+1. **Fork and Branch**: Create a feature branch for your implementation or research.
+2. **Implementation**:
+    * If porting a new SIMD path, provide the corresponding LLVM intrinsics mapping.
+    * Use `@[AlwaysInline]` for logic that must be optimized across call boundaries.
+3. **Validation**:
+    * Run `crystal spec` to ensure zero regressions.
+    * Use `scripts/tool_versions.rb` to document your environment in the PR description.
+4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
+
+== Technical Standards
+
+* **C99 Parity**: We follow the `xxHash` specification versioning.
+* **Code Style**: Standard `crystal tool format`.
+* **Documentation**: Major architectural changes must be reflected in the link:migration/index.adoc[Migration Paper].
+
+---
+*Based on the outstanding work of Yann Collet and the xxHash project.*

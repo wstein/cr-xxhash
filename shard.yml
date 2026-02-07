@@ -1,0 +1,17 @@
+name: cr-xxhash
+version: 0.1.0
+
+description: |
+  High-performance Crystal implementation of Yann Collet's xxHash algorithm.
+  Optimized for LLVM and SIMD.
+
+authors:
+  - Werner Stein <werner.stein@gmail.com>
+
+targets:
+  cr-xxhash:
+    main: src/app.cr
+
+crystal: ">= 1.19.0"
+
+license: BSD-2-Clause

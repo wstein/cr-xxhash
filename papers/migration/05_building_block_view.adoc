@@ -1,0 +1,48 @@
+[[section-building-block-view]]
+== Building Block View
+
+### 5.1 White Box Overall System: `cr-xxhash`
+
+The Crystal implementation mirrors the modular structure of the original C library but adapts it to the Shard eco-system.
+
+### 5.2 Analysis of vendor/xxHash (Upstream C99)
+
+Before migration, we evaluate the upstream structure to identify critical code segments for LLVM optimization.
+
+#### **C Implementation: File and Folder Taxonomy**
+
+[cols="1,3" options="header"]
+|===
+| File | Purpose
+| `xxhash.h` | **Core Logic**: Contains public API and the `XXH_INLINE_ALL` implementation. Crucial for understanding the inlining strategy.
+| `xxhash.c` | Reference implementation (Legacy). Most modern builds rely on the header-only mode for performance.
+| `xxh3.h` | **SIMD-focused**: The evolution of the algorithm, heavily reliant on wide registers and vector instructions.
+| `xxh_x86dispatch.c` | **Dynamic Dispatch**: Implements runtime CPU feature detection (CPUID) to select optimal SIMD paths.
+|===
+
+#### **Directory Structure (Upstream Context)**
+
+[source,text]
+----
+vendor/xxHash/
+├── build/          # Build artifacts for CMake/Make
+├── cli/            # xxhsum utility - Reference for benchmark design
+├── doc/            # Formal specifications (Essential for verification)
+├── tests/          # Sanity checks and collision vectors for Crystal spec verification
+└── fuzz/           # Fuzzer harness for edge-case validation
+----
+
+#### **Structural Comparison: Streaming State Management**
+
+The following table highlights the memory layout requirements for migration into Crystal structs.
+
+[cols="1,1,2" options="header"]
+|===
+| Struct | Align (bytes) | Role in Migration
+| `XXH32_state_s` | 4 | Port to `struct` in Crystal for value-type efficiency.
+| `XXH64_state_s` | 8 | Port to `struct`. Requires attention to 64-bit alignment.
+| `XXH3_state_s` | 64 | **Critical**: Requires `aligned` allocation in Crystal to support AVX-512 vectorization.
+|===
+
+#### **Conclusion of Vendor Review**
+The vendor code utilizes a "Header-Only" approach (`XXH_INLINE_ALL`) to allow the compiler to optimize across call boundaries. In Crystal, we must use `@[AlwaysInline]` and carefully mapped `LibC` bindings or direct `Intrinsics` to mirror this behavior.

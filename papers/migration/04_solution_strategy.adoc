@@ -1,0 +1,9 @@
+[[section-solution-strategy]]
+== Solution Strategy
+
+To migrate a highly optimized C library like `xxHash` to Crystal without losing speed, we employ the following strategies:
+
+1.  **Bit-Level Reproducibility**: Using Crystal's `UInt32` and `UInt64` types to ensure overflow behavior matches C99 unsigned integers.
+2.  **Manual Inlining**: Heavy use of `@[AlwaysInline]` to reduce call-stack overhead in the inner loops of the hashing algorithms.
+3.  **SIMD via Intrinsics**: Directly mapping `llvm.x86.avx2.*` or similar intrinsics into Crystal to utilize the 256-bit and 512-bit registers required by `XXH3`.
+4.  **Zero-Allocation Path**: Providing a "one-shot" API that operates directly on `Bytes` (Slice(UInt8)) to avoid any Heap allocation during the hashing process.

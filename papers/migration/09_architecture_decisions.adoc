@@ -1,0 +1,14 @@
+[[section-architecture-decisions]]
+== Architecture Decisions
+
+### ADR 1: Direct Port vs. C Bindings
+
+*   **Context**: The requirement for "Crystal implementation" implies a native port, not just a wrapper around `libxxhash.so`.
+*   **Decision**: We choose a **hybrid approach**. For core logic, we port C pointer arithmetic directly to Crystal `Pointer(UInt8)` and `Pointer(UInt64)`.
+*   **Consequences**: High performance (no FFI overhead), but requires manual maintenance of logic if upstream algorithm changes.
+
+### ADR 2: SIMD Strategy
+
+*   **Context**: xxHash speed comes from SIMD instructions (unrolling and vectorization).
+*   **Decision**: Use Crystal's LLVM-backed intrinsics where possible. Fall back to `LibC` hardware detection logic via `vendor/xxHash/xxh_x86dispatch.c` if needed for runtime dispatch.
+*   **Goal**: Ensure `XXH3` reaches 10+ GB/s on modern x86_64 hardware.

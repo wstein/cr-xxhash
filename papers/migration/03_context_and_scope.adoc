@@ -1,0 +1,36 @@
+[[section-context-and-scope]]
+== Context and Scope
+
+### 3.1 Business Context
+
+The project fits into the Crystal ecosystem as a high-performance hashing provider. It serves applications requiring fast data validation, such as:
+*   In-memory databases (Crystal Shard databases).
+*   Data deduplication tools.
+*   Blockchain and distributed ledger state validation.
+
+### 3.2 Technical Context
+
+The following diagram illustrates the boundaries of the `cr-xxhash` component and its interaction with the underlying system:
+
+[source,text]
+----
+  +------------------+         +-----------------------+
+  |  Crystal App     | <-----> |   cr-xxhash (Shard)   |
+  +------------------+         +-----------+-----------+
+                                           |
+                                           v
+                               +-----------------------+
+                               |    LLVM Intrinsics    |
+                               +-----------------------+
+                               | CPU (SSE/AVX/NEON)    |
+                               +-----------------------+
+----
+
+=== 3.3 External Interfaces
+
+| Interface | Type | Description |
+| :--- | :--- | :--- |
+| **Crystal API** | Native | Public methods like `XXH3.hash64` accepting `Slice(UInt8)` or `String`. |
+| **Memory Access** | Unsafe | Direct `Pointer(UInt8)` arithmetic for zero-copy performance. |
+| **Intrinsics** | LLVM binding | Mapping of `@llvm.*` functions for hardware-specific vectorization. |
+| **Reference Data** | Verification | Bit-parity comparison with `vendor/xxHash` outputs. |

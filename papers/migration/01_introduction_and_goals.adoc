@@ -1,0 +1,36 @@
+[[section-introduction-and-goals]]
+== Introduction and Goals
+
+This paper explores the migration of the `xxHash` algorithm—originally authored by Yann Collet in C—into the Crystal programming language. The primary objective is to achieve near-native performance while leveraging Crystal's high-level syntax and the LLVM compiler backend.
+
+=== Requirements Overview
+
+* **Performance:** Execution speed must be comparable to the C99 implementation, specifically targeting SIMD (SSE2, AVX2, AVX-512) and NEON optimizations.
+* **Portability:** The Crystal implementation should support macOS and Linux architectures (x86_64, ARM64).
+* **API Compatibility:** Provide a Crystal-idiomatic interface that mirrors the efficiency of the `xxHash` streaming and one-shot APIs.
+
+=== Quality Goals
+
+[cols="1,1,2" options="header"]
+|===
+| Priority | Goal | Description
+| 1 | Runtime Performance | Minimize overhead compared to C version.
+| 2 | Correctness | Ensure identical hash outputs across architectures via established test vectors.
+| 3 | Readability | Maintain clear Crystal code that allows for easy maintenance by Crystal developers.
+|===
+
+=== Stakeholders
+
+[cols="1,1" options="header"]
+|===
+| Role | Expectation
+| Students | Learn about low-level optimization in high-level managed-memory-like languages (Crystal).
+| Senior Developers | Understand the mapping between C pointer arithmetic/intrinsics and Crystal's `Pointer` and `Intrinsics`.
+| Maintainers | A robust implementation that tracks upstream `xxHash` changes.
+|===
+
+=== Non-Goals
+
+*   **Pure Ruby implementation**: This project focuses strictly on Crystal's performance capabilities.
+*   **Cryptographic security**: Like the reference implementation, this algorithm is non-cryptographic and is not designed for password hashing or sensitive signatures.
+*   **Generic Hashing**: This is specifically a migration of the xxHash family, not a generic hash abstraction library.
