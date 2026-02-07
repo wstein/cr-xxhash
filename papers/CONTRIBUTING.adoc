@@ -19,6 +19,9 @@ This project aims to bridge the gap between low-level C optimization and High-le
     * Use `@[AlwaysInline]` for logic that must be optimized across call boundaries.
 3. **Validation**:
     * Run `crystal spec` to ensure zero regressions.
+    * Run the integration tests: `crystal spec/integration_test.cr` (validates vendor parity).
+    * Run the benchmark and include results in your PR when performance changes are involved:
+        **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
     * Use `scripts/tool_versions.rb` to document your environment in the PR description.
 4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
 

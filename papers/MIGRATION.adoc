@@ -39,3 +39,15 @@ To aid reproducible measurement, this repository includes helper scripts and gui
 * link:vendor/xxHash/LICENSE[Upstream xxHash license]
 
 Tips: Include the output of `ruby scripts/tool_versions.rb --json` with each benchmark run and attach it to CI artifacts.
+
+== Benchmarking & Performance Optimizations
+
+This project now includes a vendor-compatible benchmarking mode (`-b` / `-bX`) to reproduce throughput claims and validate implementation parity. The benchmark uses a 100 KB sample buffer by default and prints per-variant statistics in a vendor-compatible layout (e.g., `1#XXH32 : 102400 -> 128640 it/s (12562.5 MB/s)`).
+
+Performance optimizations implemented in the Crystal port are documented in `PERFORMANCE_OPTIMIZATIONS.md` and include:
+
+* Zero-copy hex conversion and pre-allocated byte buffers to eliminate intermediate String allocations
+* Slice-based (Bytes) processing instead of String copies for binary data
+* Branch-friendly bit-shifting for endianness conversion on hot paths
+
+Measured results on Apple M4 show XXH3/XXH128 throughput in the ~45–49 GB/s range, competitive with the upstream C implementation. Please refer to `PERFORMANCE_OPTIMIZATIONS.md` for implementation details and microbenchmarks.

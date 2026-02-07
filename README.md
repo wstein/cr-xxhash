@@ -76,9 +76,18 @@ shards build
 # Hash stdin
 echo "test data" | ./bin/xxhsum
 
-# Benchmark mode (100 KB buffer)
-./bin/xxhsum -b3 -i100   # XXH3 benchmark, 100 iterations
-./bin/xxhsum -b1 -i10    # XXH64 benchmark, 10 iterations
+# Benchmark mode (100 KB sample by default)
+./bin/xxhsum -b           # Benchmark all algorithms (sample: 100 KB)
+./bin/xxhsum -b3          # Benchmark XXH3 variant (vendor id 5)
+./bin/xxhsum -b11         # Benchmark XXH128 (vendor id 11)
+
+Sample output (example):
+ 1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
+ 3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
+ 5#XXH3_64b                      :     102400 ->   496518 it/s (48488.1 MB/s)
+11#XXH128                        :     102400 ->   483088 it/s (47176.6 MB/s)
+
+See `PERFORMANCE_OPTIMIZATIONS.md` for details and measured throughput on Apple M4 (~45–49 GB/s).
 ```
 
 #### Verified Test Results ✅
@@ -100,12 +109,14 @@ All algorithms validated against vendor xxHash implementation:
 # Output: a8fe69ba5ce06d72  README.md
 ```
 
-**Integration Test Status**: 12/12 passing
+**Integration Test Status**: 60/60 passing (expanded test matrix)
 
-* XXH32: ✅ (3 test files)
-* XXH64: ✅ (3 test files)
-* XXH128: ✅ (3 test files)
-* XXH3: ✅ (3 test files)
+Matrix: 3 files (README.md, LICENSE, shard.yml) × 4 algorithms × 5 test types (basic, BSD, stdin, check, little-endian) = **60** cases
+
+* XXH32: ✅ (all checks)
+* XXH64: ✅ (all checks)
+* XXH128: ✅ (all checks)
+* XXH3: ✅ (all checks)
 
 See [TODO.md](TODO.md) for planned features and known issues.
 
