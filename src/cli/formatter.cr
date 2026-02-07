@@ -17,6 +17,46 @@ module XXH::CLI
       Algorithm::XXH3   => 8,
     }
 
+    # Hex lookup table - pre-computed for fast hex conversion without allocations
+    private HEX_CHARS_BYTES = "0123456789abcdef".to_s.bytes
+
+    # Convert integer to bytes with specified endianness (optimized)
+    # Performance-critical path: uses direct bit shifting instead of branches
+    def self.to_bytes(value : UInt32, endianness : DisplayEndianness) : Bytes
+      if endianness == DisplayEndianness::Big
+        Slice.new(4) { |i| ((value >> ((3 - i) * 8)) & 0xFF_u32).to_u8 }
+      else
+        Slice.new(4) { |i| ((value >> (i * 8)) & 0xFF_u32).to_u8 }
+      end
+    end
+
+    def self.to_bytes(value : UInt64, endianness : DisplayEndianness) : Bytes
+      if endianness == DisplayEndianness::Big
+        Slice.new(8) { |i| ((value >> ((7 - i) * 8)) & 0xFF_u64).to_u8 }
+      else
+        Slice.new(8) { |i| ((value >> (i * 8)) & 0xFF_u64).to_u8 }
+      end
+    end
+
+    # Fast hex conversion: write directly to a pre-allocated buffer
+    # No intermediate String allocations - zero copy!
+    private def self.bytes_to_hex_inline(bytes : Bytes, buffer : Bytes, offset : Int32 = 0)
+      bytes.each_with_index do |byte, i|
+        pos = offset + (i * 2)
+        hi = (byte >> 4) & 0x0F
+        lo = byte & 0x0F
+        buffer[pos] = HEX_CHARS_BYTES[hi]
+        buffer[pos + 1] = HEX_CHARS_BYTES[lo]
+      end
+    end
+
+    # Convert bytes to hex string - single allocation, no intermediate copies
+    def self.bytes_to_hex(bytes : Bytes) : String
+      buffer = Bytes.new(bytes.size * 2)
+      bytes_to_hex_inline(bytes, buffer)
+      String.new(buffer)
+    end
+
     # Format a hash result in GNU style
     # GNU style: "XXH3  hashvalue  filename"
     def self.format_gnu(result : HashResult, algorithm : Algorithm, endianness : DisplayEndianness) : String?
@@ -29,13 +69,13 @@ module XXH::CLI
         hash32 = result.hash32
         return nil unless hash32
         hash_bytes = to_bytes(hash32, endianness)
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         "#{hash_str}  #{filename}"
       when Algorithm::XXH64, Algorithm::XXH3
         hash64 = result.hash64
         return nil unless hash64
         hash_bytes = to_bytes(hash64, endianness)
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         prefix = algorithm == Algorithm::XXH3 ? "XXH3_" : ""
         "#{prefix}#{hash_str}  #{filename}"
       when Algorithm::XXH128
@@ -50,7 +90,7 @@ module XXH::CLI
                      else
                        high_be + low_be
                      end
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         "#{hash_str}  #{filename}"
       end
     end
@@ -67,13 +107,13 @@ module XXH::CLI
         hash32 = result.hash32
         return nil unless hash32
         hash_bytes = to_bytes(hash32, endianness)
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         "#{ALGO_NAMES[algorithm]} (#{filename}) = #{hash_str}"
       when Algorithm::XXH64, Algorithm::XXH3
         hash64 = result.hash64
         return nil unless hash64
         hash_bytes = to_bytes(hash64, endianness)
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         prefix = algorithm == Algorithm::XXH3 ? "XXH3" : "XXH64"
         "#{prefix} (#{filename}) = #{hash_str}"
       when Algorithm::XXH128
@@ -88,32 +128,12 @@ module XXH::CLI
                      else
                        high_be + low_be
                      end
-        hash_str = hash_bytes.map { |b| "%02x" % b }.join
+        hash_str = bytes_to_hex(hash_bytes)
         "XXH128 (#{filename}) = #{hash_str}"
       end
     end
 
     # Helper to convert integer to bytes with specified endianness
-    def self.to_bytes(value : UInt32, endianness : DisplayEndianness) : Bytes
-      Slice.new(4) do |i|
-        if endianness == DisplayEndianness::Little
-          ((value >> (i * 8)) & 0xFF_u32).to_u8
-        else
-          ((value >> ((3 - i) * 8)) & 0xFF_u32).to_u8
-        end
-      end
-    end
-
-    def self.to_bytes(value : UInt64, endianness : DisplayEndianness) : Bytes
-      Slice.new(8) do |i|
-        if endianness == DisplayEndianness::Little
-          ((value >> (i * 8)) & 0xFF_u64).to_u8
-        else
-          ((value >> ((7 - i) * 8)) & 0xFF_u64).to_u8
-        end
-      end
-    end
-
     # Format a hash result according to convention
     def self.format(result : HashResult, algorithm : Algorithm, convention : DisplayConvention, endianness : DisplayEndianness) : String?
       case convention
@@ -122,11 +142,6 @@ module XXH::CLI
       when DisplayConvention::BSD
         format_bsd(result, algorithm, endianness)
       end
-    end
-
-    # Convert bytes to hex string
-    def self.bytes_to_hex(bytes : Bytes) : String
-      bytes.map { |b| "%02x" % b }.join
     end
 
     # Escape special characters in filename
