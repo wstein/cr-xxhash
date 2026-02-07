@@ -29,6 +29,7 @@ include::migration/06_runtime_view.adoc[]
 include::migration/08_concepts.adoc[]
 include::migration/09_architecture_decisions.adoc[]
 include::migration/10_quality_requirements.adoc[]
+include::migration/11_benchmark_implementation.adoc[]
 
 == Reproducibility
 

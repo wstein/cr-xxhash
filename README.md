@@ -83,6 +83,7 @@ echo "test data" | ./bin/xxhsum
 ./bin/xxhsum -b11         # Benchmark XXH128 (vendor benchmark id 11)
 
 Note: `-b#` uses vendor benchmark IDs (1-28). Use a comma-separated list `-b1,3,5` to run specific variants. IDs 0, 29 and larger, and `-b77` expand to "benchmark all" per vendor behavior.
+See `BENCHMARK_ID_BEHAVIOR.md` for a Crystal vs C99 feature comparison and the vendor ID mapping.
 Sample output (example):
  1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
  3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
@@ -123,40 +124,87 @@ plus 39 flag/benchmark validations = **99** total
 
 See [TODO.md](TODO.md) for planned features and known issues.
 
-## Vendor benchmark behavior (xxhsum -b)
+## Benchmark Mode (xxhsum -b)
 
-The upstream C99 `xxhsum` benchmark mode uses **benchmark IDs** (not the `-H` algorithm IDs). These IDs map to specific function variants and are run in **aligned + unaligned** pairs (unaligned = buffer offset +3). The `-b77` shorthand triggers the full 1–28 sweep.
+### Overview
 
-**ID groups (C99 reference):**
+The `xxhsum` benchmark mode tests hash throughput using **benchmark IDs 1-28** (different from the `-H0..-H3` algorithm IDs used for hashing). Each ID represents a specific variant combining an algorithm with properties like alignment, seeding, or streaming.
 
-* **Basic (1–8)**
-  * 1–2: `XXH32` / `XXH32 unaligned`
-  * 3–4: `XXH64` / `XXH64 unaligned`
-  * 5–6: `XXH3_64b` / `XXH3_64b unaligned`
-  * 7–8: `XXH128` / `XXH128 unaligned`
-* **Seeded (9–14)**
-  * 9–10: `XXH3_64b w/seed` / unaligned
-  * 13–14: `XXH128 w/seed` / unaligned
-* **Secret (11–16)**
-  * 11–12: `XXH3_64b w/secret` / unaligned
-  * 15–16: `XXH128 w/secret` / unaligned
-* **Streaming (17–28)**
-  * 17–18: `XXH32_stream` / unaligned
-  * 19–20: `XXH64_stream` / unaligned
-  * 21–22: `XXH3_stream` / unaligned
-  * 23–24: `XXH3_stream w/seed` / unaligned
-  * 25–26: `XXH128_stream` / unaligned
-  * 27–28: `XXH128_stream w/seed` / unaligned
+### Benchmark ID Mapping (1–28)
 
-**Output format (C99 reference):**
+All variants test **aligned (offset +0)** and **unaligned (offset +3)** memory access:
 
-`{id}#{name:<28} : {size:>10} -> {iters:>8} it/s ({mbps:>7.1f} MB/s)`
+**Basic Variants (1–6, 11–12)**
 
-Notes:
+* 1–2: `XXH32` (aligned/unaligned)
+* 3–4: `XXH64` (aligned/unaligned)
+* 5–6: `XXH3_64b` (aligned/unaligned)
+* 11–12: `XXH128` (aligned/unaligned)
 
-* `-H0..-H3` select hash algorithms for **hashing**, while `-b#` selects **benchmark IDs**.
-* Vendor `-b77` expands to the full 1–28 set.
-* Seeded/secret variants vary the seed/secret to prevent the optimizer from removing work.
+**Seeded Variants (7–8, 13–14, 23–24, 27–28)**
+
+* 7–8: `XXH3_64b w/seed` (aligned/unaligned)
+* 13–14: `XXH128 w/seed` (aligned/unaligned)
+* 23–24: `XXH3_stream w/seed` (aligned/unaligned)
+* 27–28: `XXH128_stream w/seed` (aligned/unaligned)
+
+**Secret Variants (9–10, 15–16)**
+
+* 9–10: `XXH3_64b w/secret` (aligned/unaligned)
+* 15–16: `XXH128 w/secret` (aligned/unaligned)
+
+**Streaming Variants (17–28)**
+
+* 17–18: `XXH32_stream` (aligned/unaligned)
+* 19–20: `XXH64_stream` (aligned/unaligned)
+* 21–22: `XXH3_stream` (aligned/unaligned)
+* 25–26: `XXH128_stream` (aligned/unaligned)
+
+### Usage
+
+```bash
+# Benchmark all 28 variants with auto-tuned iterations
+./bin/xxhsum -b
+
+# Benchmark specific variant
+./bin/xxhsum -b1          # Only XXH32 (variant 1)
+
+# Multiple variants
+./bin/xxhsum -b1,3,5,11   # XXH32, XXH64, XXH3_64b, XXH128
+
+# With custom iteration count
+./bin/xxhsum -b1,3,5 -i100
+
+# Quiet mode (suppress version header)
+./bin/xxhsum -q -b -i5
+
+# Special aliases (benchmark all)
+./bin/xxhsum -b0          # Benchmark all variants
+./bin/xxhsum -b29         # Benchmark all variants
+./bin/xxhsum -b77         # Benchmark all variants (vendor shorthand)
+```
+
+### Output Format
+
+```
+ID#Name                       :   SizeBytes ->   Throughput (MB/s)
+ 1#XXH32                      :     102400 ->   100000 it/s (9765.6 MB/s)
+ 3#XXH64                      :     102400 ->   220000 it/s (21484.4 MB/s)
+ 5#XXH3_64b                   :     102400 ->   400000 it/s (39062.5 MB/s)
+11#XXH128                     :     102400 ->   380000 it/s (37109.4 MB/s)
+```
+
+### Important Notes
+
+* `-H0..-H3` select algorithms for **hashing**, while `-b#` selects **benchmark variant IDs** (1–28)
+* Unaligned variants (IDs ending in even numbers) test performance with data offset by +3 bytes
+* Seeded variants use a fixed seed (42) for reproducibility
+* Secret variants use a generated 136-byte secret buffer
+* Streaming variants use the streaming API (create state, update, digest, free)
+* Auto-tuning (no `-i` flag) targets ~1 second per variant
+* IDs 0, 29+, and `-b77` all expand to "benchmark all" (C99 vendor behavior)
+
+For more details, see [BENCHMARK_ID_BEHAVIOR.md](BENCHMARK_ID_BEHAVIOR.md) for a detailed comparison with the C99 implementation.
 
 ## Development
 

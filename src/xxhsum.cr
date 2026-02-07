@@ -226,13 +226,30 @@ module XXH::CLI
     end
   end
 
+  # Benchmark variant structure
+  private struct BenchmarkVariant
+    def initialize(@id : Int32, @name : String, @aligned : Bool, @variant_type : String, @algorithm : Algorithm)
+    end
+
+    getter id : Int32
+    getter name : String
+    getter aligned : Bool
+    getter variant_type : String
+    getter algorithm : Algorithm
+  end
+
   private def self.run_benchmark_mode(options : Options)
     sample_size = options.sample_size
 
     # Generate fast pseudo-random sample data (not cryptographically secure)
     rng = Random.new
     data_array = Array(UInt8).new(sample_size) { rng.rand(256).to_u8 }
-    data = Bytes.new(data_array.size) { |i| data_array[i] }
+    aligned_data = Bytes.new(data_array.size) { |i| data_array[i] }
+
+    # Create unaligned data (offset by +3 bytes)
+    padded_array = Array(UInt8).new(data_array.size + 3) { 0_u8 }
+    data_array.each_with_index { |byte, i| padded_array[i + 3] = byte }
+    unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
 
     # Print version header unless -q (quiet) flag is set
     unless options.quiet
@@ -241,76 +258,134 @@ module XXH::CLI
 
     puts "Sample of #{sample_size / 1024} KB..."
 
-    # Benchmark selected algorithms
-    # Note: Specific benchmark IDs (1-28) currently expand to all algorithms.
-    # In future, we'll implement the full vendor benchmark suite (aligned/unaligned, seeded, secret, streaming).
-    algorithms = if !options.benchmark_variants.empty?
-                   # Map variants from -b1,2,3 to algorithms
-                   options.benchmark_variants.map do |id|
-                     Parser.map_bench_id(id)
-                   end.compact
-                 else
-                   # Both -b (no ID) and -b# (any ID) run all algorithms
-                   [Algorithm::XXH32, Algorithm::XXH64, Algorithm::XXH3, Algorithm::XXH128]
-                 end
+    # Build list of all available benchmark variants
+    all_variants = build_benchmark_variants
 
-    algorithms.each do |algo|
-      run_single_benchmark(data, algo, options.iterations)
+    # Filter variants to run based on options
+    variants_to_run = if !options.benchmark_variants.empty?
+                        # User specified specific variants with -b1,3,5
+                        options.benchmark_variants.map do |id|
+                          all_variants.find { |v| v.id == id }
+                        end.compact
+                      elsif options.benchmark_id > 0
+                        # User specified a single benchmark ID with -b1
+                        variant = all_variants.find { |v| v.id == options.benchmark_id }
+                        variant ? [variant] : ([] of BenchmarkVariant)
+                      else
+                        # No specific variants requested, run all (default behavior)
+                        all_variants
+                      end
+
+    # Run benchmarks
+    variants_to_run.each do |variant|
+      run_single_benchmark(aligned_data, unaligned_data, variant, options.iterations)
     end
   end
 
-  private def self.run_single_benchmark(data : Bytes, algorithm : Algorithm, user_iterations : Int32 = 0)
-    # Determine vendor bench ID and name
-    vendor_id, algo_name = case algorithm
-                           when Algorithm::XXH32
-                             {1, "XXH32"}
-                           when Algorithm::XXH64
-                             {3, "XXH64"}
-                           when Algorithm::XXH3
-                             {5, "XXH3_64b"}
-                           when Algorithm::XXH128
-                             {11, "XXH128"}
-                           else
-                             {0, "Unknown"}
-                           end
+  private def self.build_benchmark_variants : Array(BenchmarkVariant)
+    [
+      # Basic variants (1-8)
+      BenchmarkVariant.new(id: 1, name: "XXH32", aligned: true, variant_type: "basic", algorithm: Algorithm::XXH32),
+      BenchmarkVariant.new(id: 2, name: "XXH32 unaligned", aligned: false, variant_type: "basic", algorithm: Algorithm::XXH32),
+      BenchmarkVariant.new(id: 3, name: "XXH64", aligned: true, variant_type: "basic", algorithm: Algorithm::XXH64),
+      BenchmarkVariant.new(id: 4, name: "XXH64 unaligned", aligned: false, variant_type: "basic", algorithm: Algorithm::XXH64),
+      BenchmarkVariant.new(id: 5, name: "XXH3_64b", aligned: true, variant_type: "basic", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 6, name: "XXH3_64b unaligned", aligned: false, variant_type: "basic", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 7, name: "XXH3_64b w/seed", aligned: true, variant_type: "seeded", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 8, name: "XXH3_64b w/seed unaligned", aligned: false, variant_type: "seeded", algorithm: Algorithm::XXH3),
 
-    # Auto-calibrate iterations if not specified
+      # Secret variants (9-16)
+      BenchmarkVariant.new(id: 9, name: "XXH3_64b w/secret", aligned: true, variant_type: "secret", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 10, name: "XXH3_64b w/secret unaligned", aligned: false, variant_type: "secret", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 11, name: "XXH128", aligned: true, variant_type: "basic", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 12, name: "XXH128 unaligned", aligned: false, variant_type: "basic", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 13, name: "XXH128 w/seed", aligned: true, variant_type: "seeded", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 14, name: "XXH128 w/seed unaligned", aligned: false, variant_type: "seeded", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 15, name: "XXH128 w/secret", aligned: true, variant_type: "secret", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 16, name: "XXH128 w/secret unaligned", aligned: false, variant_type: "secret", algorithm: Algorithm::XXH128),
+
+      # Streaming variants (17-28)
+      BenchmarkVariant.new(id: 17, name: "XXH32_stream", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH32),
+      BenchmarkVariant.new(id: 18, name: "XXH32_stream unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH32),
+      BenchmarkVariant.new(id: 19, name: "XXH64_stream", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH64),
+      BenchmarkVariant.new(id: 20, name: "XXH64_stream unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH64),
+      BenchmarkVariant.new(id: 21, name: "XXH3_stream", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 22, name: "XXH3_stream unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 23, name: "XXH3_stream w/seed", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 24, name: "XXH3_stream w/seed unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH3),
+      BenchmarkVariant.new(id: 25, name: "XXH128_stream", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 26, name: "XXH128_stream unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 27, name: "XXH128_stream w/seed", aligned: true, variant_type: "stream", algorithm: Algorithm::XXH128),
+      BenchmarkVariant.new(id: 28, name: "XXH128_stream w/seed unaligned", aligned: false, variant_type: "stream", algorithm: Algorithm::XXH128),
+    ]
+  end
+
+  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : BenchmarkVariant, user_iterations : Int32 = 0)
+    # Select data based on alignment
+    data = variant.aligned ? aligned_data : unaligned_data
+
+    # Auto-tune iterations to hit ~1 second target
     iterations = if user_iterations > 0
                    user_iterations
                  else
-                   # Calibrate: run until ~1 second
-                   start_time = Time.instant
-                   count = 0
-                   target_duration = 1.0
-
-                   case algorithm
-                   when Algorithm::XXH32
-                     while Time.instant - start_time < target_duration.seconds
-                       LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
-                       count += 1
-                     end
-                   when Algorithm::XXH64
-                     while Time.instant - start_time < target_duration.seconds
-                       LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
-                       count += 1
-                     end
-                   when Algorithm::XXH3
-                     while Time.instant - start_time < target_duration.seconds
-                       LibXXH.XXH3_64bits(data.to_unsafe, data.size)
-                       count += 1
-                     end
-                   when Algorithm::XXH128
-                     while Time.instant - start_time < target_duration.seconds
-                       LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-                       count += 1
-                     end
-                   end
-                   count
+                   auto_tune_iterations(data, variant)
                  end
 
-    # Run benchmark with specified/calibrated iterations
+    # Run the actual benchmark
     start_time = Time.instant
+    run_benchmark_iterations(data, variant, iterations)
+    elapsed = Time.instant - start_time
+    elapsed_seconds = elapsed.total_seconds
 
+    # Calculate throughput
+    iterations_per_sec = iterations.to_f / elapsed_seconds
+    total_bytes = data.size.to_f * iterations
+    throughput_mb = (total_bytes / (1024 * 1024)) / elapsed_seconds
+
+    # Format output with live progress (no \r for simplicity in final output, but ready for future enhancement)
+    printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
+      variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
+  end
+
+  private def self.auto_tune_iterations(data : Bytes, variant : BenchmarkVariant) : Int32
+    target_duration = 1.0 # 1 second target
+    iterations = 1
+    max_iterations = 10000
+
+    # Quick warmup run
+    run_benchmark_iterations(data, variant, 1)
+
+    # Measure how long one iteration takes
+    start_time = Time.instant
+    run_benchmark_iterations(data, variant, 1)
+    elapsed = Time.instant - start_time
+    elapsed_seconds = elapsed.total_seconds
+
+    # Calculate iterations needed to hit target
+    if elapsed_seconds > 0
+      iterations = (target_duration / elapsed_seconds).to_i32.clamp(1, max_iterations)
+    else
+      # Too fast, do more iterations
+      iterations = (max_iterations / 10).to_i32
+    end
+
+    iterations
+  end
+
+  private def self.run_benchmark_iterations(data : Bytes, variant : BenchmarkVariant, iterations : Int32)
+    case variant.variant_type
+    when "basic"
+      run_basic_benchmark(data, variant.algorithm, iterations)
+    when "seeded"
+      run_seeded_benchmark(data, variant.algorithm, iterations)
+    when "secret"
+      run_secret_benchmark(data, variant.algorithm, iterations)
+    when "stream"
+      run_streaming_benchmark(data, variant.algorithm, iterations)
+    end
+  end
+
+  private def self.run_basic_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     case algorithm
     when Algorithm::XXH32
       iterations.times do
@@ -329,18 +404,95 @@ module XXH::CLI
         LibXXH.XXH3_128bits(data.to_unsafe, data.size)
       end
     end
+  end
 
-    elapsed = Time.instant - start_time
-    elapsed_seconds = elapsed.total_seconds
+  private def self.run_seeded_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
+    seed = 42_u64
+    case algorithm
+    when Algorithm::XXH32
+      iterations.times do
+        LibXXH.XXH32(data.to_unsafe, data.size, seed.to_u32)
+      end
+    when Algorithm::XXH64
+      iterations.times do
+        LibXXH.XXH64(data.to_unsafe, data.size, seed)
+      end
+    when Algorithm::XXH3
+      iterations.times do
+        LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
+      end
+    when Algorithm::XXH128
+      iterations.times do
+        LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
+      end
+    end
+  end
 
-    # Calculate throughput
-    iterations_per_sec = iterations.to_f / elapsed_seconds
-    total_bytes = data.size.to_f * iterations
-    throughput_mb = (total_bytes / (1024 * 1024)) / elapsed_seconds
+  private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
+    # Generate a secret buffer (minimum required size for XXH3)
+    secret_buffer = Bytes.new(136) { |i| ((i * 17) % 256).to_u8 }
 
-    # Format output like vendor: "1#XXH32                         :     102400 ->   133425 it/s (13029.8 MB/s)"
-    printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
-      vendor_id, algo_name, data.size, iterations_per_sec, throughput_mb)
+    case algorithm
+    when Algorithm::XXH32
+      # XXH32 doesn't support secret, fall back to seeded
+      run_seeded_benchmark(data, algorithm, iterations)
+    when Algorithm::XXH64
+      # XXH64 doesn't support secret, fall back to seeded
+      run_seeded_benchmark(data, algorithm, iterations)
+    when Algorithm::XXH3
+      iterations.times do
+        LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+      end
+    when Algorithm::XXH128
+      iterations.times do
+        LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+      end
+    end
+  end
+
+  private def self.run_streaming_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
+    case algorithm
+    when Algorithm::XXH32
+      iterations.times do
+        state = LibXXH.XXH32_createState
+        if state
+          LibXXH.XXH32_reset(state, 0_u32)
+          LibXXH.XXH32_update(state, data.to_unsafe, data.size)
+          LibXXH.XXH32_digest(state)
+          LibXXH.XXH32_freeState(state)
+        end
+      end
+    when Algorithm::XXH64
+      iterations.times do
+        state = LibXXH.XXH64_createState
+        if state
+          LibXXH.XXH64_reset(state, 0_u64)
+          LibXXH.XXH64_update(state, data.to_unsafe, data.size)
+          LibXXH.XXH64_digest(state)
+          LibXXH.XXH64_freeState(state)
+        end
+      end
+    when Algorithm::XXH3
+      iterations.times do
+        state = LibXXH.XXH3_createState
+        if state
+          LibXXH.XXH3_64bits_reset(state)
+          LibXXH.XXH3_64bits_update(state, data.to_unsafe, data.size)
+          LibXXH.XXH3_64bits_digest(state)
+          LibXXH.XXH3_freeState(state)
+        end
+      end
+    when Algorithm::XXH128
+      iterations.times do
+        state = LibXXH.XXH3_createState
+        if state
+          LibXXH.XXH3_128bits_reset(state)
+          LibXXH.XXH3_128bits_update(state, data.to_unsafe, data.size)
+          LibXXH.XXH3_128bits_digest(state)
+          LibXXH.XXH3_freeState(state)
+        end
+      end
+    end
   end
 
   # Helper to convert UInt32 to bytes with endianness

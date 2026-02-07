@@ -172,12 +172,13 @@ class IntegrationTester
     crystal_result = run_command(@crystal_bin, ["-b1,3,5", "-i2"])
 
     # Check if all variants are in output
-    if crystal_result.includes?("1#") && crystal_result.includes?("3#") && crystal_result.includes?("5#")
-      @passed += 1
-    else
-      status = "✗ FAIL"
-      @failed += 1
-    end
+    status = if crystal_result.includes?("1#") && crystal_result.includes?("3#") && crystal_result.includes?("5#")
+               @passed += 1
+               "✓ PASS"
+             else
+               @failed += 1
+               "✗ FAIL"
+             end
 
     puts "[#{status}] benchmark variants (-b1, -b3, -b5)"
   rescue ex

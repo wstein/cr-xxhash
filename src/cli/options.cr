@@ -32,7 +32,8 @@ module XXH::CLI
     property strict : Bool = false
     property warn : Bool = false
     property ignore_missing : Bool = false
-    property tag : Bool = false # BSD style output
+    property tag : Bool = false         # BSD style output
+    property binary_mode : Bool = false # Read in binary mode (for CRLF conversions)
     property benchmark : Bool = false
     property benchmark_all : Bool = false
     property benchmark_id : Int32 = 0                        # Specific benchmark ID
@@ -136,6 +137,10 @@ module XXH::CLI
           @options.endianness = DisplayEndianness::Little
         end
 
+        parser.on("--binary", "Read in binary mode (no CRLF conversions on Windows)") do
+          @options.binary_mode = true
+        end
+
         parser.on("--strict", "Exit non-zero for improperly formatted lines") do
           @options.strict = true
         end
@@ -221,10 +226,11 @@ module XXH::CLI
               --filelist       Generate hashes for files listed in [files]
               --tag            Produce BSD-style checksum lines
               --little-endian  Checksum values use little endian convention
+              --binary         Read in binary mode (no CRLF conversions on Windows)
           -b                   Run benchmark
           -b#                  Bench only algorithm variant #
               --bench-all      Benchmark all algorithms
-          -i#                  Number of times to run the benchmark (default: 1000)
+          -i#                  Number of iterations per benchmark run (default: 0=auto-calibrate)
           -q, --quiet          Don't display version header in benchmark mode
               --status         Don't output anything, status code shows success
               --strict         Exit non-zero for improperly formatted lines
