@@ -423,14 +423,15 @@ module XXH::XXH3
   end
 
   @[AlwaysInline]
-  def self.scalar_round(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), lane : Int32)
+  def self.scalar_round(acc : Pointer(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), lane : Int32)
     data_val = XXH::Primitives.read_u64_le(input_ptr + (lane * 8))
     data_key = data_val ^ XXH::Primitives.read_u64_le(secret_ptr + (lane * 8))
     acc[lane ^ 1] = (acc[lane ^ 1] &+ data_val)
     acc[lane] = mult32to64_add64(data_key, (data_key >> 32), acc[lane])
   end
 
-  def self.accumulate_512_scalar(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8))
+  @[AlwaysInline]
+  def self.accumulate_512_scalar(acc : Pointer(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8))
     i = 0
     while i < 8
       scalar_round(acc, input_ptr, secret_ptr, i)
@@ -438,7 +439,8 @@ module XXH::XXH3
     end
   end
 
-  def self.accumulate_scalar(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), nbStripes : Int32)
+  @[AlwaysInline]
+  def self.accumulate_scalar(acc : Pointer(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), nbStripes : Int32)
     n = 0
     in_ptr = input_ptr
     secret_off = 0
@@ -452,7 +454,7 @@ module XXH::XXH3
   end
 
   @[AlwaysInline]
-  def self.scalar_scramble_round(acc : Array(UInt64), secret_ptr : Pointer(UInt8), lane : Int32)
+  def self.scalar_scramble_round(acc : Pointer(UInt64), secret_ptr : Pointer(UInt8), lane : Int32)
     key64 = XXH::Primitives.read_u64_le(secret_ptr + (lane * 8))
     acc64 = acc[lane]
     acc64 = xorshift64(acc64, 47)
@@ -461,7 +463,8 @@ module XXH::XXH3
     acc[lane] = acc64
   end
 
-  def self.scramble_acc_scalar(acc : Array(UInt64), secret_ptr : Pointer(UInt8))
+  @[AlwaysInline]
+  def self.scramble_acc_scalar(acc : Pointer(UInt64), secret_ptr : Pointer(UInt8))
     i = 0
     while i < 8
       scalar_scramble_round(acc, secret_ptr, i)
@@ -471,7 +474,8 @@ module XXH::XXH3
 
   def self.hash_long_64b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32) : UInt64
     # follow XXH3_hashLong_64b_internal logic
-    acc = Array.new(8, 0_u64)
+    # Stack-allocated for LLVM auto-vectorization
+    acc = uninitialized UInt64[8]
     acc[0] = 0xC2B2AE3D_u64
     acc[1] = 0x9E3779B185EBCA87_u64
     acc[2] = 0xC2B2AE3D27D4EB4F_u64
@@ -481,9 +485,9 @@ module XXH::XXH3
     acc[6] = 0x27D4EB2F165667C5_u64
     acc[7] = 0x9E3779B1_u64
 
-    hash_long_internal_loop(acc, ptr, len, secret_ptr, secret_size)
+    hash_long_internal_loop(acc.to_unsafe, ptr, len, secret_ptr, secret_size)
 
-    finalize_long_64b(acc, secret_ptr, len.to_u64)
+    finalize_long_64b(acc[0], acc[1], acc[2], acc[3], acc[4], acc[5], acc[6], acc[7], secret_ptr, len.to_u64)
   end
 
   def self.hash_long_64b_with_seed(ptr : Pointer(UInt8), len : Int32, seed : UInt64, _secret_ptr : Pointer(UInt8), secret_size : Int32) : UInt64
@@ -503,7 +507,7 @@ module XXH::XXH3
     hash_long_64b(ptr, len, secret.to_unsafe.as(Pointer(UInt8)), secret_size)
   end
 
-  def self.hash_long_internal_loop(acc : Array(UInt64), input_ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32)
+  def self.hash_long_internal_loop(acc : Pointer(UInt64), input_ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32)
     nbStripesPerBlock = ((secret_size - 64) / 8).to_i
     block_len = 64 * nbStripesPerBlock
     nb_blocks = ((len - 1) / block_len).to_i
@@ -527,27 +531,39 @@ module XXH::XXH3
   end
 
   @[AlwaysInline]
-  def self.mix2accs(acc : Array(UInt64), secret_ptr : Pointer(UInt8)) : UInt64
-    mul128_fold64(acc[0] ^ XXH::Primitives.read_u64_le(secret_ptr), acc[1] ^ XXH::Primitives.read_u64_le(secret_ptr + 8))
+  def self.mix2accs(acc : Pointer(UInt64), idx0 : Int32, idx1 : Int32, secret_ptr : Pointer(UInt8)) : UInt64
+    mul128_fold64(acc[idx0] ^ XXH::Primitives.read_u64_le(secret_ptr), acc[idx1] ^ XXH::Primitives.read_u64_le(secret_ptr + 8))
   end
 
-  def self.merge_accs(acc : Array(UInt64), secret_ptr : Pointer(UInt8), start : UInt64) : UInt64
+  @[AlwaysInline]
+  def self.merge_accs(acc : Pointer(UInt64), secret_ptr : Pointer(UInt8), start : UInt64) : UInt64
     result = start
     i = 0
     while i < 4
-      result = result &+ mix2accs(acc[2 * i, 2], secret_ptr + (16 * i))
+      pair_idx = 2 * i
+      result = result &+ mix2accs(acc, pair_idx, pair_idx + 1, secret_ptr + (16 * i))
       i += 1
     end
     xx3_avalanche(result)
   end
 
-  def self.finalize_long_64b(acc : Array(UInt64), secret_ptr : Pointer(UInt8), len : UInt64) : UInt64
-    merge_accs(acc, secret_ptr + 11, len &* 0x9E3779B185EBCA87_u64)
+  def self.finalize_long_64b(acc0 : UInt64, acc1 : UInt64, acc2 : UInt64, acc3 : UInt64, acc4 : UInt64, acc5 : UInt64, acc6 : UInt64, acc7 : UInt64, secret_ptr : Pointer(UInt8), len : UInt64) : UInt64
+    # Convert individual values back to array for merge_accs
+    acc = uninitialized UInt64[8]
+    acc[0] = acc0
+    acc[1] = acc1
+    acc[2] = acc2
+    acc[3] = acc3
+    acc[4] = acc4
+    acc[5] = acc5
+    acc[6] = acc6
+    acc[7] = acc7
+    merge_accs(acc.to_unsafe, secret_ptr + 11, len &* 0x9E3779B185EBCA87_u64)
   end
 
   # Phase 3 (240+ bytes): Long input path for 128-bit hashing
-  def self.finalize_long_128b(acc : Array(UInt64), secret_ptr : Pointer(UInt8), secret_size : Int32, len : UInt64) : Hash128
-    low64 = finalize_long_64b(acc, secret_ptr, len)
+  def self.finalize_long_128b(acc : Pointer(UInt64), secret_ptr : Pointer(UInt8), secret_size : Int32, len : UInt64) : Hash128
+    low64 = finalize_long_64b(acc[0], acc[1], acc[2], acc[3], acc[4], acc[5], acc[6], acc[7], secret_ptr, len)
     # For high64, we need to compute mergeAccs with a different starting value
     # Per vendor: h128.high64 = XXH3_mergeAccs(acc, secret + secretSize - XXH_STRIPE_LEN - XXH_SECRET_MERGEACCS_START, ~(len * XXH_PRIME64_2))
     # XXH_STRIPE_LEN = 64, XXH_SECRET_MERGEACCS_START = 11, XXH_PRIME64_2 = 0xC2B2AE3D27D4EB4F_u64
@@ -557,11 +573,18 @@ module XXH::XXH3
   end
 
   def self.hash_long_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32) : Hash128
-    acc = Array(UInt64).new(8) do |i|
-      INIT_ACC[i]
-    end
-    hash_long_internal_loop(acc, ptr, len, secret_ptr, secret_size)
-    finalize_long_128b(acc, secret_ptr, secret_size, len.to_u64)
+    # Stack-allocated for LLVM auto-vectorization
+    acc = uninitialized UInt64[8]
+    acc[0] = INIT_ACC[0]
+    acc[1] = INIT_ACC[1]
+    acc[2] = INIT_ACC[2]
+    acc[3] = INIT_ACC[3]
+    acc[4] = INIT_ACC[4]
+    acc[5] = INIT_ACC[5]
+    acc[6] = INIT_ACC[6]
+    acc[7] = INIT_ACC[7]
+    hash_long_internal_loop(acc.to_unsafe, ptr, len, secret_ptr, secret_size)
+    finalize_long_128b(acc.to_unsafe, secret_ptr, secret_size, len.to_u64)
   end
 
   def self.hash_long_128b_with_seed(ptr : Pointer(UInt8), len : Int32, seed : UInt64, default_secret_ptr : Pointer(UInt8), secret_size : Int32) : Hash128
@@ -579,16 +602,23 @@ module XXH::XXH3
       XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i + 8), hi)
       i += 1
     end
-    acc = Array(UInt64).new(8) do |i|
-      INIT_ACC[i]
-    end
-    hash_long_internal_loop(acc, ptr, len, secret.to_unsafe, secret_size)
-    finalize_long_128b(acc, secret.to_unsafe, secret_size, len.to_u64)
+    # Stack-allocated for LLVM auto-vectorization
+    acc = uninitialized UInt64[8]
+    acc[0] = INIT_ACC[0]
+    acc[1] = INIT_ACC[1]
+    acc[2] = INIT_ACC[2]
+    acc[3] = INIT_ACC[3]
+    acc[4] = INIT_ACC[4]
+    acc[5] = INIT_ACC[5]
+    acc[6] = INIT_ACC[6]
+    acc[7] = INIT_ACC[7]
+    hash_long_internal_loop(acc.to_unsafe, ptr, len, secret.to_unsafe, secret_size)
+    finalize_long_128b(acc.to_unsafe, secret.to_unsafe, secret_size, len.to_u64)
   end
 
   # Streaming state wrapper (native)
   class State
-    @acc : Array(UInt64)
+    @acc : StaticArray(UInt64, 8)
     @custom_secret : Bytes
     @buffer : Bytes
     @buffered_size : Int32
@@ -603,7 +633,7 @@ module XXH::XXH3
     XXH3_INTERNALBUFFER_SIZE = 256
 
     def initialize(seed : UInt64? = nil)
-      @acc = Array(UInt64).new(8) { 0_u64 }
+      @acc = uninitialized UInt64[8]
       @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
       @buffer = Bytes.new(XXH3_INTERNALBUFFER_SIZE, 0)
       @buffered_size = 0
@@ -691,7 +721,7 @@ module XXH::XXH3
         offset += load_size
         # consume all stripes from buffer
         nb_stripes = (XXH3_INTERNALBUFFER_SIZE / 64).to_i
-        @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, @buffer.to_unsafe, nb_stripes, secret_bytes.to_unsafe, @secret_limit)
+        @nb_stripes_so_far = consume_stripes(@acc.to_unsafe, @nb_stripes_so_far, @nb_stripes_per_block, @buffer.to_unsafe, nb_stripes, secret_bytes.to_unsafe, @secret_limit)
         @buffered_size = 0
       end
 
@@ -699,7 +729,7 @@ module XXH::XXH3
       remaining = len - offset
       if remaining > XXH3_INTERNALBUFFER_SIZE
         nbStripes = ((remaining - 1) / 64).to_i
-        @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
+        @nb_stripes_so_far = consume_stripes(@acc.to_unsafe, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
         # copy last 64 bytes into the end of buffer
         src = offset + (nbStripes * 64)
         b[src, 64].copy_to(@buffer.to_unsafe + (XXH3_INTERNALBUFFER_SIZE - 64), 64)
@@ -712,13 +742,13 @@ module XXH::XXH3
       @buffered_size = rem
     end
 
-    def consume_stripes(acc, nb_stripes_so_far, nbStripesPerBlock, input_ptr, nbStripes, secret_ptr, secretLimit)
+    def consume_stripes(acc_ptr : Pointer(UInt64), nb_stripes_so_far, nbStripesPerBlock, input_ptr, nbStripes, secret_ptr, secretLimit)
       initial_secret_offset = nb_stripes_so_far * 8
       if nbStripes >= (nbStripesPerBlock - nb_stripes_so_far)
         nbStripesThisIter = nbStripesPerBlock - nb_stripes_so_far
         while true
-          XXH::XXH3.accumulate_scalar(acc, input_ptr, secret_ptr + initial_secret_offset, nbStripesThisIter)
-          XXH::XXH3.scramble_acc_scalar(acc, secret_ptr + secretLimit)
+          XXH::XXH3.accumulate_scalar(acc_ptr, input_ptr, secret_ptr + initial_secret_offset, nbStripesThisIter)
+          XXH::XXH3.scramble_acc_scalar(acc_ptr, secret_ptr + secretLimit)
           input_ptr += (nbStripesThisIter * 64)
           nbStripes -= nbStripesThisIter
           nbStripesThisIter = nbStripesPerBlock
@@ -728,7 +758,7 @@ module XXH::XXH3
         nb_stripes_so_far = 0
       end
       if nbStripes > 0
-        XXH::XXH3.accumulate_scalar(acc, input_ptr, secret_ptr + initial_secret_offset, nbStripes)
+        XXH::XXH3.accumulate_scalar(acc_ptr, input_ptr, secret_ptr + initial_secret_offset, nbStripes)
         input_ptr += (nbStripes * 64)
         nb_stripes_so_far = nb_stripes_so_far + nbStripes
       end
@@ -739,12 +769,13 @@ module XXH::XXH3
       secret_bytes = (@ext_secret.nil? ? @custom_secret : @ext_secret).as(Bytes)
       if @total_len > 240_u64
         # Work directly on @acc (no dup - matches C semantics)
+        acc_ptr = @acc.to_unsafe
         if @buffered_size >= 64
           nbStripes = (@buffered_size - 1).tdiv(64)
           nb = @nb_stripes_so_far
-          consume_stripes(@acc, nb, @nb_stripes_per_block, @buffer.to_unsafe, nbStripes, secret_bytes.to_unsafe, @secret_limit)
+          consume_stripes(acc_ptr, nb, @nb_stripes_per_block, @buffer.to_unsafe, nbStripes, secret_bytes.to_unsafe, @secret_limit)
           lastStripePtr = @buffer.to_unsafe + (@buffered_size - 64)
-          XXH::XXH3.accumulate_512_scalar(@acc, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
+          XXH::XXH3.accumulate_512_scalar(acc_ptr, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
         else
           # Process the buffered data (less than 64 bytes remaining)
           # Use stack-allocated buffer instead of heap allocation
@@ -754,9 +785,9 @@ module XXH::XXH3
           (@buffer.to_unsafe + buffer_end).copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)), catchup_size)
           @buffer.to_unsafe.copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)) + catchup_size, @buffered_size)
           lastStripePtr = lastStripe.to_unsafe.as(Pointer(UInt8))
-          XXH::XXH3.accumulate_512_scalar(@acc, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
+          XXH::XXH3.accumulate_512_scalar(acc_ptr, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
         end
-        return XXH::XXH3.finalize_long_64b(@acc, secret_bytes.to_unsafe, @total_len)
+        return XXH::XXH3.finalize_long_64b(acc_ptr[0], acc_ptr[1], acc_ptr[2], acc_ptr[3], acc_ptr[4], acc_ptr[5], acc_ptr[6], acc_ptr[7], secret_bytes.to_unsafe, @total_len)
       end
       if @use_seed
         return XXH::XXH3.hash_with_seed(@buffer[0, @buffered_size], @seed)
@@ -790,7 +821,7 @@ module XXH::XXH3
 
   # 128-bit Streaming state wrapper (native)
   class State128
-    @acc : Array(UInt64)
+    @acc : StaticArray(UInt64, 8)
     @custom_secret : Bytes
     @buffer : Bytes
     @buffered_size : Int32
@@ -805,7 +836,7 @@ module XXH::XXH3
     XXH3_INTERNALBUFFER_SIZE = 256
 
     def initialize(seed : UInt64? = nil)
-      @acc = Array(UInt64).new(8) { 0_u64 }
+      @acc = uninitialized UInt64[8]
       @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
       @buffer = Bytes.new(XXH3_INTERNALBUFFER_SIZE, 0)
       @buffered_size = 0
@@ -888,14 +919,14 @@ module XXH::XXH3
         b[offset, load_size].copy_to(@buffer.to_unsafe + @buffered_size, load_size)
         offset += load_size
         nb_stripes = XXH3_INTERNALBUFFER_SIZE.tdiv(64)
-        @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, @buffer.to_unsafe, nb_stripes, secret_bytes.to_unsafe, @secret_limit)
+        @nb_stripes_so_far = consume_stripes(@acc.to_unsafe, @nb_stripes_so_far, @nb_stripes_per_block, @buffer.to_unsafe, nb_stripes, secret_bytes.to_unsafe, @secret_limit)
         @buffered_size = 0
       end
 
       remaining = len - offset
       if remaining > XXH3_INTERNALBUFFER_SIZE
         nbStripes = (remaining - 1).tdiv(64)
-        @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
+        @nb_stripes_so_far = consume_stripes(@acc.to_unsafe, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
         src = offset + (nbStripes * 64)
         b[src, 64].copy_to(@buffer.to_unsafe + (XXH3_INTERNALBUFFER_SIZE - 64), 64)
         offset += nbStripes * 64
@@ -906,13 +937,13 @@ module XXH::XXH3
       @buffered_size = rem
     end
 
-    def consume_stripes(acc, nb_stripes_so_far, nbStripesPerBlock, input_ptr, nbStripes, secret_ptr, secretLimit)
+    def consume_stripes(acc_ptr : Pointer(UInt64), nb_stripes_so_far, nbStripesPerBlock, input_ptr, nbStripes, secret_ptr, secretLimit)
       initial_secret_offset = nb_stripes_so_far * 8
       if nbStripes >= (nbStripesPerBlock - nb_stripes_so_far)
         nbStripesThisIter = nbStripesPerBlock - nb_stripes_so_far
         while true
-          XXH::XXH3.accumulate_scalar(acc, input_ptr, secret_ptr + initial_secret_offset, nbStripesThisIter)
-          XXH::XXH3.scramble_acc_scalar(acc, secret_ptr + secretLimit)
+          XXH::XXH3.accumulate_scalar(acc_ptr, input_ptr, secret_ptr + initial_secret_offset, nbStripesThisIter)
+          XXH::XXH3.scramble_acc_scalar(acc_ptr, secret_ptr + secretLimit)
           input_ptr += (nbStripesThisIter * 64)
           nbStripes -= nbStripesThisIter
           nbStripesThisIter = nbStripesPerBlock
@@ -922,7 +953,7 @@ module XXH::XXH3
         nb_stripes_so_far = 0
       end
       if nbStripes > 0
-        XXH::XXH3.accumulate_scalar(acc, input_ptr, secret_ptr + initial_secret_offset, nbStripes)
+        XXH::XXH3.accumulate_scalar(acc_ptr, input_ptr, secret_ptr + initial_secret_offset, nbStripes)
         input_ptr += (nbStripes * 64)
         nb_stripes_so_far = nb_stripes_so_far + nbStripes
       end
@@ -933,12 +964,13 @@ module XXH::XXH3
       secret_bytes = (@ext_secret.nil? ? @custom_secret : @ext_secret).as(Bytes)
       if @total_len > 240_u64
         # Work directly on @acc (no dup - matches C semantics)
+        acc_ptr = @acc.to_unsafe
         if @buffered_size >= 64
           nbStripes = (@buffered_size - 1).tdiv(64)
           nb = @nb_stripes_so_far
-          consume_stripes(@acc, nb, @nb_stripes_per_block, @buffer.to_unsafe, nbStripes, secret_bytes.to_unsafe, @secret_limit)
+          consume_stripes(acc_ptr, nb, @nb_stripes_per_block, @buffer.to_unsafe, nbStripes, secret_bytes.to_unsafe, @secret_limit)
           lastStripePtr = @buffer.to_unsafe + (@buffered_size - 64)
-          XXH::XXH3.accumulate_512_scalar(@acc, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
+          XXH::XXH3.accumulate_512_scalar(acc_ptr, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
         else
           # Process the buffered data (less than 64 bytes remaining)
           # Use stack-allocated buffer instead of heap allocation
@@ -948,9 +980,9 @@ module XXH::XXH3
           (@buffer.to_unsafe + buffer_end).copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)), catchup_size)
           @buffer.to_unsafe.copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)) + catchup_size, @buffered_size)
           lastStripePtr = lastStripe.to_unsafe.as(Pointer(UInt8))
-          XXH::XXH3.accumulate_512_scalar(@acc, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
+          XXH::XXH3.accumulate_512_scalar(acc_ptr, lastStripePtr, secret_bytes.to_unsafe + (@secret_limit - 7))
         end
-        return XXH::XXH3.finalize_long_128b(@acc, secret_bytes.to_unsafe, @secret_limit + 64, @total_len.to_u64)
+        return XXH::XXH3.finalize_long_128b(acc_ptr, secret_bytes.to_unsafe, @secret_limit + 64, @total_len.to_u64)
       end
       if @use_seed
         return XXH::XXH3.hash128_with_seed(@buffer[0, @buffered_size], @seed)

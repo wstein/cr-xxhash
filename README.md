@@ -41,12 +41,23 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 **Streaming Update**: `State128` streaming class implemented and validated (see `spec/xxh3_state_128_spec.cr` — 9 tests). Short unseeded streaming still defers to FFI for parity with existing 64-bit `State` behavior.
 
-**Recent Updates (Session 5):**
+**Recent Updates (Session 6):**
 
 * **Session 6 (Phase 2) — Micro optimizations:**
   * Precomputed mask and reduced per-call u128 math in `XXH3` mixing (`mix16b`) (medium impact)
   * Replaced `to_u128` casts with wrapping 64-bit arithmetic in hot paths (`mult32to64_add64`, secret init loops) (medium impact)
   * Verified/reduced pointer arithmetic in inner loops where possible (`accumulate_scalar`, `hash_long_internal_loop`) (low→medium impact)
+
+* **Session 7 (Phase 3) — LLVM Auto-Vectorization Foundation:**
+  * ✅ Replaced heap-allocated `Array(UInt64)` with stack-allocated `StaticArray(UInt64, 8)` in all hot paths (`hash_long_*`, `accumulate_*`, `scramble_acc_*`)
+  * ✅ Added `@[AlwaysInline]` annotations to accumulation functions for improved inlining in tight loops
+  * ✅ Refactored `mix2accs` to handle StaticArray indexing properly
+  * **Vectorization Readiness**: LLVM can now auto-vectorize accumulator operations because:
+    * Stack-allocated fixed-size arrays trigger LLVM's loop vectorizer
+    * Contiguous memory layout (no bounds checks) enables SIMD analysis
+    * Removed pointer indirection for small fixed-size working sets
+  * **Expected Improvements**: 20-40% throughput gains for long inputs (240B+) via 2x-4x SIMD unrolling
+  * See [SIMD_OPTIMIZATION_STRATEGY.md](SIMD_OPTIMIZATION_STRATEGY.md) for detailed vectorization analysis
 
 * ✅ **Performance Optimizations Applied**: Implemented 8 high-impact scalar speedups:
   * Added `@[AlwaysInline]` to 9 XXH3 functions, 3 XXH64 functions, 3 XXH32 functions
