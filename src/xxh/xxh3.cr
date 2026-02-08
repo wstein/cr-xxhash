@@ -20,6 +20,18 @@ module XXH::XXH3
     end
   end
 
+  # Initial accumulator values (per XXH3 spec)
+  INIT_ACC = [
+    0xC2B2AE3D_u64,
+    0x9E3779B185EBCA87_u64,
+    0xC2B2AE3D27D4EB4F_u64,
+    0x165667B19E3779F9_u64,
+    0x85EBCA77C2B2AE63_u64,
+    0x85EBCA77_u64,
+    0x27D4EB2F165667C5_u64,
+    0x9E3779B1_u64,
+  ]
+
   # Helpers ported from C reference implementation (small-input paths)
   def self.mul128_fold64(lhs : UInt64, rhs : UInt64) : UInt64
     product = lhs.to_u128 * rhs.to_u128
@@ -208,6 +220,35 @@ module XXH::XXH3
     h128
   end
 
+  def self.len_129to240_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    acc = Hash128.new(len.to_u64 &* XXH::Constants::PRIME64_1, 0_u64)
+
+    i = 32
+    while i < 160
+      acc = mix32b_128b(acc, ptr + (i - 32), ptr + (i - 16), secret_ptr + (i - 32), seed)
+      i += 32
+    end
+
+    acc.low64 = xx3_avalanche(acc.low64)
+    acc.high64 = xx3_avalanche(acc.high64)
+
+    i = 160
+    while i <= len
+      acc = mix32b_128b(acc, ptr + (i - 32), ptr + (i - 16), secret_ptr + XXH::Constants::XXH3_MIDSIZE_STARTOFFSET + (i - 160), seed)
+      i += 32
+    end
+
+    acc = mix32b_128b(acc, ptr + (len - 16), ptr + (len - 32), secret_ptr + XXH::Constants::XXH3_SECRET_SIZE_MIN - XXH::Constants::XXH3_MIDSIZE_LASTOFFSET - 16, (0_u64 &- seed))
+
+    h128 = Hash128.new(acc.low64 &+ acc.high64, 0_u64)
+    h128.high64 = (acc.low64 &* XXH::Constants::PRIME64_1) &+ (acc.high64 &* XXH::Constants::PRIME64_4) &+ ((len.to_u64 &- seed) &* XXH::Constants::PRIME64_2)
+
+    h128.low64 = xx3_avalanche(h128.low64)
+    h128.high64 = (0_u64 &- xx3_avalanche(h128.high64))
+
+    h128
+  end
+
   def self.len_0to16_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
     if len > 8
       return len_9to16_128b(ptr, len, secret_ptr, seed)
@@ -308,13 +349,13 @@ module XXH::XXH3
       secret = XXH::Buffers.default_secret.to_unsafe
       return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
     elsif len <= 240
-      # Phase 2b: 129-240 bytes (not yet implemented, use FFI)
-      result = LibXXH.XXH3_128bits(ptr, len)
-      return Hash128.new(result.low64, result.high64)
+      # Phase 2b: 129-240 bytes (native implementation)
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_129to240_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
     else
-      # Phase 3: 240+ bytes (not yet implemented, use FFI)
-      result = LibXXH.XXH3_128bits(ptr, len)
-      return Hash128.new(result.low64, result.high64)
+      # Phase 3: 240+ bytes (native implementation)
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return hash_long_128b(ptr, len, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
     end
   end
 
@@ -330,13 +371,13 @@ module XXH::XXH3
       secret = XXH::Buffers.default_secret.to_unsafe
       return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
     elsif len <= 240
-      # Phase 2b: 129-240 bytes (not yet implemented, use FFI)
-      result = LibXXH.XXH3_128bits_withSeed(ptr, len, seed)
-      return Hash128.new(result.low64, result.high64)
+      # Phase 2b: 129-240 bytes (native implementation)
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_129to240_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
     else
-      # Phase 3: 240+ bytes (not yet implemented, use FFI)
-      result = LibXXH.XXH3_128bits_withSeed(ptr, len, seed)
-      return Hash128.new(result.low64, result.high64)
+      # Phase 3: 240+ bytes (native implementation)
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return hash_long_128b_with_seed(ptr, len, seed, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
     end
   end
 
@@ -472,6 +513,45 @@ module XXH::XXH3
 
   def self.finalize_long_64b(acc : Array(UInt64), secret_ptr : Pointer(UInt8), len : UInt64) : UInt64
     merge_accs(acc, secret_ptr + 11, len &* 0x9E3779B185EBCA87_u64)
+  end
+
+  # Phase 3 (240+ bytes): Long input path for 128-bit hashing
+  def self.finalize_long_128b(acc : Array(UInt64), secret_ptr : Pointer(UInt8), secret_size : Int32, len : UInt64) : Hash128
+    low64 = finalize_long_64b(acc, secret_ptr, len)
+    # For high64, we need to compute mergeAccs with a different starting value
+    # Per vendor: h128.high64 = XXH3_mergeAccs(acc, secret + secretSize - XXH_STRIPE_LEN - XXH_SECRET_MERGEACCS_START, ~(len * XXH_PRIME64_2))
+    # XXH_STRIPE_LEN = 64, XXH_SECRET_MERGEACCS_START = 11, XXH_PRIME64_2 = 0xC2B2AE3D27D4EB4F_u64
+    # So: secret + secretSize - 64 - 11 = secret + secretSize - 75
+    high64 = merge_accs(acc, secret_ptr + (secret_size - 64 - 11), ~(len &* XXH::Constants::PRIME64_2))
+    Hash128.new(low64, high64)
+  end
+
+  def self.hash_long_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32) : Hash128
+    acc = Array(UInt64).new(8) do |i|
+      INIT_ACC[i]
+    end
+    hash_long_internal_loop(acc, ptr, len, secret_ptr, secret_size)
+    finalize_long_128b(acc, secret_ptr, secret_size, len.to_u64)
+  end
+
+  def self.hash_long_128b_with_seed(ptr : Pointer(UInt8), len : Int32, seed : UInt64, default_secret_ptr : Pointer(UInt8), secret_size : Int32) : Hash128
+    if seed == 0_u64
+      return hash_long_128b(ptr, len, default_secret_ptr, secret_size)
+    end
+    # When seeded, build custom secret
+    secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+    nrounds = XXH::Constants::SECRET_DEFAULT_SIZE.tdiv(16)
+    (0...nrounds).each do |i|
+      lo = XXH::Primitives.read_u64_le(default_secret_ptr + (16 * i)) &+ seed
+      hi = ((XXH::Primitives.read_u64_le(default_secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+      XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i), lo)
+      XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i + 8), hi)
+    end
+    acc = Array(UInt64).new(8) do |i|
+      INIT_ACC[i]
+    end
+    hash_long_internal_loop(acc, ptr, len, secret.to_unsafe, secret_size)
+    finalize_long_128b(acc, secret.to_unsafe, secret_size, len.to_u64)
   end
 
   # Streaming state wrapper (native)

@@ -1,4 +1,3 @@
-require "../ffi/bindings"
 require "../xxh/primitives"
 require "../xxh/common"
 

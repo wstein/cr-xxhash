@@ -2,7 +2,6 @@
 #
 # Command-line interface for xxHash algorithm family.
 
-require "./ffi/bindings"
 require "./cli/options"
 require "./cli/hasher"
 require "./cli/formatter"
