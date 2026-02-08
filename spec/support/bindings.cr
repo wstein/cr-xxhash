@@ -1,40 +1,8 @@
-# FFI bindings to the vendored xxHash C library
+# FFI bindings to the vendored xxHash C library (for specs)
 #
-# This module provides Crystal FFI bindings to the C99 xxHash implementation.
-# The actual hashing is delegated to the vendored C code in vendor/xxHash/.
-#
-# ⚠️  DEPRECATION WARNING: These FFI bindings are maintained for backward compatibility and validation.
-#     For new code, use the native Crystal implementations in src/xxh/ instead:
-#     - XXH::XXH32 for 32-bit hashing
-#     - XXH::XXH64 for 64-bit hashing
-#     - XXH::XXH3 for modern 64-bit hashing
-#
-#     The native implementations provide:
-#     - Better integration with Crystal's memory model
-#     - SIMD acceleration (ARM NEON, SSE2, AVX2)
-#     - Idiomatic Crystal API
-#
-#     FFI functions will be removed in a future major version.
-
-module XXH::FFI
-  @@deprecation_warned = false
-
-  def self.show_deprecation_warning : Nil
-    unless @@deprecation_warned
-      STDERR.puts "\n⚠️  DEPRECATION WARNING: FFI bindings (LibXXH) are deprecated"
-      STDERR.puts "   The LibXXH FFI functions will be removed in a future major version."
-      STDERR.puts "   Please use the native Crystal implementations instead:"
-      STDERR.puts ""
-      STDERR.puts "   • XXH::XXH32.hash(data) - use instead of LibXXH.XXH32()"
-      STDERR.puts "   • XXH::XXH64.hash(data) - use instead of LibXXH.XXH64()"
-      STDERR.puts "   • XXH::XXH3.hash(data)  - use instead of LibXXH.XXH3_64bits()"
-      STDERR.puts ""
-      STDERR.puts "   Native implementations provide better Crystal integration,"
-      STDERR.puts "   SIMD acceleration, and improved performance.\n\n"
-      @@deprecation_warned = true
-    end
-  end
-end
+# This file mirrors the historical `src/ffi/bindings.cr` content and is used
+# exclusively by the test suite as the canonical FFI reference. Tests should
+# require this file via `require "./bindings"` from `spec/support`.
 
 @[Link(ldflags: "#{__DIR__}/../../vendor/xxHash/xxhash.o")]
 lib LibXXH

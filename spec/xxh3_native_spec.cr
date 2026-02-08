@@ -10,7 +10,7 @@ describe "XXH3 Native Implementation" do
     it "hashes empty input" do
       input = Bytes.new(0)
       result = XXH::XXH3.hash(input)
-      expected = LibXXH.XXH3_64bits(Pointer(UInt8).null, 0)
+      expected = SpecFFI.xxh3_64(Bytes.new(0))
       result.should eq(expected)
     end
 

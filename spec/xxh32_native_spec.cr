@@ -8,7 +8,7 @@ describe "XXH32 Native Implementation" do
   describe "One-Shot Hashing" do
     it "hashes empty input" do
       result = XXH::XXH32.hash(Bytes.new(0), 0_u32)
-      expected = LibXXH.XXH32(Pointer(UInt8).null, 0, 0_u32)
+      expected = SpecFFI.xxh32(Bytes.new(0), 0_u32)
       result.should eq(expected)
     end
 
@@ -44,7 +44,7 @@ describe "XXH32 Native Implementation" do
       input = "test".to_slice
       seed = 42_u32
       result = XXH::XXH32.hash(input, seed)
-      expected = LibXXH.XXH32(input.to_unsafe, input.size, seed)
+      expected = SpecFFI.xxh32(input, seed)
       result.should eq(expected)
     end
 

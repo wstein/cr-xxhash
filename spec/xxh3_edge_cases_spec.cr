@@ -4,7 +4,6 @@ require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh64.cr"
 require "../src/xxh/xxh3.cr"
-require "../src/ffi/bindings.cr"
 
 describe "XXH3 Edge Cases" do
   describe "Seed initialization (64-bit)" do
@@ -84,29 +83,21 @@ describe "XXH3 Edge Cases" do
   describe "Streaming chunk transitions (128-bit)" do
     it "128-bit streaming (FFI) matches one-shot" do
       input = Bytes.new(300) { |i| (i % 256).to_u8 }
-      expected = LibXXH.XXH3_128bits(input.to_unsafe, input.size)
+      expected = SpecFFI.xxh3_128(input)
 
-      st = LibXXH.XXH3_createState
-      LibXXH.XXH3_128bits_reset(st)
-      LibXXH.XXH3_128bits_update(st, input.to_unsafe, input.size)
-      got = LibXXH.XXH3_128bits_digest(st)
+      got = SpecFFI.xxh3_128_stream_digest(input)
 
       {got.low64, got.high64}.should eq({expected.low64, expected.high64})
-      LibXXH.XXH3_freeState(st)
     end
 
     it "128-bit streaming with seed (FFI) matches one-shot" do
       input = Bytes.new(300) { |i| (i % 256).to_u8 }
       seed = 0xDEAD_BEEF_DEAD_BEEFu64
-      expected = LibXXH.XXH3_128bits_withSeed(input.to_unsafe, input.size, seed)
+      expected = SpecFFI.xxh3_128_with_seed(input, seed)
 
-      st = LibXXH.XXH3_createState
-      LibXXH.XXH3_128bits_reset_withSeed(st, seed)
-      LibXXH.XXH3_128bits_update(st, input.to_unsafe, input.size)
-      got = LibXXH.XXH3_128bits_digest(st)
+      got = SpecFFI.xxh3_128_stream_digest_with_seed(input, seed)
 
       {got.low64, got.high64}.should eq({expected.low64, expected.high64})
-      LibXXH.XXH3_freeState(st)
     end
 
     it "matches one-shot when fed in many 1-byte chunks" do

@@ -99,7 +99,7 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 * Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
 * Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
-* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the test suite centralizes the FFI bindings in `spec/support/libxxh_helper.cr`, which exposes `LibXXH` and some convenience wrappers for validation. Prefer native implementation parity checks and use the test suite against `XXH::*` functions.
+* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the test suite centralizes the FFI bindings in `spec/support/bindings.cr` (exposed by `spec/support/libxxh_helper.cr`). The detailed FFI binding was removed from `src/` and is now maintained for tests only; if you need to update it, edit `spec/support/bindings.cr` and ensure `vendor/xxHash` is built (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks and use the test suite against `XXH::*` functions.
 
 ## Migration Paper
 

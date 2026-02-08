@@ -20,6 +20,9 @@ This project aims to bridge the gap between low-level C optimization and High-le
 3. **Validation**:
     * Run `crystal spec` to ensure zero regressions.
     * Run the integration tests: `crystal spec/integration_test.cr` (validates vendor parity).
+    * Test FFI bindings: The test suite uses a dedicated FFI binding kept at `spec/support/bindings.cr` (required by `spec/support/libxxh_helper.cr`) as the canonical validation oracle. If you update C-side behavior or vendor fixtures, update this file and ensure the vendor library is built (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs.
+
+    * Maintenance note: Keep `spec/support/bindings.cr` synchronized with changes to `vendor/xxHash`. When updating vendor C code, also update or add tests that assert parity (for example, comparing `SpecFFI` results with native `XXH::*` outputs) and rebuild the vendor library (`make -C vendor/xxHash libxxhash.a`) so CI and local runs validate the new behavior.
     * Run the benchmark and include results in your PR when performance changes are involved:
         **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
     * Use `scripts/tool_versions.rb` to document your environment in the PR description.

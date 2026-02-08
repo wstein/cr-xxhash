@@ -3,13 +3,12 @@ require "../src/xxh/primitives.cr"
 require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh64.cr"
-require "../src/ffi/bindings.cr"
 
 describe "XXH64 Native Implementation" do
   describe "One-Shot Hashing" do
     it "hashes empty input" do
       result = XXH::XXH64.hash(Bytes.new(0), 0_u64)
-      expected = LibXXH.XXH64(Pointer(UInt8).null, 0, 0_u64)
+      expected = SpecFFI.xxh64(Bytes.new(0), 0_u64)
       result.should eq(expected)
     end
 
@@ -45,7 +44,7 @@ describe "XXH64 Native Implementation" do
       input = "test".to_slice
       seed = 42_u64
       result = XXH::XXH64.hash(input, seed)
-      expected = LibXXH.XXH64(input.to_unsafe, input.size, seed)
+      expected = SpecFFI.xxh64(input, seed)
       result.should eq(expected)
     end
 

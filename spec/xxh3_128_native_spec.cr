@@ -1,5 +1,4 @@
 require "spec"
-require "../src/ffi/bindings.cr"
 require "../src/xxh/primitives.cr"
 require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
