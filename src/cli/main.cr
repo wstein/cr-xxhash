@@ -247,11 +247,11 @@ module XXH::CLI
       end
     when Algorithm::XXH3
       iterations.times do
-        LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+        XXH.XXH3_64bits(data.to_unsafe, data.size)
       end
     when Algorithm::XXH128
       iterations.times do
-        LibXXH.XXH3_128bits(data.to_unsafe, data.size)
+        XXH.XXH3_128bits(data.to_unsafe, data.size)
       end
     end
 

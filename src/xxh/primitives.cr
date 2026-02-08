@@ -101,4 +101,16 @@ module XXH::Primitives
   def self.combine64(low : UInt32, high : UInt32) : UInt64
     low.to_u64 | (high.to_u64 << 32)
   end
+
+  @[AlwaysInline]
+  def self.write_u64_le(ptr : Pointer(UInt8), v : UInt64)
+    ptr[0] = (v & 0xFF).to_u8
+    ptr[1] = ((v >> 8) & 0xFF).to_u8
+    ptr[2] = ((v >> 16) & 0xFF).to_u8
+    ptr[3] = ((v >> 24) & 0xFF).to_u8
+    ptr[4] = ((v >> 32) & 0xFF).to_u8
+    ptr[5] = ((v >> 40) & 0xFF).to_u8
+    ptr[6] = ((v >> 48) & 0xFF).to_u8
+    ptr[7] = ((v >> 56) & 0xFF).to_u8
+  end
 end
