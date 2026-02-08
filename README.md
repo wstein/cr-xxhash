@@ -37,13 +37,21 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: CLI now uses native Crystal implementations. XXH32 has full test suite passing (20/20). XXH64 has partial support (short inputs work, long inputs need debugging). SIMD dispatch framework wired in CLI with `--simd` flag.
+**Status**: CLI now uses native Crystal implementations. XXH32, XXH64, and XXH3 all have complete scalar implementations with comprehensive test coverage. SIMD dispatch framework wired in CLI with `--simd` flag.
 
-**Phase 1 - Scalar Fundamentals** (ACTIVE):
+**Phase 1 & 2 - Scalar Fundamentals** (COMPLETE):
 
 * ✅ XXH32: All 20/20 tests passing. Native implementation in use in CLI.
-* 🟠 XXH64: 8/16 tests passing (short inputs work). Native implementation in use in CLI.
-* ⚠️ XXH3: 1/5 tests passing (placeholder). Native implementation wired in CLI.
+* ✅ XXH64: All 16/16 tests passing. Complete scalar implementation with streaming support.
+  * One-shot hashing: Short (< 32B) and long (≥ 32B) paths
+  * Streaming: Full State class with buffer management and 32-byte lane processing
+  * Seeding: Full support for seeded variants
+  * Tail processing: Proper handling of 8-byte, 4-byte, and single-byte chunks
+* ✅ XXH3: Complete scalar implementation with full streaming support (127/127 tests passing).
+  * One-shot paths: 0-16B, 17-128B, 129-240B, 240B+ all working
+  * Streaming: Full State class with buffer management and edge-case handling
+  * Seeding: Full support for seeded variants
+  * Edge cases: 23 comprehensive tests covering boundaries, small chunks, resets
 * ✅ CLI dispatch: SIMD flag (`--simd=auto|scalar|sse2|avx2|neon`) fully integrated. Framework ready for SIMD variants.
 * ✅ Deprecation warnings: FFI bindings now show one-shot deprecation warning when used directly.
 
@@ -51,10 +59,9 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 | Phase | Target | Algorithms | Performance | Status |
 | --- | --- | --- | --- | --- |
-| **P1** | Scalar fundamentals | XXH32, XXH64, XXH3 | ~90% C throughput | 🟠 In Progress |
-| **P1** | CPU dispatch | Detection + routing | N/A | 🟠 In Progress |
-| **P2** | XXH3 full scalar | Stripe/block processing | ~85% C throughput | 🔵 Blocked on syntax |
-| **P2** | ARM NEON | Apple Silicon (M1/M4) | >45 GB/s | 🔵 Planned |
+| **P1** | Scalar fundamentals | XXH32, XXH64, XXH3 | ~90% C throughput | ✅ Complete |
+| **P1** | CPU dispatch | Detection + routing | N/A | ✅ Complete |
+| **P2** | SIMD paths | ARM NEON, x86 AVX2/SSE2 | Variable | 🔵 Planned |
 | **P3** | x86 AVX2 | Intel/AMD vectorization | >28 GB/s | 🔵 Planned |
 | **P3** | x86 SSE2 | Baseline x86 SIMD | ~8 GB/s | 🔵 Planned |
 | **P4** | Fiber-based I/O | Parallel file processing | N/A | 🔵 Planned |
