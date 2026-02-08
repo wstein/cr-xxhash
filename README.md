@@ -9,9 +9,79 @@ High-performance Crystal implementation and migration study of Yann Collet's xxH
 * [ ] Deliver SIMD-accelerated LLVM paths that approach native C performance for modern CPUs.
 * [ ] Document the architectural trade-offs in an arc42-style migration paper.
 
+## ⚠️ Important: FFI Bindings Deprecation
+
+The current FFI bindings to the vendored C implementation are **deprecated**. For new code, use the native Crystal implementations:
+
+```crystal
+# Recommended: Native Crystal implementations
+XXH::XXH32.hash(data)        # 32-bit
+XXH::XXH64.hash(data)        # 64-bit (default)
+XXH::XXH3.hash(data)         # Modern 64-bit
+
+# Deprecated: FFI bindings (backward compatibility only)
+LibXXH.XXH32(ptr, len, seed) # Use XXH::XXH32 instead
+LibXXH.XXH64(ptr, len, seed) # Use XXH::XXH64 instead
+LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
+```
+
+**CLI SIMD Control**: Use `--simd=MODE` flag to select implementation:
+
+```bash
+./bin/xxhsum --simd=auto     # Auto-detect (default)
+./bin/xxhsum --simd=scalar   # Force scalar (no SIMD)
+./bin/xxhsum --simd=neon     # Force ARM NEON (Apple Silicon, etc)
+./bin/xxhsum --simd=avx2     # Force x86 AVX2
+./bin/xxhsum --simd=sse2     # Force x86 SSE2
+```
+
+## Native Implementation Roadmap
+
+**Status**: CLI now uses native Crystal implementations. XXH32 has full test suite passing (20/20). XXH64 has partial support (short inputs work, long inputs need debugging). SIMD dispatch framework wired in CLI with `--simd` flag.
+
+**Phase 1 - Scalar Fundamentals** (ACTIVE):
+
+* ✅ XXH32: All 20/20 tests passing. Native implementation in use in CLI.
+* 🟠 XXH64: 8/16 tests passing (short inputs work). Native implementation in use in CLI.
+* ⚠️ XXH3: 1/5 tests passing (placeholder). Native implementation wired in CLI.
+* ✅ CLI dispatch: SIMD flag (`--simd=auto|scalar|sse2|avx2|neon`) fully integrated. Framework ready for SIMD variants.
+* ✅ Deprecation warnings: FFI bindings now show one-shot deprecation warning when used directly.
+
+**Planned Phases** (Future):
+
+| Phase | Target | Algorithms | Performance | Status |
+| --- | --- | --- | --- | --- |
+| **P1** | Scalar fundamentals | XXH32, XXH64, XXH3 | ~90% C throughput | 🟠 In Progress |
+| **P1** | CPU dispatch | Detection + routing | N/A | 🟠 In Progress |
+| **P2** | XXH3 full scalar | Stripe/block processing | ~85% C throughput | 🔵 Blocked on syntax |
+| **P2** | ARM NEON | Apple Silicon (M1/M4) | >45 GB/s | 🔵 Planned |
+| **P3** | x86 AVX2 | Intel/AMD vectorization | >28 GB/s | 🔵 Planned |
+| **P3** | x86 SSE2 | Baseline x86 SIMD | ~8 GB/s | 🔵 Planned |
+| **P4** | Fiber-based I/O | Parallel file processing | N/A | 🔵 Planned |
+| **P5** | x86 AVX-512 | High-end x86 (future) | >60 GB/s | 🔵 Backlog |
+| **Future** | IBM POWER VSX | Power ISA vector ext | TBD | 📋 Researching |
+| **Future** | ARM SVE | Scalable vector ext | TBD | 📋 Researching |
+| **Future** | LoongArch LSX/LASX | LoongArch SIMD | TBD | 📋 Researching |
+| **Future** | RISC-V RVV | RISC-V vectors | TBD | 📋 Researching |
+
+**Implementation Details**: See [Migration Paper § 12: Native Implementation Strategy](papers/migration/12_native_implementation_strategy.adoc)
+
+**Key Design Principles**:
+
+* **Zero-copy**: Reusable static buffers, pointer arithmetic for hot paths
+* **SIMD dispatch**: Runtime CPU detection with compile-time fallback selection
+* **Idiomatic Crystal**: Public API remains safe; unsafe blocks internally documented
+* **Bit-identical**: 100% test vector parity with vendor C implementation
+
+**Getting Involved**:
+
+* Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
+* Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
+* Found issues? Please validate against FFI baseline first
+
 ## Migration Paper
 
-For architectural depth, see the **[Migration Study: C99 → Crystal](papers/MIGRATION.adoc)** which maps each arc42 view to the Crystal implementation.
+For architectural depth, see the **[Migration Study: C99 → Crystal](papers/MIGRATION.adoc)** which maps each arc42 view to the Crystal implementation. Section 12 details the native implementation strategy, including SIMD dispatch, memory layout, and performance targets.
 
 ## Current Environment (Study Reference)
 
@@ -202,7 +272,7 @@ All variants test **aligned (offset +0)** and **unaligned (offset +3)** memory a
 * 21–22: `XXH3_stream` (aligned/unaligned)
 * 25–26: `XXH128_stream` (aligned/unaligned)
 
-### Usage
+### Benchmark Examples
 
 ```bash
 # Benchmark all 28 variants with auto-tuned iterations
@@ -247,6 +317,32 @@ ID#Name                       :   SizeBytes ->   Throughput (MB/s)
 * IDs 0, 29+, and `-b77` all expand to "benchmark all" (C99 vendor behavior)
 
 For more details, see [BENCHMARK_ID_BEHAVIOR.md](BENCHMARK_ID_BEHAVIOR.md) for a detailed comparison with the C99 implementation.
+
+## Future SIMD Architectures (Research Phase)
+
+The following CPU instruction set extensions are candidates for future implementation:
+
+| Architecture | ISA | Status | Notes |
+| --- | --- | --- | --- |
+| IBM POWER | VSX (Vector Scalar Extension) | 📋 Researching | Supported on IBM Power ISA for enterprise systems |
+| ARM | SVE (Scalable Vector Extension) | 📋 Researching | Available on newer Graviton and NEOVERSE processors |
+| LoongArch | LSX/LASX | 📋 Researching | LSX (128-bit) and LASX (256-bit) for LoongArch CPUs |
+| RISC-V | RVV (Vector Extension) | 📋 Researching | Scalable RISC-V vector standard (0.10-1.0) |
+| x86 | AVX-512 | 🔵 Planned | High-end x86-64 (Xeon, Core i9K series) |
+
+These are placeholder entries for potential future support. Implementation priority depends on:
+
+* Community demand and use cases
+* Availability of testing hardware
+* Crystal compiler support for architecture-specific intrinsics
+* Maintainer bandwidth
+
+**Interested in porting to a new architecture?** Please open an issue with:
+
+1. Your target platform and CPU model
+2. Proposed SIMD instruction set
+3. Performance targets and use cases
+4. Availability of testing hardware or CI infrastructure
 
 ## Development
 

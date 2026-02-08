@@ -46,7 +46,7 @@ The `xxhsum` command-line tool provides three primary execution modes:
 **Mode 1: Hash Files (Default)**
 1. `src/cli/options.cr:parse()` parses command-line arguments using `OptionParser`
 2. `src/cli/hasher.cr:hash_files()` iterates over file arguments
-3. For each file, calls `LibXXH` FFI bindings to compute hash
+3. For each file, calls the native `XXH` module (e.g., `XXH::XXH32`, `XXH::XXH64`, `XXH::XXH3`). Note: `XXH3` one-shot and streaming behavior is currently delegated to the vendored C implementation (`LibXXH`) for correctness; a pure Crystal XXH3 reimplementation is planned.
 4. `src/cli/formatter.cr:format_gnu()` converts hash bytes to hex string
 5. Output: `hash  filename` (GNU format, matching vendor exactly)
 

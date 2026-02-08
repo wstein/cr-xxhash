@@ -1,4 +1,10 @@
-require "../ffi/bindings"
+# require "../ffi/bindings"
+require "../xxh/common"
+require "../xxh/primitives"
+require "../xxh/dispatch"
+require "../xxh/xxh32"
+require "../xxh/xxh64"
+require "../xxh/xxh3"
 require "file"
 require "channel"
 
@@ -16,18 +22,18 @@ module XXH::CLI
     end
   end
 
-  # Stream-based file hasher using FFI
+  # Stream-based file hasher using native Crystal implementations
   # Uses fibers for parallel processing of multiple files
   module FileHasher
     DEFAULT_BLOCK_SIZE = 64 * 1024 # 64 KB blocks
 
     # Hash a single file using streaming API
-    def self.hash_file(path : String, algorithm : Algorithm, block_size : Int32 = DEFAULT_BLOCK_SIZE) : HashResult
+    def self.hash_file(path : String, algorithm : Algorithm, simd_mode : SIMDMode = SIMDMode::Auto, block_size : Int32 = DEFAULT_BLOCK_SIZE) : HashResult
       result = HashResult.new(path)
 
       # Check if stdin
       if path == "-" || path == "stdin"
-        stdin_result = hash_stdin(algorithm, block_size)
+        stdin_result = hash_stdin(algorithm, simd_mode, block_size)
         # Preserve the original path ("-" or "stdin") for consistent lookup
         stdin_result.filename = path
         return stdin_result
@@ -46,13 +52,13 @@ module XXH::CLI
       begin
         case algorithm
         when Algorithm::XXH32
-          result.hash32 = hash_file_xxh32(path, block_size)
+          result.hash32 = hash_file_xxh32(path, simd_mode, block_size)
         when Algorithm::XXH64
-          result.hash64 = hash_file_xxh64(path, block_size)
+          result.hash64 = hash_file_xxh64(path, simd_mode, block_size)
         when Algorithm::XXH128
-          result.hash128 = hash_file_xxh128(path, block_size)
+          result.hash128 = hash_file_xxh128(path, simd_mode, block_size)
         when Algorithm::XXH3
-          result.hash64 = hash_file_xxh3(path, block_size)
+          result.hash64 = hash_file_xxh3(path, simd_mode, block_size)
         end
         result.success = true
       rescue ex
@@ -64,19 +70,19 @@ module XXH::CLI
     end
 
     # Hash stdin using streaming API
-    def self.hash_stdin(algorithm : Algorithm, block_size : Int32 = DEFAULT_BLOCK_SIZE) : HashResult
+    def self.hash_stdin(algorithm : Algorithm, simd_mode : SIMDMode = SIMDMode::Auto, block_size : Int32 = DEFAULT_BLOCK_SIZE) : HashResult
       result = HashResult.new("stdin")
 
       begin
         case algorithm
         when Algorithm::XXH32
-          result.hash32 = hash_io_xxh32(STDIN, block_size)
+          result.hash32 = hash_io_xxh32(STDIN, simd_mode, block_size)
         when Algorithm::XXH64
-          result.hash64 = hash_io_xxh64(STDIN, block_size)
+          result.hash64 = hash_io_xxh64(STDIN, simd_mode, block_size)
         when Algorithm::XXH128
-          result.hash128 = hash_io_xxh128(STDIN, block_size)
+          result.hash128 = hash_io_xxh128(STDIN, simd_mode, block_size)
         when Algorithm::XXH3
-          result.hash64 = hash_io_xxh3(STDIN, block_size)
+          result.hash64 = hash_io_xxh3(STDIN, simd_mode, block_size)
         end
         result.success = true
       rescue ex
@@ -88,13 +94,13 @@ module XXH::CLI
     end
 
     # Hash multiple files in parallel using fibers
-    def self.hash_files_parallel(paths : Array(String), algorithm : Algorithm, block_size : Int32 = DEFAULT_BLOCK_SIZE) : Array(HashResult)
+    def self.hash_files_parallel(paths : Array(String), algorithm : Algorithm, simd_mode : SIMDMode = SIMDMode::Auto, block_size : Int32 = DEFAULT_BLOCK_SIZE) : Array(HashResult)
       results = Array(HashResult).new(paths.size)
       channel = Channel(HashResult).new(paths.size)
 
       paths.each do |path|
         spawn do
-          channel.send(hash_file(path, algorithm, block_size))
+          channel.send(hash_file(path, algorithm, simd_mode, block_size))
         end
       end
 
@@ -105,158 +111,75 @@ module XXH::CLI
       results
     end
 
-    # Stream hashing implementations
-    private def self.hash_file_xxh32(path : String, block_size : Int32) : UInt32
-      state = LibXXH.XXH32_createState
-      raise "Failed to create state" if state.nil?
+    # Stream hashing implementations using native Crystal code
+    # NOTE: Currently only scalar implementations exist (simd_mode is for future SIMD variants)
+    # simd_mode values: Auto (default), Scalar, SSE2, AVX2, NEON
+    # TODO: Wire actual SIMD dispatch once SIMD implementations are available
+    private def self.hash_file_xxh32(path : String, simd_mode : SIMDMode, block_size : Int32) : UInt32
+      # Read entire file and hash it
+      # TODO: Implement true streaming for very large files
+      data = File.read(path).to_slice
 
-      LibXXH.XXH32_reset(state, 0_u32)
-
-      buffer = Slice(UInt8).new(block_size)
-      File.open(path) do |file|
-        loop do
-          bytes = file.read(buffer)
-          break if bytes == 0
-          LibXXH.XXH32_update(state, buffer.to_unsafe, bytes)
-        end
+      # For now, all modes use the native scalar implementation
+      case simd_mode
+      when SIMDMode::Auto, SIMDMode::Scalar, SIMDMode::SSE2, SIMDMode::AVX2, SIMDMode::NEON
+        XXH::XXH32.hash(data, 0_u32)
+      else
+        XXH::XXH32.hash(data, 0_u32)
       end
-
-      hash = LibXXH.XXH32_digest(state)
-      LibXXH.XXH32_freeState(state)
-      hash
     end
 
-    private def self.hash_file_xxh64(path : String, block_size : Int32) : UInt64
-      state = LibXXH.XXH64_createState
-      raise "Failed to create state" if state.nil?
+    private def self.hash_file_xxh64(path : String, simd_mode : SIMDMode, block_size : Int32) : UInt64
+      data = File.read(path).to_slice
 
-      LibXXH.XXH64_reset(state, 0_u64)
-
-      buffer = Slice(UInt8).new(block_size)
-      File.open(path) do |file|
-        loop do
-          bytes = file.read(buffer)
-          break if bytes == 0
-          LibXXH.XXH64_update(state, buffer.to_unsafe, bytes)
-        end
+      # SIMD dispatch (currently all use scalar implementation)
+      case simd_mode
+      when SIMDMode::Auto, SIMDMode::Scalar, SIMDMode::SSE2, SIMDMode::AVX2, SIMDMode::NEON
+        XXH::XXH64.hash(data, 0_u64)
+      else
+        XXH::XXH64.hash(data, 0_u64)
       end
-
-      hash = LibXXH.XXH64_digest(state)
-      LibXXH.XXH64_freeState(state)
-      hash
     end
 
-    private def self.hash_file_xxh128(path : String, block_size : Int32) : Tuple(UInt64, UInt64)
-      state = LibXXH.XXH3_createState
-      raise "Failed to create state" if state.nil?
-
-      LibXXH.XXH3_128bits_reset(state)
-
-      buffer = Slice(UInt8).new(block_size)
-      File.open(path) do |file|
-        loop do
-          bytes = file.read(buffer)
-          break if bytes == 0
-          LibXXH.XXH3_128bits_update(state, buffer.to_unsafe, bytes)
-        end
-      end
-
-      hash = LibXXH.XXH3_128bits_digest(state)
-      LibXXH.XXH3_freeState(state)
-      {hash.low64, hash.high64}
+    private def self.hash_file_xxh128(path : String, simd_mode : SIMDMode, block_size : Int32) : Tuple(UInt64, UInt64)
+      data = File.read(path).to_slice
+      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
+      {result[0], result[1]}
     end
 
-    private def self.hash_file_xxh3(path : String, block_size : Int32) : UInt64
-      state = LibXXH.XXH3_createState
-      raise "Failed to create state" if state.nil?
+    private def self.hash_file_xxh3(path : String, simd_mode : SIMDMode, block_size : Int32) : UInt64
+      data = File.read(path).to_slice
 
-      LibXXH.XXH3_64bits_reset(state)
-
-      buffer = Slice(UInt8).new(block_size)
-      File.open(path) do |file|
-        loop do
-          bytes = file.read(buffer)
-          break if bytes == 0
-          LibXXH.XXH3_64bits_update(state, buffer.to_unsafe, bytes)
-        end
+      # SIMD dispatch (currently all use scalar implementation)
+      case simd_mode
+      when SIMDMode::Auto, SIMDMode::Scalar, SIMDMode::SSE2, SIMDMode::AVX2, SIMDMode::NEON
+        XXH::XXH3.hash(data)
+      else
+        XXH::XXH3.hash(data)
       end
-
-      hash = LibXXH.XXH3_64bits_digest(state)
-      LibXXH.XXH3_freeState(state)
-      hash
     end
 
     # IO-based hashing for stdin
-    private def self.hash_io_xxh32(io : IO, block_size : Int32) : UInt32
-      state = LibXXH.XXH32_createState
-      raise "Failed to create state" if state.nil?
-
-      LibXXH.XXH32_reset(state, 0_u32)
-
-      buffer = Slice(UInt8).new(block_size)
-      loop do
-        bytes = io.read(buffer)
-        break if bytes == 0
-        LibXXH.XXH32_update(state, buffer.to_unsafe, bytes)
-      end
-
-      hash = LibXXH.XXH32_digest(state)
-      LibXXH.XXH32_freeState(state)
-      hash
+    private def self.hash_io_xxh32(io : IO, simd_mode : SIMDMode, block_size : Int32) : UInt32
+      # Read from IO into memory then hash
+      data = io.gets_to_end.to_slice
+      XXH::XXH32.hash(data, 0_u32)
     end
 
-    private def self.hash_io_xxh64(io : IO, block_size : Int32) : UInt64
-      state = LibXXH.XXH64_createState
-      raise "Failed to create state" if state.nil?
-
-      LibXXH.XXH64_reset(state, 0_u64)
-
-      buffer = Slice(UInt8).new(block_size)
-      loop do
-        bytes = io.read(buffer)
-        break if bytes == 0
-        LibXXH.XXH64_update(state, buffer.to_unsafe, bytes)
-      end
-
-      hash = LibXXH.XXH64_digest(state)
-      LibXXH.XXH64_freeState(state)
-      hash
+    private def self.hash_io_xxh64(io : IO, simd_mode : SIMDMode, block_size : Int32) : UInt64
+      data = io.gets_to_end.to_slice
+      XXH::XXH64.hash(data, 0_u64)
     end
 
-    private def self.hash_io_xxh128(io : IO, block_size : Int32) : Tuple(UInt64, UInt64)
-      state = LibXXH.XXH3_createState
-      raise "Failed to create state" if state.nil?
-
-      LibXXH.XXH3_128bits_reset(state)
-
-      buffer = Slice(UInt8).new(block_size)
-      loop do
-        bytes = io.read(buffer)
-        break if bytes == 0
-        LibXXH.XXH3_128bits_update(state, buffer.to_unsafe, bytes)
-      end
-
-      hash = LibXXH.XXH3_128bits_digest(state)
-      LibXXH.XXH3_freeState(state)
-      {hash.low64, hash.high64}
+    private def self.hash_io_xxh128(io : IO, simd_mode : SIMDMode, block_size : Int32) : Tuple(UInt64, UInt64)
+      data = io.gets_to_end.to_slice
+      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
+      {result[0], result[1]}
     end
 
-    private def self.hash_io_xxh3(io : IO, block_size : Int32) : UInt64
-      state = LibXXH.XXH3_createState
-      raise "Failed to create state" if state.nil?
-
-      LibXXH.XXH3_64bits_reset(state)
-
-      buffer = Slice(UInt8).new(block_size)
-      loop do
-        bytes = io.read(buffer)
-        break if bytes == 0
-        LibXXH.XXH3_64bits_update(state, buffer.to_unsafe, bytes)
-      end
-
-      hash = LibXXH.XXH3_64bits_digest(state)
-      LibXXH.XXH3_freeState(state)
-      hash
+    private def self.hash_io_xxh3(io : IO, simd_mode : SIMDMode, block_size : Int32) : UInt64
+      data = io.gets_to_end.to_slice
+      XXH::XXH3.hash(data)
     end
 
     # One-shot hashing (for small files)
@@ -265,14 +188,14 @@ module XXH::CLI
 
       case algorithm
       when Algorithm::XXH32
-        result.hash32 = LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
+        result.hash32 = XXH::XXH32.hash(data, 0_u32)
       when Algorithm::XXH64
-        result.hash64 = LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
+        result.hash64 = XXH::XXH64.hash(data, 0_u64)
       when Algorithm::XXH128
-        hash = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-        result.hash128 = {hash.low64, hash.high64}
+        res = XXH::Dispatch.hash_xxh128(data, 0_u64)
+        result.hash128 = {res[0], res[1]}
       when Algorithm::XXH3
-        result.hash64 = LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+        result.hash64 = XXH::XXH3.hash(data)
       end
 
       result.success = true

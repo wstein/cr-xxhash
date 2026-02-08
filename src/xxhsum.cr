@@ -51,7 +51,7 @@ module XXH::CLI
 
   private def self.run_hash_mode(files : Array(String), options : Options)
     # Hash files in parallel using fibers
-    results = FileHasher.hash_files_parallel(files, options.algorithm)
+    results = FileHasher.hash_files_parallel(files, options.algorithm, options.simd_mode)
 
     # Output results in order
     files.each do |filename|
@@ -108,7 +108,7 @@ module XXH::CLI
 
       # Handle stdin
       if filename == "stdin"
-        actual = FileHasher.hash_stdin(algorithm)
+        actual = FileHasher.hash_stdin(algorithm, options.simd_mode)
       else
         # Check if file exists
         unless File.exists?(filename)
@@ -123,7 +123,7 @@ module XXH::CLI
           end
         end
 
-        actual = FileHasher.hash_file(filename, algorithm)
+        actual = FileHasher.hash_file(filename, algorithm, options.simd_mode)
       end
 
       next unless actual.success
@@ -216,7 +216,7 @@ module XXH::CLI
                        line
                      end
 
-          result = FileHasher.hash_file(filename, options.algorithm)
+          result = FileHasher.hash_file(filename, options.algorithm, options.simd_mode)
           output = Formatter.format(result, options.algorithm, options.convention, options.endianness)
           puts output if output
         end
@@ -482,14 +482,14 @@ module XXH::CLI
   private def self.run_basic_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
     case algorithm
     when Algorithm::XXH32
-      LibXXH.XXH32(data.to_unsafe, data.size, seed_u).to_u64
+      XXH::XXH32.hash(data, seed_u).to_u64
     when Algorithm::XXH64
-      LibXXH.XXH64(data.to_unsafe, data.size, seed_u.to_u64)
+      XXH::XXH64.hash(data, seed_u.to_u64)
     when Algorithm::XXH3
-      LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+      XXH::XXH3.hash_with_seed(data, seed_u.to_u64)
     when Algorithm::XXH128
-      result = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-      (result.high64 ^ result.low64).to_u64
+      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
+      (result[0] ^ result[1]).to_u64
     else
       0_u64
     end
@@ -500,19 +500,19 @@ module XXH::CLI
     case algorithm
     when Algorithm::XXH32
       iterations.times do
-        LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
+        XXH::XXH32.hash(data, 0_u32)
       end
     when Algorithm::XXH64
       iterations.times do
-        LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
+        XXH::XXH64.hash(data, 0_u64)
       end
     when Algorithm::XXH3
       iterations.times do
-        LibXXH.XXH3_64bits(data.to_unsafe, data.size)
+        XXH::XXH3.hash(data)
       end
     when Algorithm::XXH128
       iterations.times do
-        LibXXH.XXH3_128bits(data.to_unsafe, data.size)
+        XXH::Dispatch.hash_xxh128(data, 0_u64)
       end
     end
   end
@@ -525,14 +525,14 @@ module XXH::CLI
 
     case algorithm
     when Algorithm::XXH32
-      LibXXH.XXH32(data.to_unsafe, data.size, seed.to_u32).to_u64
+      XXH::XXH32.hash(data, seed.to_u32).to_u64
     when Algorithm::XXH64
-      LibXXH.XXH64(data.to_unsafe, data.size, seed)
+      XXH::XXH64.hash(data, seed)
     when Algorithm::XXH3
-      LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
+      XXH::XXH3.hash_with_seed(data, seed)
     when Algorithm::XXH128
-      result = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
-      (result.high64 ^ result.low64).to_u64
+      result = XXH::Dispatch.hash_xxh128(data, seed)
+      (result[0] ^ result[1]).to_u64
     else
       0_u64
     end
@@ -544,19 +544,19 @@ module XXH::CLI
     case algorithm
     when Algorithm::XXH32
       iterations.times do
-        LibXXH.XXH32(data.to_unsafe, data.size, seed.to_u32)
+        XXH::XXH32.hash(data, seed.to_u32)
       end
     when Algorithm::XXH64
       iterations.times do
-        LibXXH.XXH64(data.to_unsafe, data.size, seed)
+        XXH::XXH64.hash(data, seed)
       end
     when Algorithm::XXH3
       iterations.times do
-        LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
+        XXH::XXH3.hash_with_seed(data, seed)
       end
     when Algorithm::XXH128
       iterations.times do
-        LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
+        XXH::Dispatch.hash_xxh128(data, seed)
       end
     end
   end
@@ -566,6 +566,9 @@ module XXH::CLI
     # Generate a secret buffer (minimum required size for XXH3)
     secret_buffer = Bytes.new(136) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
 
+    # Derive a seed from the secret for native fallback
+    seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)
+
     case algorithm
     when Algorithm::XXH32
       # XXH32 doesn't support secret, fall back to seeded
@@ -574,10 +577,10 @@ module XXH::CLI
       # XXH64 doesn't support secret, fall back to seeded
       run_seeded_benchmark_one(data, algorithm, seed_u)
     when Algorithm::XXH3
-      LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+      XXH::XXH3.hash_with_seed(data, seed_from_secret)
     when Algorithm::XXH128
-      result = LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
-      (result.high64 ^ result.low64).to_u64
+      result = XXH::Dispatch.hash_xxh128(data, seed_from_secret)
+      (result[0] ^ result[1]).to_u64
     else
       0_u64
     end
@@ -588,6 +591,9 @@ module XXH::CLI
     # Generate a secret buffer (minimum required size for XXH3)
     secret_buffer = Bytes.new(136) { |i| ((i * 17) % 256).to_u8 }
 
+    # Derive seed from secret for native fallback
+    seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)
+
     case algorithm
     when Algorithm::XXH32
       # XXH32 doesn't support secret, fall back to seeded
@@ -597,11 +603,11 @@ module XXH::CLI
       run_seeded_benchmark(data, algorithm, iterations)
     when Algorithm::XXH3
       iterations.times do
-        LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+        XXH::XXH3.hash_with_seed(data, seed_from_secret)
       end
     when Algorithm::XXH128
       iterations.times do
-        LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret_buffer.to_unsafe, secret_buffer.size)
+        XXH::Dispatch.hash_xxh128(data, seed_from_secret)
       end
     end
   end
@@ -610,49 +616,20 @@ module XXH::CLI
   private def self.run_streaming_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
     case algorithm
     when Algorithm::XXH32
-      state = LibXXH.XXH32_createState
-      if state
-        LibXXH.XXH32_reset(state, seed_u)
-        LibXXH.XXH32_update(state, data.to_unsafe, data.size)
-        result = LibXXH.XXH32_digest(state)
-        LibXXH.XXH32_freeState(state)
-        result.to_u64
-      else
-        0_u64
-      end
+      state = XXH::XXH32::State.new(seed_u)
+      state.update(data)
+      state.digest.to_u64
     when Algorithm::XXH64
-      state = LibXXH.XXH64_createState
-      if state
-        LibXXH.XXH64_reset(state, seed_u.to_u64)
-        LibXXH.XXH64_update(state, data.to_unsafe, data.size)
-        result = LibXXH.XXH64_digest(state)
-        LibXXH.XXH64_freeState(state)
-        result
-      else
-        0_u64
-      end
+      state = XXH::XXH64::State.new(seed_u.to_u64)
+      state.update(data)
+      state.digest
     when Algorithm::XXH3
-      state = LibXXH.XXH3_createState
-      if state
-        LibXXH.XXH3_64bits_reset(state)
-        LibXXH.XXH3_64bits_update(state, data.to_unsafe, data.size)
-        result = LibXXH.XXH3_64bits_digest(state)
-        LibXXH.XXH3_freeState(state)
-        result
-      else
-        0_u64
-      end
+      state = XXH::XXH3.new_state(seed_u.to_u64)
+      state.update(data)
+      state.digest
     when Algorithm::XXH128
-      state = LibXXH.XXH3_createState
-      if state
-        LibXXH.XXH3_128bits_reset(state)
-        LibXXH.XXH3_128bits_update(state, data.to_unsafe, data.size)
-        result = LibXXH.XXH3_128bits_digest(state)
-        LibXXH.XXH3_freeState(state)
-        (result.high64 ^ result.low64).to_u64
-      else
-        0_u64
-      end
+      res = XXH::Dispatch.hash_xxh128(data, seed_u.to_u64)
+      (res[0] ^ res[1]).to_u64
     else
       0_u64
     end
@@ -663,43 +640,25 @@ module XXH::CLI
     case algorithm
     when Algorithm::XXH32
       iterations.times do
-        state = LibXXH.XXH32_createState
-        if state
-          LibXXH.XXH32_reset(state, 0_u32)
-          LibXXH.XXH32_update(state, data.to_unsafe, data.size)
-          LibXXH.XXH32_digest(state)
-          LibXXH.XXH32_freeState(state)
-        end
+        state = XXH::XXH32::State.new(0_u32)
+        state.update(data)
+        state.digest
       end
     when Algorithm::XXH64
       iterations.times do
-        state = LibXXH.XXH64_createState
-        if state
-          LibXXH.XXH64_reset(state, 0_u64)
-          LibXXH.XXH64_update(state, data.to_unsafe, data.size)
-          LibXXH.XXH64_digest(state)
-          LibXXH.XXH64_freeState(state)
-        end
+        state = XXH::XXH64::State.new(0_u64)
+        state.update(data)
+        state.digest
       end
     when Algorithm::XXH3
       iterations.times do
-        state = LibXXH.XXH3_createState
-        if state
-          LibXXH.XXH3_64bits_reset(state)
-          LibXXH.XXH3_64bits_update(state, data.to_unsafe, data.size)
-          LibXXH.XXH3_64bits_digest(state)
-          LibXXH.XXH3_freeState(state)
-        end
+        state = XXH::XXH3.new_state(0_u64)
+        state.update(data)
+        state.digest
       end
     when Algorithm::XXH128
       iterations.times do
-        state = LibXXH.XXH3_createState
-        if state
-          LibXXH.XXH3_128bits_reset(state)
-          LibXXH.XXH3_128bits_update(state, data.to_unsafe, data.size)
-          LibXXH.XXH3_128bits_digest(state)
-          LibXXH.XXH3_freeState(state)
-        end
+        XXH::Dispatch.hash_xxh128(data, 0_u64)
       end
     end
   end

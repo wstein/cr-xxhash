@@ -3,7 +3,7 @@
 # This library provides Crystal bindings to the xxHash hashing algorithm family.
 # It includes both the core hashing functionality and a CLI tool (xxhsum).
 
-require "./ffi/bindings"
+# require "./ffi/bindings"
 
 # Main module for xxHash Crystal bindings
 module XXH
@@ -11,7 +11,7 @@ module XXH
 
   # Get xxHash version number
   def self.version : UInt32
-    LibXXH.versionNumber
+    VERSION
   end
 
   # Get version as a string

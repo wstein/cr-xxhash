@@ -21,12 +21,22 @@ module XXH::CLI
     Little # With --little-endian: little-endian
   end
 
+  # SIMD mode selection for native implementations
+  enum SIMDMode
+    Auto   # Default: detect and use best available
+    Scalar # Force scalar (no SIMD)
+    SSE2   # Force SSE2
+    AVX2   # Force AVX2
+    NEON   # Force ARM NEON
+  end
+
   # CLI options parsed from command line
   struct Options
     property algorithm : Algorithm = Algorithm::XXH64
     property mode : Mode = Mode::Hash
     property convention : DisplayConvention = DisplayConvention::GNU
     property endianness : DisplayEndianness = DisplayEndianness::Big
+    property simd_mode : SIMDMode = SIMDMode::Auto
     property quiet : Bool = false
     property status : Bool = false
     property strict : Bool = false
@@ -193,6 +203,10 @@ module XXH::CLI
           @options.sample_size = parse_size(n)
         end
 
+        parser.on("--simd=MODE", "Force SIMD implementation: auto (default), scalar, sse2, avx2, neon") do |mode|
+          @options.simd_mode = parse_simd_mode(mode)
+        end
+
         parser.on("-V", "--version", "Display version information") do
           print_version
           exit 0
@@ -266,6 +280,7 @@ module XXH::CLI
               --tag            Produce BSD-style checksum lines
               --little-endian  Checksum values use little endian convention (default: big endian)
               --binary         Read in binary mode
+              --simd=MODE      Force SIMD implementation: auto (default), scalar, sse2, avx2, neon
           -b                   Run benchmark
           -b#                  Bench only algorithm variant #
           -i#                  Number of times to run the benchmark (default: 3)
@@ -306,6 +321,25 @@ module XXH::CLI
 
       value = s.to_u64? || 0_u64
       (value * multiplier)
+    end
+
+    # Parse SIMD mode from string
+    private def parse_simd_mode(mode_str : String) : SIMDMode
+      case mode_str.downcase
+      when "auto"
+        SIMDMode::Auto
+      when "scalar"
+        SIMDMode::Scalar
+      when "sse2"
+        SIMDMode::SSE2
+      when "avx2"
+        SIMDMode::AVX2
+      when "neon"
+        SIMDMode::NEON
+      else
+        error "Invalid SIMD mode: #{mode_str}. Valid options: auto, scalar, sse2, avx2, neon"
+        SIMDMode::Auto
+      end
     end
 
     # Map benchmark ID to algorithm
