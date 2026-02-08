@@ -29,14 +29,16 @@ module XXH::XXH64
     h
   end
 
-  def self.init_accs(accs : Array(UInt64), seed : UInt64)
+  @[AlwaysInline]
+  def self.init_accs(accs : Pointer(UInt64), seed : UInt64)
     accs[0] = seed &+ (XXH::Constants::PRIME64_1 &+ XXH::Constants::PRIME64_2)
     accs[1] = seed &+ XXH::Constants::PRIME64_2
     accs[2] = seed &+ 0_u64
     accs[3] = seed &- XXH::Constants::PRIME64_1
   end
 
-  def self.consume_long(accs : Array(UInt64), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
+  @[AlwaysInline]
+  def self.consume_long(accs : Pointer(UInt64), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
     # Consume chunks of 32 bytes (4 lanes × 8 bytes)
     input = ptr
     limit = ptr + (len - 31)
@@ -53,7 +55,8 @@ module XXH::XXH64
     input
   end
 
-  def self.merge_accs(accs : Array(UInt64)) : UInt64
+  @[AlwaysInline]
+  def self.merge_accs(accs : Pointer(UInt64)) : UInt64
     h64 = XXH::Primitives.rotl64(accs[0], 1_u32) &+
           XXH::Primitives.rotl64(accs[1], 7_u32) &+
           XXH::Primitives.rotl64(accs[2], 12_u32) &+
@@ -103,12 +106,12 @@ module XXH::XXH64
     len = input.size
     @[Likely]
     if len >= 32
-      accs = Array.new(4, 0_u64)
-      init_accs(accs, seed)
+      accs = uninitialized UInt64[4]
+      init_accs(accs.to_unsafe, seed)
       ptr = input.to_unsafe
       # consume long
-      ptr = consume_long(accs, ptr, len)
-      h64 = merge_accs(accs)
+      ptr = consume_long(accs.to_unsafe, ptr, len)
+      h64 = merge_accs(accs.to_unsafe)
       finalize_hash(h64 &+ len.to_u64, ptr, len & 31)
     else
       h64 = seed &+ XXH::Constants::PRIME64_5
@@ -121,18 +124,18 @@ module XXH::XXH64
   # Streaming state wrapper
   class State
     @total_len : UInt64
-    @accs : Array(UInt64)
+    @accs : StaticArray(UInt64, 4)
     @buffer : Bytes
     @buffered : UInt32
     @seed : UInt64
 
     def initialize(seed : UInt64 = 0_u64)
       @total_len = 0_u64
-      @accs = Array(UInt64).new(4, 0_u64)
+      @accs = uninitialized UInt64[4]
       @buffer = Bytes.new(32)
       @buffered = 0_u32
       @seed = seed
-      XXH::XXH64.init_accs(@accs, seed)
+      XXH::XXH64.init_accs(@accs.to_unsafe, seed)
     end
 
     # Copy contents from another state (mirror behaviour of XXH64_copyState)
@@ -216,7 +219,7 @@ module XXH::XXH64
 
     def digest : UInt64
       if @total_len >= 32
-        h64 = XXH::XXH64.merge_accs(@accs)
+        h64 = XXH::XXH64.merge_accs(@accs.to_unsafe)
       else
         # use acc[2] as per reference implementation (gives seed + PRIME64_5)
         h64 = @accs[2] &+ XXH::Constants::PRIME64_5
@@ -228,7 +231,7 @@ module XXH::XXH64
     def reset(seed : UInt64 = 0_u64)
       @total_len = 0_u64
       @buffered = 0_u32
-      XXH::XXH64.init_accs(@accs, seed)
+      XXH::XXH64.init_accs(@accs.to_unsafe, seed)
     end
 
     def free

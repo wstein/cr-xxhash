@@ -11,7 +11,7 @@ module XXH::XXH32
   end
 
   @[AlwaysInline]
-  def self.merge_accs(accs : Array(UInt32)) : UInt32
+  def self.merge_accs(accs : Pointer(UInt32)) : UInt32
     XXH::Primitives.rotl32(accs[0], 1_u32) &+
       XXH::Primitives.rotl32(accs[1], 7_u32) &+
       XXH::Primitives.rotl32(accs[2], 12_u32) &+
@@ -29,14 +29,16 @@ module XXH::XXH32
     h
   end
 
-  def self.init_accs(accs : Array(UInt32), seed : UInt32)
+  @[AlwaysInline]
+  def self.init_accs(accs : Pointer(UInt32), seed : UInt32)
     accs[0] = seed &+ (XXH::Constants::PRIME32_1 &+ XXH::Constants::PRIME32_2)
     accs[1] = seed &+ XXH::Constants::PRIME32_2
     accs[2] = seed &+ 0_u32
     accs[3] = seed &- XXH::Constants::PRIME32_1
   end
 
-  def self.consume_long(accs : Array(UInt32), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
+  @[AlwaysInline]
+  def self.consume_long(accs : Pointer(UInt32), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
     input = ptr
     limit = ptr + (len - 15)
     while input < limit
@@ -78,11 +80,11 @@ module XXH::XXH32
     len = input.size
     @[Likely]
     if len >= 16
-      accs = Array(UInt32).new(4, 0_u32)
-      init_accs(accs, seed)
+      accs = uninitialized UInt32[4]
+      init_accs(accs.to_unsafe, seed)
       ptr = input.to_unsafe
-      ptr = consume_long(accs, ptr, len)
-      h32 = merge_accs(accs)
+      ptr = consume_long(accs.to_unsafe, ptr, len)
+      h32 = merge_accs(accs.to_unsafe)
       finalize_hash(h32 &+ len.to_u32, ptr, len & 15)
     else
       h32 = seed &+ XXH::Constants::PRIME32_5
@@ -95,18 +97,18 @@ module XXH::XXH32
   # Streaming state wrapper
   class State
     @total_len : UInt32
-    @accs : Array(UInt32)
+    @accs : StaticArray(UInt32, 4)
     @buffer : Bytes
     @buffered : UInt32
     @seed : UInt32
 
     def initialize(seed : UInt32 = 0_u32)
       @total_len = 0_u32
-      @accs = Array(UInt32).new(4, 0_u32)
+      @accs = uninitialized UInt32[4]
       @buffer = Bytes.new(16)
       @buffered = 0_u32
       @seed = seed
-      XXH::XXH32.init_accs(@accs, seed)
+      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
     end
 
     def copy_from(other : State)
@@ -178,7 +180,7 @@ module XXH::XXH32
 
     def digest : UInt32
       if @total_len >= 16
-        h32 = XXH::XXH32.merge_accs(@accs)
+        h32 = XXH::XXH32.merge_accs(@accs.to_unsafe)
       else
         h32 = @accs[2] &+ XXH::Constants::PRIME32_5
       end
@@ -189,7 +191,7 @@ module XXH::XXH32
     def reset(seed : UInt32 = 0_u32)
       @total_len = 0_u32
       @buffered = 0_u32
-      XXH::XXH32.init_accs(@accs, seed)
+      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
     end
 
     def free
