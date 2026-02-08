@@ -383,16 +383,18 @@ module XXH::CLI
       elapsed = Time.instant - start_time
       elapsed_seconds = elapsed.total_seconds
 
-      # Calculate metrics - time per hash across all iterations
-      time_per_hash = elapsed_seconds / actual_iterations.to_f
+      # Guard against division by zero and underflow
+      if elapsed_seconds > 0 && actual_iterations > 0
+        time_per_hash = elapsed_seconds / actual_iterations.to_f
 
-      if time_per_hash < fastest_time_per_hash
-        fastest_time_per_hash = time_per_hash
+        if time_per_hash < fastest_time_per_hash
+          fastest_time_per_hash = time_per_hash
+        end
       end
 
-      # Calculate live display metrics
-      iterations_per_sec = if time_per_hash > 0
-                             1.0 / time_per_hash
+      # Calculate live display metrics (avoid infinity)
+      iterations_per_sec = if fastest_time_per_hash > 1e-15
+                             1.0 / fastest_time_per_hash
                            else
                              0.0
                            end

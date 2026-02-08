@@ -444,8 +444,19 @@ module XXH::XXH3
     n = 0
     in_ptr = input_ptr
     secret_off = 0
+    prefetch_dist = 128
+    # Unroll by 2 stripes per loop with light prefetch
+    while n + 1 < nbStripes
+      # prefetch next stripe
+      _ = XXH::Primitives.read_u64_le(in_ptr + prefetch_dist)
+
+      accumulate_512_scalar(acc, in_ptr, secret_ptr + secret_off)
+      accumulate_512_scalar(acc, in_ptr + 64, secret_ptr + secret_off + 8)
+      in_ptr = in_ptr + 128
+      secret_off = secret_off + 16
+      n += 2
+    end
     while n < nbStripes
-      # prefetch hint omitted
       accumulate_512_scalar(acc, in_ptr, secret_ptr + secret_off)
       in_ptr = in_ptr + 64
       secret_off = secret_off + 8

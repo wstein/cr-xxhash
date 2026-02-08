@@ -42,6 +42,34 @@ module XXH::XXH64
     # Consume chunks of 32 bytes (4 lanes × 8 bytes)
     input = ptr
     limit = ptr + (len - 31)
+    # Unrolled loop (2×32 bytes per iteration) with light prefetch
+    prefetch_dist = 64
+    while input + prefetch_dist < limit
+      # prefetch next cache line (software read)
+      _ = XXH::Primitives.read_u64_le(input + prefetch_dist)
+
+      # first 32 bytes
+      accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[1] = round(accs[1], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[2] = round(accs[2], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[3] = round(accs[3], XXH::Primitives.read_u64_le(input))
+      input += 8
+
+      # second 32 bytes
+      accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[1] = round(accs[1], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[2] = round(accs[2], XXH::Primitives.read_u64_le(input))
+      input += 8
+      accs[3] = round(accs[3], XXH::Primitives.read_u64_le(input))
+      input += 8
+    end
+
+    # finish remaining iterations
     while input < limit
       accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
       input += 8

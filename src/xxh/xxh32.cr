@@ -41,6 +41,31 @@ module XXH::XXH32
   def self.consume_long(accs : Pointer(UInt32), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
     input = ptr
     limit = ptr + (len - 15)
+    # Unroll 4 iterations (64 bytes) to increase ILP
+    while input + 64 <= limit
+      # iter 1
+      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
+      # iter 2
+      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
+      # iter 3
+      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
+      # iter 4
+      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
+      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
+    end
+
+    # finish remaining iterations
     while input < limit
       accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input))
       input += 4
