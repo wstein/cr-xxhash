@@ -55,6 +55,7 @@ module XXH::XXH32
   def self.finalize_hash(h : UInt32, ptr : Pointer(UInt8), len : Int32) : UInt32
     len = len & 15
 
+    @[Likely]
     while len >= 4
       h = h &+ (XXH::Primitives.read_u32_le(ptr) &* XXH::Constants::PRIME32_3)
       ptr += 4
@@ -75,6 +76,7 @@ module XXH::XXH32
   # One-shot hashing
   def self.hash(input : Bytes, seed : UInt32 = 0_u32) : UInt32
     len = input.size
+    @[Likely]
     if len >= 16
       accs = Array(UInt32).new(4, 0_u32)
       init_accs(accs, seed)

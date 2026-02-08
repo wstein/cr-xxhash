@@ -80,6 +80,7 @@ module XXH::XXH64
       len -= 8
     end
 
+    @[Likely]
     if len >= 4
       h ^= (XXH::Primitives.read_u32_le(ptr).to_u64) &* XXH::Constants::PRIME64_1
       ptr += 4
@@ -100,6 +101,7 @@ module XXH::XXH64
   # One-shot hashing
   def self.hash(input : Bytes, seed : UInt64 = 0_u64) : UInt64
     len = input.size
+    @[Likely]
     if len >= 32
       accs = Array.new(4, 0_u64)
       init_accs(accs, seed)

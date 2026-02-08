@@ -312,12 +312,14 @@ module XXH::XXH3
     ptr = input.to_unsafe
     secret = XXH::Buffers.default_secret.to_unsafe
 
+    @[Likely]
     if len <= 16
       return len_0to16_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
     elsif len <= 128
       return len_17to128_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
     elsif len <= 240
       return len_129to240_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
+      @[Unlikely]
     else
       return hash_long_64b(ptr, len, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
     end
@@ -328,12 +330,14 @@ module XXH::XXH3
     secret = XXH::Buffers.default_secret.to_unsafe
     len = input.size
 
+    @[Likely]
     if len <= 16
       return len_0to16_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
     elsif len <= 128
       return len_17to128_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
     elsif len <= 240
       return len_129to240_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
+      @[Unlikely]
     else
       return hash_long_64b_with_seed(ptr, len, seed, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
     end
@@ -343,6 +347,7 @@ module XXH::XXH3
     ptr = input.to_unsafe
     len = input.size
 
+    @[Likely]
     if len <= 16
       secret = XXH::Buffers.default_secret.to_unsafe
       return len_0to16_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
@@ -354,6 +359,7 @@ module XXH::XXH3
       # Phase 2b: 129-240 bytes (native implementation)
       secret = XXH::Buffers.default_secret.to_unsafe
       return len_129to240_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
+      @[Unlikely]
     else
       # Phase 3: 240+ bytes (native implementation)
       secret = XXH::Buffers.default_secret.to_unsafe

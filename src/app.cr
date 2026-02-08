@@ -3,8 +3,6 @@
 # This library provides Crystal bindings to the xxHash hashing algorithm family.
 # It includes both the core hashing functionality and a CLI tool (xxhsum).
 
-# require "./ffi/bindings"
-
 # Main module for xxHash Crystal bindings
 module XXH
   VERSION = "0.1.0"
