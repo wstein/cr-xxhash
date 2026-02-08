@@ -4,17 +4,20 @@ require "../xxh/common"
 module XXH::XXH64
   # Pure-Crystal implementation of XXH64 (translated from vendored C)
 
+  @[AlwaysInline]
   def self.round(acc : UInt64, input : UInt64) : UInt64
     # XXH64_round(acc, input) = ((acc + input * PRIME64_2) <<< 31) * PRIME64_1
     tmp = acc &+ (input &* XXH::Constants::PRIME64_2)
     XXH::Primitives.rotl64(tmp, 31_u32) &* XXH::Constants::PRIME64_1
   end
 
+  @[AlwaysInline]
   def self.merge_round(h : UInt64, acc : UInt64) : UInt64
     # (h ^ XXH64_round(0, acc)) * PRIME64_1 + PRIME64_4
     ((h ^ round(0_u64, acc)) &* XXH::Constants::PRIME64_1) &+ XXH::Constants::PRIME64_4
   end
 
+  @[AlwaysInline]
   def self.avalanche(hash : UInt64) : UInt64
     # XXH64_avalanche
     h = hash

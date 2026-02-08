@@ -27,6 +27,9 @@ module XXH
     XXHASH64_BUFFER_SIZE =  32
     XXHASH3_BUFFER_SIZE  = 256
 
+    # Precomputed masks for performance
+    MASK64 = (1_u128 << 64) - 1
+
     # XXH3 midsize constants
     XXH3_SECRET_SIZE_MIN     = 136
     XXH3_MIDSIZE_MAX         = 240

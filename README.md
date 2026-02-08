@@ -37,9 +37,20 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Next phase: SIMD acceleration** (ARM NEON, x86 AVX2, x86 SSE2).
+**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Session 5: Performance optimizations applied** (8 high-impact scalar speedups). **Next phase: SIMD acceleration** (ARM NEON, x86 AVX2, x86 SSE2).
 
 **Streaming Update**: `State128` streaming class implemented and validated (see `spec/xxh3_state_128_spec.cr` — 9 tests). Short unseeded streaming still defers to FFI for parity with existing 64-bit `State` behavior.
+
+**Recent Updates (Session 5):**
+
+* ✅ **Performance Optimizations Applied**: Implemented 8 high-impact scalar speedups:
+  * Added `@[AlwaysInline]` to 9 XXH3 functions, 3 XXH64 functions, 3 XXH32 functions
+  * Replaced iterator loops with `while` loops in hot paths
+  * Optimized pointer arithmetic to use increments instead of multiplications per iteration
+  * Precomputed `MASK64` constant to avoid expensive bit shifts
+  * Replaced `.tdiv` with `/` where appropriate (with `.to_i` casts)
+  * Expected gains: 20-30% for small inputs (0-16B), 15-25% for medium (17-240B), 10-15% for large (240B+)
+  * See [SESSION_5_PERFORMANCE_OPTIMIZATIONS.md](SESSION_5_PERFORMANCE_OPTIMIZATIONS.md) for detailed breakdown
 
 **Recent Fixes (Session 3):**
 

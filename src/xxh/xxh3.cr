@@ -31,17 +31,20 @@ module XXH::XXH3
   ]
 
   # Helpers ported from C reference implementation (small-input paths)
+  @[AlwaysInline]
   def self.mul128_fold64(lhs : UInt64, rhs : UInt64) : UInt64
     product = lhs.to_u128 * rhs.to_u128
-    low = (product & ((1_u128 << 64) - 1)).to_u64
+    low = (product & XXH::Constants::MASK64).to_u64
     high = (product >> 64).to_u64
     low ^ high
   end
 
+  @[AlwaysInline]
   def self.xorshift64(v : UInt64, shift : Int32) : UInt64
     v ^ (v >> shift)
   end
 
+  @[AlwaysInline]
   def self.xx3_avalanche(h64 : UInt64) : UInt64
     h = xorshift64(h64, 37)
     h = h &* XXH::Constants::PRIME_MX1
@@ -49,6 +52,7 @@ module XXH::XXH3
     h
   end
 
+  @[AlwaysInline]
   def self.rrmxmx(h64 : UInt64, len : UInt64) : UInt64
     h = h64
     h ^= XXH::Primitives.rotl64(h, 49_u32) ^ XXH::Primitives.rotl64(h, 24_u32)
@@ -59,9 +63,10 @@ module XXH::XXH3
   end
 
   # 128-bit helpers
+  @[AlwaysInline]
   def self.mult64to128(lhs : UInt64, rhs : UInt64) : Hash128
     product = lhs.to_u128 * rhs.to_u128
-    low = (product & ((1_u128 << 64) - 1)).to_u64
+    low = (product & XXH::Constants::MASK64).to_u64
     high = (product >> 64).to_u64
     Hash128.new(low, high)
   end
@@ -85,12 +90,11 @@ module XXH::XXH3
   end
 
   def self.len_4to8_64b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : UInt64
-    mask = (1_u128 << 64) - 1
-    seed = seed ^ (((XXH::Primitives.bswap32((seed & 0xFFFFFFFF_u64).to_u32).to_u128 << 32) & mask).to_u64)
+    seed = seed ^ (((XXH::Primitives.bswap32((seed & 0xFFFFFFFF_u64).to_u32).to_u128 << 32) & XXH::Constants::MASK64).to_u64)
     input1 = XXH::Primitives.read_u32_le(ptr)
     input2 = XXH::Primitives.read_u32_le(ptr + (len - 4))
     bf = XXH::Primitives.read_u64_le(secret_ptr + 8).to_u128 ^ XXH::Primitives.read_u64_le(secret_ptr + 16).to_u128
-    bitflip = ((bf &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+    bitflip = ((bf &- seed.to_u128) & XXH::Constants::MASK64).to_u64
     input64 = input2.to_u64 | (input1.to_u64 << 32)
     keyed = input64 ^ bitflip
     rrmxmx(keyed, len.to_u64)
@@ -99,8 +103,8 @@ module XXH::XXH3
   def self.len_9to16_64b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : UInt64
     bf1 = XXH::Primitives.read_u64_le(secret_ptr + 24).to_u128 ^ XXH::Primitives.read_u64_le(secret_ptr + 32).to_u128
     bf2 = XXH::Primitives.read_u64_le(secret_ptr + 40).to_u128 ^ XXH::Primitives.read_u64_le(secret_ptr + 48).to_u128
-    bitflip1 = ((bf1 + seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
-    bitflip2 = ((bf2 &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+    bitflip1 = ((bf1 + seed.to_u128) & XXH::Constants::MASK64).to_u64
+    bitflip2 = ((bf2 &- seed.to_u128) & XXH::Constants::MASK64).to_u64
     input_lo = XXH::Primitives.read_u64_le(ptr) ^ bitflip1
     input_hi = XXH::Primitives.read_u64_le(ptr + (len - 8)) ^ bitflip2
     acc = len.to_u64 &+ XXH::Primitives.bswap64(input_lo) &+ input_hi &+ mul128_fold64(input_lo, input_hi)
@@ -401,11 +405,13 @@ module XXH::XXH3
   end
 
   # Long input helpers (accumulate/scramble)
+  @[AlwaysInline]
   def self.mult32to64_add64(lhs : UInt64, rhs : UInt64, acc : UInt64) : UInt64
-    m = ((lhs & 0xFFFFFFFF_u64).to_u128 * (rhs & 0xFFFFFFFF_u64).to_u128) & ((1_u128 << 64) - 1)
+    m = ((lhs & 0xFFFFFFFF_u64).to_u128 * (rhs & 0xFFFFFFFF_u64).to_u128) & XXH::Constants::MASK64
     (m.to_u64 &+ acc)
   end
 
+  @[AlwaysInline]
   def self.scalar_round(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), lane : Int32)
     data_val = XXH::Primitives.read_u64_le(input_ptr + (lane * 8))
     data_key = data_val ^ XXH::Primitives.read_u64_le(secret_ptr + (lane * 8))
@@ -414,21 +420,27 @@ module XXH::XXH3
   end
 
   def self.accumulate_512_scalar(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8))
-    (0...8).each do |i|
+    i = 0
+    while i < 8
       scalar_round(acc, input_ptr, secret_ptr, i)
+      i += 1
     end
   end
 
   def self.accumulate_scalar(acc : Array(UInt64), input_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), nbStripes : Int32)
     n = 0
+    in_ptr = input_ptr
+    secret_off = 0
     while n < nbStripes
-      in_ptr = input_ptr + (n * 64)
       # prefetch hint omitted
-      accumulate_512_scalar(acc, in_ptr, secret_ptr + (n * 8))
+      accumulate_512_scalar(acc, in_ptr, secret_ptr + secret_off)
+      in_ptr = in_ptr + 64
+      secret_off = secret_off + 8
       n += 1
     end
   end
 
+  @[AlwaysInline]
   def self.scalar_scramble_round(acc : Array(UInt64), secret_ptr : Pointer(UInt8), lane : Int32)
     key64 = XXH::Primitives.read_u64_le(secret_ptr + (lane * 8))
     acc64 = acc[lane]
@@ -439,8 +451,10 @@ module XXH::XXH3
   end
 
   def self.scramble_acc_scalar(acc : Array(UInt64), secret_ptr : Pointer(UInt8))
-    (0...8).each do |i|
+    i = 0
+    while i < 8
       scalar_scramble_round(acc, secret_ptr, i)
+      i += 1
     end
   end
 
@@ -465,46 +479,53 @@ module XXH::XXH3
     # For seeded long hash, generate custom secret from default secret and seed
     secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE) { |i| XXH::Buffers.default_secret[i] }
     # init custom secret like C's XXH3_initCustomSecret
-    nrounds = (XXH::Constants::SECRET_DEFAULT_SIZE / 16).to_i
-    (0...nrounds).each do |i|
+    nrounds = XXH::Constants::SECRET_DEFAULT_SIZE / 16
+    i = 0
+    while i < nrounds
       lo = XXH::Primitives.read_u64_le(secret.to_unsafe + (16 * i)) &+ seed
-      hi = ((XXH::Primitives.read_u64_le(secret.to_unsafe + (16 * i + 8)).to_u128 &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+      hi = ((XXH::Primitives.read_u64_le(secret.to_unsafe + (16 * i + 8)).to_u128 &- seed.to_u128) & XXH::Constants::MASK64).to_u64
       XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i), lo)
       XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i + 8), hi)
+      i += 1
     end
 
     hash_long_64b(ptr, len, secret.to_unsafe.as(Pointer(UInt8)), secret_size)
   end
 
   def self.hash_long_internal_loop(acc : Array(UInt64), input_ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32)
-    nbStripesPerBlock = (secret_size - 64).tdiv(8)
+    nbStripesPerBlock = ((secret_size - 64) / 8).to_i
     block_len = 64 * nbStripesPerBlock
-    nb_blocks = (len - 1).tdiv(block_len)
+    nb_blocks = ((len - 1) / block_len).to_i
 
     n = 0
+    in_ptr = input_ptr
     while n < nb_blocks
-      accumulate_scalar(acc, input_ptr + (n * block_len), secret_ptr, nbStripesPerBlock)
+      accumulate_scalar(acc, in_ptr, secret_ptr, nbStripesPerBlock)
       scramble_acc_scalar(acc, secret_ptr + (secret_size - 64))
+      in_ptr = in_ptr + block_len
       n += 1
     end
 
     if len > 64
-      nbStripes = ((len - 1) - (block_len * nb_blocks)).tdiv(64)
-      accumulate_scalar(acc, input_ptr + (nb_blocks * block_len), secret_ptr, nbStripes)
+      nbStripes = (((len - 1) - (block_len * nb_blocks)) / 64).to_i
+      accumulate_scalar(acc, in_ptr, secret_ptr, nbStripes)
 
       p = input_ptr + (len - 64)
       accumulate_512_scalar(acc, p, secret_ptr + (secret_size - 64 - 7))
     end
   end
 
+  @[AlwaysInline]
   def self.mix2accs(acc : Array(UInt64), secret_ptr : Pointer(UInt8)) : UInt64
     mul128_fold64(acc[0] ^ XXH::Primitives.read_u64_le(secret_ptr), acc[1] ^ XXH::Primitives.read_u64_le(secret_ptr + 8))
   end
 
   def self.merge_accs(acc : Array(UInt64), secret_ptr : Pointer(UInt8), start : UInt64) : UInt64
     result = start
-    4.times do |i|
+    i = 0
+    while i < 4
       result = result &+ mix2accs(acc[2 * i, 2], secret_ptr + (16 * i))
+      i += 1
     end
     xx3_avalanche(result)
   end
@@ -538,12 +559,14 @@ module XXH::XXH3
     end
     # When seeded, build custom secret
     secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
-    nrounds = XXH::Constants::SECRET_DEFAULT_SIZE.tdiv(16)
-    (0...nrounds).each do |i|
+    nrounds = XXH::Constants::SECRET_DEFAULT_SIZE / 16
+    i = 0
+    while i < nrounds
       lo = XXH::Primitives.read_u64_le(default_secret_ptr + (16 * i)) &+ seed
-      hi = ((XXH::Primitives.read_u64_le(default_secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+      hi = ((XXH::Primitives.read_u64_le(default_secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & XXH::Constants::MASK64).to_u64
       XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i), lo)
       XXH::Primitives.write_u64_le(secret.to_unsafe + (16 * i + 8), hi)
+      i += 1
     end
     acc = Array(UInt64).new(8) do |i|
       INIT_ACC[i]
@@ -609,11 +632,13 @@ module XXH::XXH3
         @use_seed = true
         # init custom secret
         nrounds = XXH::Constants::SECRET_DEFAULT_SIZE / 16
-        (0...nrounds).each do |i|
+        i = 0
+        while i < nrounds
           lo = XXH::Primitives.read_u64_le(secret_bytes.to_unsafe + (16 * i)) &+ seed
-          hi = ((XXH::Primitives.read_u64_le(secret_bytes.to_unsafe + (16 * i + 8)).to_u128 &- seed.to_u128) & ((1_u128 << 64) - 1)).to_u64
+          hi = ((XXH::Primitives.read_u64_le(secret_bytes.to_unsafe + (16 * i + 8)).to_u128 &- seed.to_u128) & XXH::Constants::MASK64).to_u64
           XXH::Primitives.write_u64_le(@custom_secret.to_unsafe + (16 * i), lo)
           XXH::Primitives.write_u64_le(@custom_secret.to_unsafe + (16 * i + 8), hi)
+          i += 1
         end
         # Per C implementation, when seeded we keep customSecret but set extSecret to NULL
         @ext_secret = nil
@@ -628,7 +653,7 @@ module XXH::XXH3
       @nb_stripes_so_far = 0
       @total_len = 0_u64
       @secret_limit = secret_size - 64
-      @nb_stripes_per_block = @secret_limit.tdiv(8)
+      @nb_stripes_per_block = (@secret_limit / 8).to_i
 
       self
     end
@@ -654,7 +679,7 @@ module XXH::XXH3
         b[offset, load_size].copy_to(@buffer.to_unsafe + @buffered_size, load_size)
         offset += load_size
         # consume all stripes from buffer
-        nb_stripes = XXH3_INTERNALBUFFER_SIZE.tdiv(64)
+        nb_stripes = (XXH3_INTERNALBUFFER_SIZE / 64).to_i
         @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, @buffer.to_unsafe, nb_stripes, secret_bytes.to_unsafe, @secret_limit)
         @buffered_size = 0
       end
@@ -662,7 +687,7 @@ module XXH::XXH3
       # process large chunks from remaining input
       remaining = len - offset
       if remaining > XXH3_INTERNALBUFFER_SIZE
-        nbStripes = (remaining - 1).tdiv(64)
+        nbStripes = ((remaining - 1) / 64).to_i
         @nb_stripes_so_far = consume_stripes(@acc, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
         # copy last 64 bytes into the end of buffer
         src = offset + (nbStripes * 64)

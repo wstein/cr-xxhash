@@ -4,11 +4,13 @@ require "../xxh/common"
 module XXH::XXH32
   # Pure-Crystal XXH32 implementation (translated from vendored C)
 
+  @[AlwaysInline]
   def self.round(acc : UInt32, input : UInt32) : UInt32
     tmp = (acc &+ (input &* XXH::Constants::PRIME32_2))
     XXH::Primitives.rotl32(tmp, 13_u32) &* XXH::Constants::PRIME32_1
   end
 
+  @[AlwaysInline]
   def self.merge_accs(accs : Array(UInt32)) : UInt32
     XXH::Primitives.rotl32(accs[0], 1_u32) &+
       XXH::Primitives.rotl32(accs[1], 7_u32) &+
@@ -16,6 +18,7 @@ module XXH::XXH32
       XXH::Primitives.rotl32(accs[3], 18_u32)
   end
 
+  @[AlwaysInline]
   def self.avalanche(hash : UInt32) : UInt32
     h = hash
     h = h ^ (h >> 15)
