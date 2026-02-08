@@ -3,7 +3,6 @@ require "../src/xxh/primitives.cr"
 require "../src/xxh/common.cr"
 require "../src/xxh/xxh64.cr"
 require "../src/xxh/xxh3.cr"
-require "../src/ffi/bindings.cr"
 
 describe "XXH3 State128 Streaming" do
   describe "Streaming API - Single Update" do

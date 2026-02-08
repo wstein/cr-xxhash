@@ -1,5 +1,7 @@
 require "spec"
-require "../src/ffi/bindings"
+
+# Centralized FFI binding for specs
+require "./support/libxxh_helper"
 
 # Load CLI modules explicitly for specs
 require "../src/cli/options"

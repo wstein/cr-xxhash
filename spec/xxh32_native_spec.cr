@@ -3,7 +3,6 @@ require "../src/xxh/primitives.cr"
 require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh32.cr"
-require "../src/ffi/bindings.cr"
 
 describe "XXH32 Native Implementation" do
   describe "One-Shot Hashing" do
