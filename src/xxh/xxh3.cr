@@ -112,12 +112,14 @@ module XXH::XXH3
   end
 
   def self.len_0to16_64b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : UInt64
+    @[Likely]
     if len == 0
       return XXH::XXH64.avalanche(seed ^ (XXH::Primitives.read_u64_le(secret_ptr + 56) ^ XXH::Primitives.read_u64_le(secret_ptr + 64)))
     elsif len <= 3
       return len_1to3_64b(ptr, len, secret_ptr, seed)
     elsif len <= 8
       return len_4to8_64b(ptr, len, secret_ptr, seed)
+    @[Unlikely]
     else
       return len_9to16_64b(ptr, len, secret_ptr, seed)
     end
@@ -188,6 +190,7 @@ module XXH::XXH3
     h128
   end
 
+  @[AlwaysInline]
   def self.mult32to64_len9to16(lhs : UInt32, rhs : UInt32) : UInt64
     (lhs.to_u64 * rhs.to_u64) & ((1_u128 << 64) - 1)
   end
@@ -267,6 +270,7 @@ module XXH::XXH3
   end
 
   # Middle-length (17..128) helper
+  @[AlwaysInline]
   def self.mix16b(ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), seed : UInt64) : UInt64
     mask = (1_u128 << 64) - 1
     in_lo = XXH::Primitives.read_u64_le(ptr)
@@ -411,6 +415,7 @@ module XXH::XXH3
   end
 
   # Long input helpers (accumulate/scramble)
+  @[AlwaysInline]
   @[AlwaysInline]
   def self.mult32to64_add64(lhs : UInt64, rhs : UInt64, acc : UInt64) : UInt64
     m = ((lhs & 0xFFFFFFFF_u64).to_u128 * (rhs & 0xFFFFFFFF_u64).to_u128) & XXH::Constants::MASK64
