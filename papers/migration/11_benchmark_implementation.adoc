@@ -123,12 +123,12 @@ end
 
 === 4. Secret Variant Support
 
-Secret variants use a deterministic 136-byte secret buffer:
+Secret variants use a deterministic secret buffer sized to the XXH3 minimum (`XXH::Constants::XXH3_SECRET_SIZE_MIN` = 136 bytes):
 
 ```crystal
 private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
-  # Generate secret buffer (minimum 136 bytes required for XXH3)
-  secret_buffer = Bytes.new(136) { |i| ((i * 17) % 256).to_u8 }
+  # Generate secret buffer (minimum XXH3 secret size: `XXH::Constants::XXH3_SECRET_SIZE_MIN` = 136 bytes)
+  secret_buffer = Bytes.new(XXH::Constants::XXH3_SECRET_SIZE_MIN) { |i| ((i * 17) % 256).to_u8 }
 
   case algorithm
   when Algorithm::XXH3

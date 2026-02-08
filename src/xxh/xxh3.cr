@@ -387,7 +387,7 @@ module XXH::XXH3
       acc = acc &+ mix16b(ptr + (16 * i), secret_ptr + (16 * i), seed)
     end
 
-    acc_end = mix16b(ptr + (len - 16), secret_ptr + (136 - 17), seed)
+    acc_end = mix16b(ptr + (len - 16), secret_ptr + (XXH::Constants::XXH3_SECRET_SIZE_MIN - 17), seed)
 
     # per reference: avalanche the first accumulator before processing remaining rounds
     acc = xx3_avalanche(acc)

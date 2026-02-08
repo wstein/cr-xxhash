@@ -356,7 +356,7 @@ ID#Name                       :   SizeBytes ->   Throughput (MB/s)
 * `-H0..-H3` select algorithms for **hashing**, while `-b#` selects **benchmark variant IDs** (1–28)
 * Unaligned variants (IDs ending in even numbers) test performance with data offset by +3 bytes
 * Seeded variants use a fixed seed (42) for reproducibility
-* Secret variants use a generated 136-byte secret buffer
+* Secret variants use a generated secret buffer sized to the XXH3 minimum (`XXH::Constants::XXH3_SECRET_SIZE_MIN`, 136 bytes)
 * Streaming variants use the streaming API (create state, update, digest, free)
 * Auto-tuning (no `-i` flag) targets ~1 second per variant
 * IDs 0, 29+, and `-b77` all expand to "benchmark all" (C99 vendor behavior)
