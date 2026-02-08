@@ -26,6 +26,12 @@ module XXH
     XXHASH32_BUFFER_SIZE =  16
     XXHASH64_BUFFER_SIZE =  32
     XXHASH3_BUFFER_SIZE  = 256
+
+    # XXH3 midsize constants
+    XXH3_SECRET_SIZE_MIN     = 136
+    XXH3_MIDSIZE_MAX         = 240
+    XXH3_MIDSIZE_STARTOFFSET =   3
+    XXH3_MIDSIZE_LASTOFFSET  =  17
   end
 
   module Buffers

@@ -37,9 +37,13 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: CLI now uses native Crystal implementations. XXH32, XXH64, and XXH3 all have complete scalar implementations with comprehensive test coverage. SIMD dispatch framework wired in CLI with `--simd` flag.
+**Status**: CLI now uses native Crystal implementations. XXH32 and XXH64 have complete scalar implementations with comprehensive test coverage. XXH3 has full native implementations for 0–128B (Phase 1 and Phase 2a); 129–240B (Phase 2b) currently falls back to the vendored FFI implementation and is pending native implementation. SIMD dispatch framework is wired in the CLI with the `--simd` flag.
 
-**Phase 1 & 2 - Scalar Fundamentals** (COMPLETE):
+**Recent Fixes:**
+
+* ✅ Fixed XXH3 128-bit Phase 1 (0–16B) simple path bug: corrected dispatcher to include 1–3 byte inputs and used the correct `XXH64` avalanche in the 1–3 byte path. All Phase 1 tests now pass 10/10.
+
+**Phase 1 & 2 - Scalar Fundamentals** (COMPLETE for 0–128B):
 
 * ✅ XXH32: All 20/20 tests passing. Native implementation in use in CLI.
 * ✅ XXH64: All 16/16 tests passing. Complete scalar implementation with streaming support.
@@ -47,11 +51,13 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
   * Streaming: Full State class with buffer management and 32-byte lane processing
   * Seeding: Full support for seeded variants
   * Tail processing: Proper handling of 8-byte, 4-byte, and single-byte chunks
-* ✅ XXH3: Complete scalar implementation with full streaming support (127/127 tests passing).
-  * One-shot paths: 0-16B, 17-128B, 129-240B, 240B+ all working
-  * Streaming: Full State class with buffer management and edge-case handling
-  * Seeding: Full support for seeded variants
-  * Edge cases: 23 comprehensive tests covering boundaries, small chunks, resets
+* ✅ XXH3: Native scalar implementation (0–128B implemented and tested; 129–240B pending native implementation — FFI fallback in use)
+  * One-shot paths: 0–16B (Phase 1): Fixed — dispatch and 1–3B avalanche corrected (10/10 tests passing)
+  * One-shot paths: 17–128B (Phase 2a): Implemented; additional validation tests recommended
+  * One-shot paths: 129–240B (Phase 2b): Pending native implementation (uses FFI fallback currently)
+  * Streaming: Full State class with buffer management and edge-case handling ✅
+  * Seeding: Full support for seeded variants ✅
+  * Edge cases: 23 comprehensive tests covering boundaries, small chunks, resets ✅
 * ✅ CLI dispatch: SIMD flag (`--simd=auto|scalar|sse2|avx2|neon`) fully integrated. Framework ready for SIMD variants.
 * ✅ Deprecation warnings: FFI bindings now show one-shot deprecation warning when used directly.
 

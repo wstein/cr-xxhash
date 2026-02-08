@@ -1,6 +1,25 @@
 require "../ffi/bindings"
 
 module XXH::XXH3
+  # 128-bit result type
+  struct Hash128
+    property low64 : UInt64
+    property high64 : UInt64
+
+    def initialize(low64 : UInt64, high64 : UInt64)
+      @low64 = low64
+      @high64 = high64
+    end
+
+    def ==(other : Hash128)
+      @low64 == other.low64 && @high64 == other.high64
+    end
+
+    def to_tuple
+      {@low64, @high64}
+    end
+  end
+
   # Helpers ported from C reference implementation (small-input paths)
   def self.mul128_fold64(lhs : UInt64, rhs : UInt64) : UInt64
     product = lhs.to_u128 * rhs.to_u128
@@ -27,6 +46,21 @@ module XXH::XXH3
     h ^= (h >> 35) &+ len
     h = h &* XXH::Constants::PRIME_MX2
     xorshift64(h, 28)
+  end
+
+  # 128-bit helpers
+  def self.mult64to128(lhs : UInt64, rhs : UInt64) : Hash128
+    product = lhs.to_u128 * rhs.to_u128
+    low = (product & ((1_u128 << 64) - 1)).to_u64
+    high = (product >> 64).to_u64
+    Hash128.new(low, high)
+  end
+
+  def self.xx3_avalanche_128(acc : Hash128) : Hash128
+    # Avalanche both halves independently
+    low = xx3_avalanche(acc.low64)
+    high = xx3_avalanche(acc.high64)
+    Hash128.new(low, high)
   end
 
   # 0..16 bytes handlers
@@ -72,6 +106,120 @@ module XXH::XXH3
       return len_4to8_64b(ptr, len, secret_ptr, seed)
     else
       return len_9to16_64b(ptr, len, secret_ptr, seed)
+    end
+  end
+
+  # 128-bit simple paths (0..16 bytes)
+  def self.len_1to3_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    c1 = ptr[0]
+    c2 = ptr[len >> 1]
+    c3 = ptr[len - 1]
+    combinedl = ((c1.to_u32 << 16) | (c2.to_u32 << 24) | c3.to_u32 | (len.to_u32 << 8))
+    combinedh = XXH::Primitives.rotl32(XXH::Primitives.bswap32(combinedl), 13_u32)
+
+    # NOTE: The XOR is done on 32-bit reads, then the result is extended to 64-bit
+    bitflipl = ((XXH::Primitives.read_u32_le(secret_ptr) ^ XXH::Primitives.read_u32_le(secret_ptr + 4)).to_u64) &+ seed
+    bitfliph = ((XXH::Primitives.read_u32_le(secret_ptr + 8) ^ XXH::Primitives.read_u32_le(secret_ptr + 12)).to_u64) &- seed
+
+    keyed_lo = combinedl.to_u64 ^ bitflipl
+    keyed_hi = combinedh.to_u64 ^ bitfliph
+
+    Hash128.new(XXH::XXH64.avalanche(keyed_lo), XXH::XXH64.avalanche(keyed_hi))
+  end
+
+  def self.len_4to8_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    seed_mod = seed ^ ((XXH::Primitives.bswap32((seed & 0xFFFFFFFF_u64).to_u32).to_u64) << 32)
+    input_lo = XXH::Primitives.read_u32_le(ptr)
+    input_hi = XXH::Primitives.read_u32_le(ptr + (len - 4))
+    input_64 = input_lo.to_u64 | (input_hi.to_u64 << 32)
+    bitflip = (XXH::Primitives.read_u64_le(secret_ptr + 16) ^ XXH::Primitives.read_u64_le(secret_ptr + 24)) &+ seed_mod
+    keyed = input_64 ^ bitflip
+
+    m128 = mult64to128(keyed, XXH::Constants::PRIME64_1 &+ (len.to_u64 << 2))
+
+    m128.high64 &+= (m128.low64 << 1)
+    m128.low64 ^= (m128.high64 >> 3)
+
+    m128.low64 = xorshift64(m128.low64, 35)
+    m128.low64 &*= XXH::Constants::PRIME_MX2
+    m128.low64 = xorshift64(m128.low64, 28)
+    m128.high64 = xx3_avalanche(m128.high64)
+
+    m128
+  end
+
+  def self.len_9to16_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    bitflipl = (XXH::Primitives.read_u64_le(secret_ptr + 32) ^ XXH::Primitives.read_u64_le(secret_ptr + 40)) &- seed
+    bitfliph = (XXH::Primitives.read_u64_le(secret_ptr + 48) ^ XXH::Primitives.read_u64_le(secret_ptr + 56)) &+ seed
+
+    input_lo = XXH::Primitives.read_u64_le(ptr)
+    input_hi = XXH::Primitives.read_u64_le(ptr + (len - 8))
+
+    m128 = mult64to128(input_lo ^ input_hi ^ bitflipl, XXH::Constants::PRIME64_1)
+
+    m128.low64 &+= ((len - 1).to_u64 << 54)
+    input_hi ^= bitfliph
+
+    # 64-bit version:
+    m128.high64 &+= input_hi &+ mult32to64_len9to16((input_hi & 0xFFFFFFFF_u64).to_u32, XXH::Constants::PRIME32_2 &- 1)
+
+    m128.low64 ^= XXH::Primitives.bswap64(m128.high64)
+
+    h128 = mult64to128(m128.low64, XXH::Constants::PRIME64_2)
+    h128.high64 &+= m128.high64 &* XXH::Constants::PRIME64_2
+
+    h128.low64 = xx3_avalanche(h128.low64)
+    h128.high64 = xx3_avalanche(h128.high64)
+
+    h128
+  end
+
+  def self.mult32to64_len9to16(lhs : UInt32, rhs : UInt32) : UInt64
+    (lhs.to_u64 * rhs.to_u64) & ((1_u128 << 64) - 1)
+  end
+
+  # 128-bit medium paths (17..240)
+  def self.mix32b_128b(acc : Hash128, input_1_ptr : Pointer(UInt8), input_2_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    acc.low64 &+= mix16b(input_1_ptr, secret_ptr, seed)
+    acc.low64 ^= (XXH::Primitives.read_u64_le(input_2_ptr) &+ XXH::Primitives.read_u64_le(input_2_ptr + 8))
+
+    acc.high64 &+= mix16b(input_2_ptr, secret_ptr + 16, seed)
+    acc.high64 ^= (XXH::Primitives.read_u64_le(input_1_ptr) &+ XXH::Primitives.read_u64_le(input_1_ptr + 8))
+
+    acc
+  end
+
+  def self.len_17to128_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    acc = Hash128.new(len.to_u64 &* XXH::Constants::PRIME64_1, 0_u64)
+
+    # Use smaller version (per XXH_SIZE_OPT >= 1 optimization)
+    i = (len - 1).tdiv(32)
+    while i >= 0
+      acc = mix32b_128b(acc, ptr + (16 * i), ptr + (len - 16 * (i + 1)), secret_ptr + (32 * i), seed)
+      i -= 1
+    end
+
+    h128 = Hash128.new(acc.low64 &+ acc.high64, 0_u64)
+    h128.high64 = (acc.low64 &* XXH::Constants::PRIME64_1) &+ (acc.high64 &* XXH::Constants::PRIME64_4) &+ ((len.to_u64 &- seed) &* XXH::Constants::PRIME64_2)
+
+    h128.low64 = xx3_avalanche(h128.low64)
+    h128.high64 = (0_u64 &- xx3_avalanche(h128.high64))
+
+    h128
+  end
+
+  def self.len_0to16_128b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
+    if len > 8
+      return len_9to16_128b(ptr, len, secret_ptr, seed)
+    elsif len >= 4
+      return len_4to8_128b(ptr, len, secret_ptr, seed)
+    elsif len != 0
+      return len_1to3_128b(ptr, len, secret_ptr, seed)
+    else
+      # len == 0
+      bitflipl = XXH::Primitives.read_u64_le(secret_ptr + 64) ^ XXH::Primitives.read_u64_le(secret_ptr + 72)
+      bitfliph = XXH::Primitives.read_u64_le(secret_ptr + 80) ^ XXH::Primitives.read_u64_le(secret_ptr + 88)
+      return Hash128.new(XXH::XXH64.avalanche(seed ^ bitflipl), XXH::XXH64.avalanche(seed ^ bitfliph))
     end
   end
 
@@ -145,6 +293,50 @@ module XXH::XXH3
       return len_129to240_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
     else
       return hash_long_64b_with_seed(ptr, len, seed, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
+    end
+  end
+
+  def self.hash128(input : Bytes) : Hash128
+    ptr = input.to_unsafe
+    len = input.size
+
+    if len <= 16
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_0to16_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
+    elsif len <= 128
+      # Phase 2a: 17-128 bytes
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
+    elsif len <= 240
+      # Phase 2b: 129-240 bytes (not yet implemented, use FFI)
+      result = LibXXH.XXH3_128bits(ptr, len)
+      return Hash128.new(result.low64, result.high64)
+    else
+      # Phase 3: 240+ bytes (not yet implemented, use FFI)
+      result = LibXXH.XXH3_128bits(ptr, len)
+      return Hash128.new(result.low64, result.high64)
+    end
+  end
+
+  def self.hash128_with_seed(input : Bytes, seed : UInt64) : Hash128
+    ptr = input.to_unsafe
+    len = input.size
+
+    if len <= 16
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_0to16_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
+    elsif len <= 128
+      # Phase 2a: 17-128 bytes
+      secret = XXH::Buffers.default_secret.to_unsafe
+      return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
+    elsif len <= 240
+      # Phase 2b: 129-240 bytes (not yet implemented, use FFI)
+      result = LibXXH.XXH3_128bits_withSeed(ptr, len, seed)
+      return Hash128.new(result.low64, result.high64)
+    else
+      # Phase 3: 240+ bytes (not yet implemented, use FFI)
+      result = LibXXH.XXH3_128bits_withSeed(ptr, len, seed)
+      return Hash128.new(result.low64, result.high64)
     end
   end
 
