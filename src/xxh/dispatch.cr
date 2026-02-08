@@ -1,8 +1,6 @@
 # Simplified dispatch: native SIMD implementations removed.
 # All hashing delegates to the vendored `LibXXH` FFI implementation.
 
-require "../ffi/bindings"
-
 module XXH::Dispatch
   # One-shot wrappers (delegate to LibXXH)
   def self.hash_xxh32(input : Bytes, seed : UInt32 = 0_u32) : UInt32

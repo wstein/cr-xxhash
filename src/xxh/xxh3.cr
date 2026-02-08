@@ -1,5 +1,3 @@
-require "../ffi/bindings"
-
 module XXH::XXH3
   # 128-bit result type
   struct Hash128
@@ -731,8 +729,20 @@ module XXH::XXH3
       if @use_seed
         return XXH::XXH3.hash_with_seed(@buffer[0, @buffered_size], @seed)
       end
-      XXH::FFI.show_deprecation_warning
-      LibXXH.XXH3_64bits_withSecret(@buffer.to_unsafe, @total_len.to_i, secret_bytes.to_unsafe, @secret_limit + 64)
+
+      # Use native short-paths for unseeded streaming inputs (avoid FFI fallback)
+      len = @buffered_size
+      ptr = @buffer.to_unsafe
+      secret_ptr = secret_bytes.to_unsafe
+      if len == 0
+        return XXH::XXH3.hash(Bytes.new(0))
+      elsif len <= 16
+        return XXH::XXH3.len_0to16_64b(ptr, len, secret_ptr, 0_u64)
+      elsif len <= 128
+        return XXH::XXH3.len_17to128_64b(ptr, len, secret_ptr, 0_u64)
+      else
+        return XXH::XXH3.len_129to240_64b(ptr, len, secret_ptr, 0_u64)
+      end
     end
 
     def debug_state
@@ -911,9 +921,20 @@ module XXH::XXH3
       if @use_seed
         return XXH::XXH3.hash128_with_seed(@buffer[0, @buffered_size], @seed)
       end
-      XXH::FFI.show_deprecation_warning
-      ffi_res = LibXXH.XXH3_128bits_withSecret(@buffer.to_unsafe, @total_len.to_i, secret_bytes.to_unsafe, @secret_limit + 64)
-      Hash128.new(ffi_res.low64, ffi_res.high64)
+
+      # Use native short-paths for unseeded streaming inputs (avoid FFI fallback)
+      len = @buffered_size
+      ptr = @buffer.to_unsafe
+      secret_ptr = secret_bytes.to_unsafe
+      if len == 0
+        return XXH::XXH3.hash128(Bytes.new(0))
+      elsif len <= 16
+        return XXH::XXH3.len_0to16_128b(ptr, len, secret_ptr, 0_u64)
+      elsif len <= 128
+        return XXH::XXH3.len_17to128_128b(ptr, len, secret_ptr, 0_u64)
+      else
+        return XXH::XXH3.len_129to240_128b(ptr, len, secret_ptr, 0_u64)
+      end
     end
 
     def debug_state
