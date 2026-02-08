@@ -37,7 +37,9 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (158/158 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Next phase: SIMD acceleration** (ARM NEON, x86 AVX2, x86 SSE2).
+**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Next phase: SIMD acceleration** (ARM NEON, x86 AVX2, x86 SSE2).
+
+**Streaming Update**: `State128` streaming class implemented and validated (see `spec/xxh3_state_128_spec.cr` — 9 tests). Short unseeded streaming still defers to FFI for parity with existing 64-bit `State` behavior.
 
 **Recent Fixes (Session 3):**
 
@@ -141,6 +143,13 @@ hash128 = XXH3.hash128("hello world")
 
 puts "XXH3_64: #{hash64.to_s(16)}"
 puts "XXH3_128: #{hash128.to_s(16)}"
+
+# Streaming example (128-bit)
+state = XXH::XXH3.new_state128
+state.update("hello".to_slice)
+state.update(" world".to_slice)
+h = state.digest
+puts "XXH3_128 streaming: low=0x#{h.low64.to_s(16)}, high=0x#{h.high64.to_s(16)}"
 ```
 
 ### CLI Tool
