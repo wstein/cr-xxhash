@@ -43,6 +43,11 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 **Recent Updates (Session 5):**
 
+* **Session 6 (Phase 2) — Micro optimizations:**
+  * Precomputed mask and reduced per-call u128 math in `XXH3` mixing (`mix16b`) (medium impact)
+  * Replaced `to_u128` casts with wrapping 64-bit arithmetic in hot paths (`mult32to64_add64`, secret init loops) (medium impact)
+  * Verified/reduced pointer arithmetic in inner loops where possible (`accumulate_scalar`, `hash_long_internal_loop`) (low→medium impact)
+
 * ✅ **Performance Optimizations Applied**: Implemented 8 high-impact scalar speedups:
   * Added `@[AlwaysInline]` to 9 XXH3 functions, 3 XXH64 functions, 3 XXH32 functions
   * Replaced iterator loops with `while` loops in hot paths
