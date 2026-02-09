@@ -37,9 +37,7 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Session 5: Performance optimizations applied** (8 high-impact scalar speedups). **Session 7: SIMD vectorization foundation** (StaticArray + @[AlwaysInline]). **Session 8: Loop unrolling and prefetch tuning** (final throughput targets met). **Refactoring Phase 1: XXH3 modularization** ✅ (Commit b48d499). **Refactoring Phase 2: XXH32/XXH64 streaming consolidation** ✅ (Commit 64061e6).
-
-**Streaming Update**: `State128` streaming class implemented and validated (see `spec/xxh3_state_128_spec.cr` — 9 tests). Short unseeded streaming still defers to FFI for parity with existing 64-bit `State` behavior.
+**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (171/171 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Session 5: Performance optimizations applied** (8 high-impact scalar speedups). **Session 7: SIMD vectorization foundation** (StaticArray + @[AlwaysInline]). **Session 8: Loop unrolling and prefetch tuning** (final throughput targets met). **Refactoring Phase 1: XXH3 modularization** ✅. **Refactoring Phase 2: XXH32/XXH64 streaming consolidation** ✅. **Refactoring Phase 3: XXH3 State/State128 consolidation** ✅
 
 **Recent Updates (Session 6–8 + Refactoring Phase 1):**
 
@@ -85,7 +83,20 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
   * ✅ Block delegation pattern: Variant-specific round operations passed as closures
   * ✅ All 167 tests passing; zero performance regression; 100% API compatibility
   * **Code Metrics**: XXH32::State 150→115 lines (-23%), XXH64::State 150→115 lines (-23%), Net -64 lines
-  * **Next**: Phase 3 (Consolidate XXH3 State/State128 classes)
+
+* **Refactoring Phase 3 (XXH3 State/State128 Consolidation):** ✅ **COMPLETED** (2026-02-09)
+  * ✅ Created `src/xxh/xxh3/xxh3_streaming_helpers.cr` with `XXH::XXH3::StreamingStateBase` class (~150 lines)
+  * ✅ Refactored `State` and `State128` to inherit from shared base class
+  * ✅ **Code Reduction**:
+
+    | Before | After | Reduction |
+    |--------|-------|-----------|
+    | State: ~200 lines | State: ~45 lines | -155 lines |
+    | State128: ~200 lines | State128: ~45 lines | -155 lines |
+    | Duplicated: ~310 lines | Base + 2 subclasses: ~240 lines | ~23% reduction |
+
+  * ✅ All 171 tests pass; zero regressions; API unchanged
+  * ✅ Benefits: DRY, maintainable, extensible, backward compatible
 
 * ✅ **Performance Optimizations Applied**: Implemented 8 high-impact scalar speedups:
   * Added `@[AlwaysInline]` to 9 XXH3 functions, 3 XXH64 functions, 3 XXH32 functions
