@@ -69,7 +69,18 @@ unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
 Unaligned testing reveals performance differences in SIMD optimizations across CPU architectures.
 
 === 2. Auto-tuning Iterations
+=== Session 5: Performance Optimizations
 
+Session 5 introduced a set of micro-optimizations that improved scalar performance across algorithms and prepared the codebase for vectorization work. Key changes:
+
+* **Inlining**: Added `@[AlwaysInline]` to hot functions, exposing inner loops for compiler optimization.
+* **Integer arithmetic optimizations**: Replaced abundant `to_u128` casts with wrapping 64-bit arithmetic where possible (e.g., `mult32to64_add64`) to reduce u128 overhead.
+* **Pointer arithmetic**: Replaced index computations with pointer increments in hot loops to reduce per-iteration overhead.
+* **Bounds checks minimization**: Replaced `Array` temporaries with stack-allocated buffers or `Pointer`-based accesses where safe and validated.
+
+See `SESSION_5_PERFORMANCE_OPTIMIZATIONS.md` for the detailed Session 5 report and microbenchmark results.
+
+=== 3. Auto-tuning Iterations
 When the `-i` flag is not provided, the benchmark auto-calibrates the iteration count:
 
 ```crystal

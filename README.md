@@ -68,6 +68,8 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
   * Expected gains: 20-30% for small inputs (0-16B), 15-25% for medium (17-240B), 10-15% for large (240B+)
   * See [SESSION_5_PERFORMANCE_OPTIMIZATIONS.md](SESSION_5_PERFORMANCE_OPTIMIZATIONS.md) for detailed breakdown
 
+* ✅ **Session 7 — SIMD Foundation**: Prepared the codebase for LLVM auto-vectorization by replacing heap-allocated accumulators with stack-allocated `StaticArray` buffers and adding aggressive inlining. See `papers/SIMD_OPTIMIZATION.adoc` for the full Session 7 report and verification guidance.
+
 **Recent Fixes (Session 3):**
 
 * ✅ Implemented XXH3 128-bit Phase 3 (240+B) native path: ported `hash_long_128b` and `finalize_long_128b` from vendor specification. Eliminates FFI fallback for all 128-bit input sizes.

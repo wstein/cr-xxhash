@@ -148,6 +148,10 @@ end
 
 === 12.5 SIMD Implementation Strategy
 
+// Session 7 summary: advanced vectorization readiness and strategy
+include::../SIMD_OPTIMIZATION.adoc[]
+
+
 ==== 12.5.1 ARM NEON (Apple Silicon M1/M2/M3/M4)
 
 **Target**: 50+ GB/s throughput using 128-bit vectors.
