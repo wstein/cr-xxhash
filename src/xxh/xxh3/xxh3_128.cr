@@ -1,3 +1,6 @@
+require "./xxh3_types"
+require "./xxh3_base"
+
 module XXH::XXH3
   # ============================================================================
   # 128-bit One-Shot Hashing: Small Input Paths (0..16 bytes)
@@ -36,7 +39,7 @@ module XXH::XXH3
     m128.low64 = xorshift64(m128.low64, 35)
     m128.low64 &*= XXH::Constants::PRIME_MX2
     m128.low64 = xorshift64(m128.low64, 28)
-    m128.high64 = xx3_avalanche(m128.high64)
+    m128.high64 = XXH::XXH3.xx3_avalanche(m128.high64)
 
     m128
   end
@@ -53,21 +56,21 @@ module XXH::XXH3
     input_lo = XXH::Primitives.read_u64_le(ptr)
     input_hi = XXH::Primitives.read_u64_le(ptr + (len - 8))
 
-    m128 = mult64to128(input_lo ^ input_hi ^ bitflipl, XXH::Constants::PRIME64_1)
+    m128 = XXH::XXH3.mult64to128(input_lo ^ input_hi ^ bitflipl, XXH::Constants::PRIME64_1)
 
     m128.low64 &+= ((len - 1).to_u64 << 54)
     input_hi ^= bitfliph
 
     # 64-bit version:
-    m128.high64 &+= input_hi &+ mult32to64_len9to16((input_hi & 0xFFFFFFFF_u64).to_u32, XXH::Constants::PRIME32_2 &- 1)
+    m128.high64 &+= input_hi &+ XXH::XXH3.mult32to64_len9to16((input_hi & 0xFFFFFFFF_u64).to_u32, XXH::Constants::PRIME32_2 &- 1)
 
     m128.low64 ^= XXH::Primitives.bswap64(m128.high64)
 
-    h128 = mult64to128(m128.low64, XXH::Constants::PRIME64_2)
+    h128 = XXH::XXH3.mult64to128(m128.low64, XXH::Constants::PRIME64_2)
     h128.high64 &+= m128.high64 &* XXH::Constants::PRIME64_2
 
-    h128.low64 = xx3_avalanche(h128.low64)
-    h128.high64 = xx3_avalanche(h128.high64)
+    h128.low64 = XXH::XXH3.xx3_avalanche(h128.low64)
+    h128.high64 = XXH::XXH3.xx3_avalanche(h128.high64)
 
     h128
   end
@@ -91,12 +94,11 @@ module XXH::XXH3
   # 128-bit One-Shot Hashing: Medium Input Paths (17..240 bytes)
   # ============================================================================
 
-  @[AlwaysInline]
   def self.mix32b_128b(acc : Hash128, input_1_ptr : Pointer(UInt8), input_2_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), seed : UInt64) : Hash128
-    acc.low64 &+= mix16b(input_1_ptr, secret_ptr, seed)
+    acc.low64 &+= XXH::XXH3.mix16b(input_1_ptr, secret_ptr, seed)
     acc.low64 ^= (XXH::Primitives.read_u64_le(input_2_ptr) &+ XXH::Primitives.read_u64_le(input_2_ptr + 8))
 
-    acc.high64 &+= mix16b(input_2_ptr, secret_ptr + 16, seed)
+    acc.high64 &+= XXH::XXH3.mix16b(input_2_ptr, secret_ptr + 16, seed)
     acc.high64 ^= (XXH::Primitives.read_u64_le(input_1_ptr) &+ XXH::Primitives.read_u64_le(input_1_ptr + 8))
 
     acc
@@ -115,8 +117,8 @@ module XXH::XXH3
     h128 = Hash128.new(acc.low64 &+ acc.high64, 0_u64)
     h128.high64 = (acc.low64 &* XXH::Constants::PRIME64_1) &+ (acc.high64 &* XXH::Constants::PRIME64_4) &+ ((len.to_u64 &- seed) &* XXH::Constants::PRIME64_2)
 
-    h128.low64 = xx3_avalanche(h128.low64)
-    h128.high64 = (0_u64 &- xx3_avalanche(h128.high64))
+    h128.low64 = XXH::XXH3.xx3_avalanche(h128.low64)
+    h128.high64 = (0_u64 &- XXH::XXH3.xx3_avalanche(h128.high64))
 
     h128
   end
@@ -130,8 +132,8 @@ module XXH::XXH3
       i += 32
     end
 
-    acc.low64 = xx3_avalanche(acc.low64)
-    acc.high64 = xx3_avalanche(acc.high64)
+    acc.low64 = XXH::XXH3.xx3_avalanche(acc.low64)
+    acc.high64 = XXH::XXH3.xx3_avalanche(acc.high64)
 
     i = 160
     while i <= len
@@ -144,8 +146,8 @@ module XXH::XXH3
     h128 = Hash128.new(acc.low64 &+ acc.high64, 0_u64)
     h128.high64 = (acc.low64 &* XXH::Constants::PRIME64_1) &+ (acc.high64 &* XXH::Constants::PRIME64_4) &+ ((len.to_u64 &- seed) &* XXH::Constants::PRIME64_2)
 
-    h128.low64 = xx3_avalanche(h128.low64)
-    h128.high64 = (0_u64 &- xx3_avalanche(h128.high64))
+    h128.low64 = XXH::XXH3.xx3_avalanche(h128.low64)
+    h128.high64 = (0_u64 &- XXH::XXH3.xx3_avalanche(h128.high64))
 
     h128
   end
@@ -210,7 +212,7 @@ module XXH::XXH3
     # Per vendor: h128.high64 = XXH3_mergeAccs(acc, secret + secretSize - XXH_STRIPE_LEN - XXH_SECRET_MERGEACCS_START, ~(len * XXH_PRIME64_2))
     # XXH_STRIPE_LEN = 64, XXH_SECRET_MERGEACCS_START = 11, XXH_PRIME64_2 = 0xC2B2AE3D27D4EB4F_u64
     # So: secret + secretSize - 64 - 11 = secret + secretSize - 75
-    high64 = merge_accs(acc, secret_ptr + (secret_size - 64 - 11), ~(len &* XXH::Constants::PRIME64_2))
+    high64 = XXH::XXH3.merge_accs(acc, secret_ptr + (secret_size - 64 - 11), ~(len &* XXH::Constants::PRIME64_2))
     Hash128.new(low64, high64)
   end
 

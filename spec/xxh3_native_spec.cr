@@ -4,6 +4,7 @@ require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh64.cr"
 require "../src/xxh/xxh3.cr"
+require "./support/libxxh_helper"
 
 describe "XXH3 Native Implementation" do
   describe "One-Shot Hashing - Edge Cases" do

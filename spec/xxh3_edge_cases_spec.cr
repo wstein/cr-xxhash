@@ -4,6 +4,7 @@ require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh64.cr"
 require "../src/xxh/xxh3.cr"
+require "./support/libxxh_helper"
 
 describe "XXH3 Edge Cases" do
   describe "Seed initialization (64-bit)" do

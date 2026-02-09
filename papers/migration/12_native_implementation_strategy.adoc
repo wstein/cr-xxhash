@@ -256,6 +256,28 @@ end
 
 **Total Estimate**: 40–60 hours for P1–P3, targeting 90%+ C parity.
 
+==== 12.6.1 XXH3 native implementation details
+
+The native XXH3 implementation has been split into a **64-bit** and **128-bit** component to keep the public APIs unambiguous and the internals modular:
+
+- **Files & structure**:
+  - `src/xxh/xxh3/xxh3_64.cr` — New 64-bit XXH3 implementation (one-shot: `hash64`, `hash64_with_seed`, long input handling and `finalize_long_64b`).
+  - `src/xxh/xxh3/xxh3_128.cr` — 128-bit implementation (one-shot: `hash128`, `hash128_with_seed`, streaming finalization into `Hash128`).
+
+- **Public API**:
+  - `XXH::XXH3.hash(input)` and `XXH::XXH3.hash_with_seed(input, seed)` refer to the **64-bit** variant and return `UInt64`.
+  - `XXH::XXH3.hash128(input)` and `XXH::XXH3.hash128_with_seed(input, seed)` return a `Hash128` struct.
+  - Rationale: avoiding overloads with differing return types keeps method dispatch explicit and prevents ambiguity in streaming state digests.
+
+- **Modularity & helpers**:
+  - Common helpers and constants (e.g. `mix16b`, `mul128_fold64`, `xx3_avalanche`, `merge_accs`, `INIT_ACC`) live in `src/xxh/xxh3/xxh3_base.cr` and `src/xxh/xxh3/xxh3_types.cr`.
+  - Both implementations explicitly `require` these modules and call the helpers with qualified names (`XXH::XXH3.mix16b`, `XXH::XXH3.mul128_fold64`, etc.) to make origin and intent unambiguous.
+
+- **Validation**:
+  - The implementation was tested against the C99 reference outputs across a wide range of inputs (0..4096+ bytes), seeds, and boundary cases. All XXH3 native specs pass locally (110 examples, 0 failures).
+
+This approach preserves bit-identical behavior with the vendor reference while keeping the Crystal code clear, testable, and maintainable.
+
 === 12.7 Streaming State API
 
 **Goal**: Opaque state struct matching C API, supporting incremental hashing.
