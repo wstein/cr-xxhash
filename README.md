@@ -263,14 +263,20 @@ Usage examples:
 ./bin/xxhsum -b -i1      # Single calibration iteration (faster, less stable)
 ./bin/xxhsum -b -i5      # 5 calibration iterations (slower, more stable)
 
-Sample output (example):
+### Performance Reference (Apple M4)
 
-```text
- 1#XXH32                         :     102400 ->   128640 it/s (12562.5 MB/s)
- 3#XXH64                         :     102400 ->   258604 it/s (25254.3 MB/s)
- 5#XXH3_64b                      :     102400 ->   496518 it/s (48488.1 MB/s)
-11#XXH128                        :     102400 ->   483088 it/s (47176.6 MB/s)
+**Build:** `shards build --release -O3 --mcpu=apple-m4`
+
 ```
+Crystal port of xxhsum 0.8.3
+Sample of 100.0 KB...
+ 1#XXH32                         :     102400 ->   134272 it/s (13112.5 MB/s)
+ 3#XXH64                         :     102400 ->   268265 it/s (26197.8 MB/s)
+ 5#XXH3_64b                      :     102400 ->   294805 it/s (28789.6 MB/s)
+11#XXH128                        :     102400 ->   312948 it/s (30561.3 MB/s)
+```
+
+> **Note:** Throughput varies by input size, CPU, and build flags. Run `./bin/xxhsum -b` on your system for baseline.
 
 **Build Notes:**
 
