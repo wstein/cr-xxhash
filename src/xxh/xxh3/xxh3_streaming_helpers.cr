@@ -101,8 +101,9 @@ module XXH::XXH3
       if remaining > CONST_INTERNALBUFFER_SIZE
         nbStripes = ((remaining - 1) / 64).to_i
         @nb_stripes_so_far = consume_stripes(@acc.to_unsafe, @nb_stripes_so_far, @nb_stripes_per_block, b.to_unsafe + offset, nbStripes, secret_bytes.to_unsafe, @secret_limit)
-        # copy last 64 bytes into the end of buffer
+        # copy last 64 bytes into the end of buffer (ensure src is in-bounds)
         src = offset + (nbStripes * 64)
+        src = (src + 64 <= len) ? src : (len - 64)
         b[src, 64].copy_to(@buffer.to_unsafe + (CONST_INTERNALBUFFER_SIZE - 64), 64)
         offset += nbStripes * 64
       end
@@ -134,6 +135,58 @@ module XXH::XXH3
         nb_stripes_so_far = nb_stripes_so_far + nbStripes
       end
       nb_stripes_so_far
+    end
+
+    protected def prepare_acc_for_long_input
+      sb = secret_buffer
+      aptr = acc_buffer
+      if buffered_size >= 64
+        nbStripes = (buffered_size - 1).tdiv(64)
+        nb = @nb_stripes_so_far
+        consume_stripes(aptr, nb, @nb_stripes_per_block, internal_buffer.to_unsafe, nbStripes, sb.to_unsafe, secret_limit)
+        lastStripePtr = internal_buffer.to_unsafe + (buffered_size - 64)
+        XXH::XXH3.accumulate_512_scalar(aptr, lastStripePtr, sb.to_unsafe + (secret_limit - 7))
+      else
+        # Process the buffered data (less than 64 bytes remaining)
+        # Use stack-allocated buffer instead of heap allocation
+        lastStripe = uninitialized UInt64[8] # 64 bytes on stack
+        catchup_size = 64 - buffered_size
+        buffer_end = CONST_INTERNALBUFFER_SIZE - catchup_size
+        (internal_buffer.to_unsafe + buffer_end).copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)), catchup_size)
+        internal_buffer.to_unsafe.copy_to(lastStripe.to_unsafe.as(Pointer(UInt8)) + catchup_size, buffered_size)
+        lastStripePtr = lastStripe.to_unsafe.as(Pointer(UInt8))
+        XXH::XXH3.accumulate_512_scalar(aptr, lastStripePtr, sb.to_unsafe + (secret_limit - 7))
+      end
+    end
+
+    protected def short_digest_unseeded_64(empty_proc : -> UInt64, upto16_proc : -> UInt64, upto128_proc : -> UInt64, upto240_proc : -> UInt64) : UInt64
+      len = buffered_size
+      ptr = internal_buffer.to_unsafe
+      secret_ptr = secret_buffer.to_unsafe
+      if len == 0
+        empty_proc.call
+      elsif len <= 16
+        upto16_proc.call
+      elsif len <= 128
+        upto128_proc.call
+      else
+        upto240_proc.call
+      end
+    end
+
+    protected def short_digest_unseeded_128(empty_proc : -> XXH::XXH3::Hash128, upto16_proc : -> XXH::XXH3::Hash128, upto128_proc : -> XXH::XXH3::Hash128, upto240_proc : -> XXH::XXH3::Hash128) : XXH::XXH3::Hash128
+      len = buffered_size
+      ptr = internal_buffer.to_unsafe
+      secret_ptr = secret_buffer.to_unsafe
+      if len == 0
+        empty_proc.call
+      elsif len <= 16
+        upto16_proc.call
+      elsif len <= 128
+        upto128_proc.call
+      else
+        upto240_proc.call
+      end
     end
 
     def debug_state
