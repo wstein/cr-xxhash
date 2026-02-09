@@ -3,6 +3,8 @@
 /docs/
 /lib/
 /tmp/
+-/tmp/*.md
+-/tmp/*.adoc
 
 .DS_Store
 *.dwarf
