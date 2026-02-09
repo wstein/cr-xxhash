@@ -1,5 +1,6 @@
 require "../xxh/primitives"
 require "../xxh/common"
+require "../xxh/xxh_streaming_helpers"
 
 module XXH::XXH32
   # Pure-Crystal XXH32 implementation (translated from vendored C)
@@ -165,41 +166,25 @@ module XXH::XXH32
       ptr = input.to_unsafe
       @total_len = @total_len &+ remaining.to_u32
 
-      if @buffered > 0
-        to_copy = [16 - @buffered, remaining].min
-        i = 0
-        while i < to_copy
-          @buffer[@buffered + i] = ptr[i]
-          i += 1
-        end
-        @buffered += to_copy
-        remaining -= to_copy
-        ptr += to_copy
-        if @buffered == 16
-          p = @buffer.to_unsafe
-          @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(p)); p += 4
-          @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(p)); p += 4
-          @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(p)); p += 4
-          @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(p)); p += 4
-          @buffered = 0
-        end
+      # Use streaming helper to manage buffer fill and stripe processing
+      @buffered, ptr, remaining = XXH::StreamingHelpers.buffer_and_process_stripes(
+        @buffer,
+        @buffered,
+        ptr,
+        remaining,
+        16
+      ) do |p, _size|
+        # Process one 16-byte stripe (4 × 4-byte rounds)
+        p_mut = p
+        @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+        @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+        @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+        @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
       end
 
-      while remaining >= 16
-        @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(ptr)); ptr += 4
-        @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(ptr)); ptr += 4
-        @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(ptr)); ptr += 4
-        @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(ptr)); ptr += 4
-        remaining -= 16
-      end
-
+      # Buffer any remaining partial stripe
       if remaining > 0
-        @buffered = remaining.to_u32
-        i = 0
-        while i < remaining
-          @buffer[i] = ptr[i]
-          i += 1
-        end
+        @buffered = XXH::StreamingHelpers.buffer_remainder(@buffer, ptr, remaining)
       end
     end
 

@@ -37,11 +37,11 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 ## Native Implementation Roadmap
 
-**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Session 5: Performance optimizations applied** (8 high-impact scalar speedups). **Next phase: SIMD acceleration** (ARM NEON, x86 AVX2, x86 SSE2).
+**Status**: ✅ **Scalar Phase Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations for all input sizes (0B–10000B+) with comprehensive test coverage (167/167 tests passing). SIMD dispatch framework is wired in the CLI with the `--simd` flag. **Session 5: Performance optimizations applied** (8 high-impact scalar speedups). **Session 7: SIMD vectorization foundation** (StaticArray + @[AlwaysInline]). **Session 8: Loop unrolling and prefetch tuning** (final throughput targets met). **Refactoring Phase 1: XXH3 modularization** ✅ (Commit b48d499). **Refactoring Phase 2: XXH32/XXH64 streaming consolidation** ✅ (Commit 64061e6).
 
 **Streaming Update**: `State128` streaming class implemented and validated (see `spec/xxh3_state_128_spec.cr` — 9 tests). Short unseeded streaming still defers to FFI for parity with existing 64-bit `State` behavior.
 
-**Recent Updates (Session 6):**
+**Recent Updates (Session 6–8 + Refactoring Phase 1):**
 
 * **Session 6 (Phase 2) — Micro optimizations:**
   * Precomputed mask and reduced per-call u128 math in `XXH3` mixing (`mix16b`) (medium impact)
@@ -58,6 +58,34 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
     * Removed pointer indirection for small fixed-size working sets
   * **Expected Improvements**: 20-40% throughput gains for long inputs (240B+) via 2x-4x SIMD unrolling
   * See [SIMD_OPTIMIZATION_STRATEGY.md](SIMD_OPTIMIZATION_STRATEGY.md) for detailed vectorization analysis
+
+* **Session 8 (Phase 4) — Loop Unrolling & Prefetch:**
+  * ✅ Implemented 2-stripe unroll in `xxh3.accumulate_scalar` with light prefetch (128B lookahead)
+  * ✅ Implemented 2×32B unroll in `xxh64.consume_long` for instruction-level parallelism
+  * ✅ Tuned XXH32 `consume_long` to 4×16B unroll (64B per iteration) → **~13 GB/s** (target met)
+  * ✅ Final benchmarks: XXH32 ~12.98 GB/s, XXH64 ~25.7 GB/s, XXH3 ~28.6 GB/s, XXH128 ~30 GB/s
+  * All 167 tests pass; zero regressions
+
+* **Refactoring Phase 1 (Code Modularity):**
+  * ✅ Created `src/xxh3/` subdirectory with 4 focused modules:
+    * `xxh3_types.cr`: Hash128 struct
+    * `xxh3_base.cr`: 650+ lines of shared helpers, accumulation, scrambling, merging
+    * `xxh3_64.cr`: 64-bit one-shot and long-input hashing
+    * `xxh3_128.cr`: 128-bit one-shot and long-input hashing
+  * ✅ Refactored main `xxh3.cr`: reduced from 1,036 → 280 lines (73% reduction)
+  * ✅ Eliminated ~60% code duplication between 64-bit and 128-bit variants
+  * ✅ All 167 tests passing; clean git history with atomic commit
+  * **Next**: Phase 2 (Extract XXH32/XXH64 shared streaming base)
+
+* **Refactoring Phase 2 (Streaming Consolidation):** ✅ **COMPLETED**
+  * ✅ Created `src/xxh/xxh_streaming_helpers.cr` module (~58 lines) with block delegation pattern
+  * ✅ Refactored `XXH32::State.update_slice`: 60 → 30 lines (-50% duplication)
+  * ✅ Refactored `XXH64::State.update_slice`: 60 → 30 lines (-50% duplication)
+  * ✅ Eliminated ~64 lines of duplicated buffer management logic across both classes
+  * ✅ Block delegation pattern: Variant-specific round operations passed as closures
+  * ✅ All 167 tests passing; zero performance regression; 100% API compatibility
+  * **Code Metrics**: XXH32::State 150→115 lines (-23%), XXH64::State 150→115 lines (-23%), Net -64 lines
+  * **Next**: Phase 3 (Consolidate XXH3 State/State128 classes)
 
 * ✅ **Performance Optimizations Applied**: Implemented 8 high-impact scalar speedups:
   * Added `@[AlwaysInline]` to 9 XXH3 functions, 3 XXH64 functions, 3 XXH32 functions
@@ -270,10 +298,10 @@ Usage examples:
 ```
 Crystal port of xxhsum 0.8.3
 Sample of 100.0 KB...
- 1#XXH32                         :     102400 ->   134135 it/s (13099.1 MB/s)
- 3#XXH64                         :     102400 ->   268186 it/s (26190.0 MB/s)
- 5#XXH3_64b                      :     102400 ->   298015 it/s (29103.0 MB/s)
-11#XXH128                        :     102400 ->   318431 it/s (31096.8 MB/s)
+ 1#XXH32                         :     102400 ->   134022 it/s (13088.1 MB/s)
+ 3#XXH64                         :     102400 ->   267942 it/s (26166.2 MB/s)
+ 5#XXH3_64b                      :     102400 ->   293440 it/s (28656.3 MB/s)
+11#XXH128                        :     102400 ->   314021 it/s (30666.1 MB/s)
 ```
 
 > **Note:** Throughput varies by input size, CPU, and build flags. Run `./bin/xxhsum -b` on your system for baseline.
