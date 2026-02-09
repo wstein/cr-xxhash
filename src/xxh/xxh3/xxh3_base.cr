@@ -191,6 +191,25 @@ module XXH::XXH3
     end
   end
 
+  # Initialize a custom secret derived from the provided secret and seed.
+  # Writes into `dest_ptr` a secret of `secret_size` bytes produced by adding
+  # the seed to the low 64-bit word and subtracting the seed from the high 64-bit word
+  # for each 16-byte block.
+  #
+  # This helper is used by the streaming `State` and `State128` implementations
+  # to initialize `@custom_secret` when a non-zero seed is provided.
+  def self.init_custom_secret(dest_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), secret_size : Int32, seed : UInt64) : Nil
+    nrounds = (secret_size / 16).to_i
+    i = 0
+    while i < nrounds
+      lo = XXH::Primitives.read_u64_le(secret_ptr + (16 * i)) &+ seed
+      hi = XXH::Primitives.read_u64_le(secret_ptr + (16 * i + 8)) &- seed
+      XXH::Primitives.write_u64_le(dest_ptr + (16 * i), lo)
+      XXH::Primitives.write_u64_le(dest_ptr + (16 * i + 8), hi)
+      i += 1
+    end
+  end
+
   # ============================================================================
   # Long Input Processing Loop (shared by 64-bit and 128-bit)
   # ============================================================================

@@ -48,15 +48,7 @@ module XXH::XXH3
         @seed = seed
         @use_seed = true
         # init custom secret
-        nrounds = XXH::Constants::SECRET_DEFAULT_SIZE / 16
-        i = 0
-        while i < nrounds
-          lo = XXH::Primitives.read_u64_le(secret_bytes.to_unsafe + (16 * i)) &+ seed
-          hi = XXH::Primitives.read_u64_le(secret_bytes.to_unsafe + (16 * i + 8)) &- seed
-          XXH::Primitives.write_u64_le(@custom_secret.to_unsafe + (16 * i), lo)
-          XXH::Primitives.write_u64_le(@custom_secret.to_unsafe + (16 * i + 8), hi)
-          i += 1
-        end
+        XXH::XXH3.init_custom_secret(@custom_secret.to_unsafe, secret_bytes.to_unsafe, secret_size, seed)
         # Per C implementation, when seeded we keep customSecret but set extSecret to NULL
         @ext_secret = nil
       else
@@ -187,11 +179,23 @@ module XXH::XXH3
     def debug_state
       buf_slice = @buffer[0, @buffered_size]
       end_slice = @buffer[XXH3_INTERNALBUFFER_SIZE - 64, 64] rescue Bytes.new(0)
-      {total_len: @total_len, buffered_size: @buffered_size, nb_stripes_so_far: @nb_stripes_so_far, acc: @acc.dup, buffer: buf_slice.to_a, end_buffer: end_slice.to_a}
+      {total_len: @total_len, buffered_size: @buffered_size, nb_stripes_so_far: @nb_stripes_so_far, acc: @acc.dup, buffer: buf_slice.to_a, end_buffer: end_slice.to_a, use_seed: @use_seed}
+    end
+
+    # Test-only accessor: exposes secret bytes for tests/debugging. Not part of public API.
+    def test_debug_secret
+      custom = @custom_secret.to_a
+      ext = @ext_secret.nil? ? nil : @ext_secret.as(Bytes).to_a
+      {use_seed: @use_seed, custom_secret: custom, ext_secret: ext}
     end
 
     def free; end
 
     def finalize; end
+  end
+
+  # Factory helper (moved here so aggregator is purely declarative)
+  def self.new_state(seed : UInt64? = nil)
+    State.new(seed)
   end
 end

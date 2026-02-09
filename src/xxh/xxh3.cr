@@ -23,13 +23,5 @@ module XXH::XXH3
 
   # 128-bit Streaming state wrapper moved to `src/xxh/xxh3/state128.cr`
 
-  # factory helpers remain below
-
-  def self.new_state(seed : UInt64? = nil)
-    State.new(seed)
-  end
-
-  def self.new_state128(seed : UInt64? = nil)
-    State128.new(seed)
-  end
+  # factory helpers moved to `state.cr` and `state128.cr` to keep this module purely declarative
 end
