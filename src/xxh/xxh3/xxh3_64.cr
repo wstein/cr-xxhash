@@ -166,14 +166,7 @@ module XXH::XXH3
   def self.hash_long_64b(ptr : Pointer(UInt8), len : Int32, secret_ptr : Pointer(UInt8), secret_size : Int32) : UInt64
     # Stack-allocated for LLVM auto-vectorization
     acc = uninitialized UInt64[8]
-    acc[0] = INIT_ACC[0]
-    acc[1] = INIT_ACC[1]
-    acc[2] = INIT_ACC[2]
-    acc[3] = INIT_ACC[3]
-    acc[4] = INIT_ACC[4]
-    acc[5] = INIT_ACC[5]
-    acc[6] = INIT_ACC[6]
-    acc[7] = INIT_ACC[7]
+    XXH::XXH3.init_acc(acc.to_unsafe)
     hash_long_internal_loop(acc.to_unsafe, ptr, len, secret_ptr, secret_size)
     finalize_long_64b(acc[0], acc[1], acc[2], acc[3], acc[4], acc[5], acc[6], acc[7], secret_ptr, len.to_u64)
   end
@@ -195,14 +188,7 @@ module XXH::XXH3
     end
     # Stack-allocated for LLVM auto-vectorization
     acc = uninitialized UInt64[8]
-    acc[0] = INIT_ACC[0]
-    acc[1] = INIT_ACC[1]
-    acc[2] = INIT_ACC[2]
-    acc[3] = INIT_ACC[3]
-    acc[4] = INIT_ACC[4]
-    acc[5] = INIT_ACC[5]
-    acc[6] = INIT_ACC[6]
-    acc[7] = INIT_ACC[7]
+    XXH::XXH3.init_acc(acc.to_unsafe)
     hash_long_internal_loop(acc.to_unsafe, ptr, len, secret.to_unsafe, secret_size)
     finalize_long_64b(acc[0], acc[1], acc[2], acc[3], acc[4], acc[5], acc[6], acc[7], secret.to_unsafe, len.to_u64)
   end

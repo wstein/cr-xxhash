@@ -182,6 +182,15 @@ module XXH::XXH3
     xx3_avalanche(result)
   end
 
+  # Initialize accumulator lanes from the canonical INIT_ACC constants
+  def self.init_acc(acc_ptr : Pointer(UInt64)) : Nil
+    i = 0
+    while i < 8
+      acc_ptr[i] = INIT_ACC[i]
+      i += 1
+    end
+  end
+
   # ============================================================================
   # Long Input Processing Loop (shared by 64-bit and 128-bit)
   # ============================================================================
