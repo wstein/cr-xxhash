@@ -17,7 +17,8 @@ crystal: ">= 1.19.0"
 # Automatically compile vendored xxHash C library and create CLI aliases
 scripts:
   postinstall: |
-    make -C vendor/xxHash libxxhash.a
+    # Build the xxHash object file (used by specs) and the static library
+    make -C vendor/xxHash xxhash.o libxxhash.a
     mkdir -p bin
     ln -sf xxhsum ./bin/xxh32sum
     ln -sf xxhsum ./bin/xxh64sum
