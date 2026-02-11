@@ -19,17 +19,54 @@ This paper documents the academic and technical migration of the xxHash library 
 
 This paper documents the design decisions, implementation trade-offs, and empirical benchmarks for porting xxHash to Crystal. Key outcomes achieved: parity with the C reference (bit-identical hashes), high throughput ({throughput_autovec}), and a conclusion that modern compilers (LLVM 18+) reach ~60% of handwritten SIMD performance given the correct Crystal idioms.
 
+[.sidebar]
+====
+TL;DR — Key results
+
+* **XXH3 (Crystal, typical release -O3)**: ~30 GB/s on Apple M4 (100 KB sample)
+* **XXH3 (C, hand-optimized SIMD)**: ~45–50 GB/s on Apple M4 (best-case)
+* **Conclusion**: LLVM auto-vectorization yields maintainable, cross-platform Crystal code with ~60% of best-case handcrafted SIMD throughput; for most use-cases this is an acceptable trade-off between code complexity and performance.
+====
+
+// arc42 section mapping (numbered headings)
+
+== 1 Introduction and Goals
 include::migration/01_introduction_and_goals.adoc[]
+
+== 2 Architecture Constraints (Quality & Context Constraints)
 include::migration/02_architecture_constraints.adoc[]
+
+== 3 Context and Scope
 include::migration/03_context_and_scope.adoc[]
+
+== 4 Solution Strategy (High Level)
 include::migration/04_solution_strategy.adoc[]
+
+== 5 Building Block View (Static/Module View)
 include::migration/05_building_block_view.adoc[]
+
+== 6 Runtime View (Behavior/Execution)
 include::migration/06_runtime_view.adoc[]
+
+== 7 Deployment View (if applicable)
+// No separate deployment section (platform-agnostic); add details in 6RuntimeView where relevant.
+
+== 8 Crosscutting Concepts
 include::migration/08_concepts.adoc[]
+
+== 9 Architecture Decisions (ADRs)
 include::migration/09_architecture_decisions.adoc[]
+
+== 10 Quality Requirements & Tests
 include::migration/10_quality_requirements.adoc[]
 include::migration/11_benchmark_implementation.adoc[]
+
+== 11 Native Implementation Strategy
 include::migration/12_native_implementation_strategy.adoc[]
+
+// Supplemental: SIMD optimization deep-dive (kept as separate paper and included)
+include::migration/12_simd_optimization.adoc[]
+
 
 == Reproducibility
 
@@ -41,14 +78,11 @@ To aid reproducible measurement, this repository includes helper scripts and gui
 
 Tips: Include the output of `ruby scripts/tool_versions.rb --json` with each benchmark run and attach it to CI artifacts.
 
-== Benchmarking & Performance Optimizations
+=== Appendix: Reproducibility (Exact commands)
 
-This project now includes a vendor-compatible benchmarking mode (`-b` / `-bX`) to reproduce throughput claims and validate implementation parity. The benchmark uses a 100 KB sample buffer by default and prints per-variant statistics in a vendor-compatible layout (e.g., `1#XXH32 : 102400 -> 128640 it/s (12562.5 MB/s)`).
+For exact commands, artifact locations, and structured reproducibility guidance, see the Reproducibility appendix and the Benchmarking subdocument (included below).
 
-Performance optimizations implemented in the Crystal port are documented in `PERFORMANCE_OPTIMIZATIONS.md` and include:
+include::migration/13_reproducibility.adoc[]
 
-* Zero-copy hex conversion and pre-allocated byte buffers to eliminate intermediate String allocations
-* Slice-based (Bytes) processing instead of String copies for binary data
-* Branch-friendly bit-shifting for endianness conversion on hot paths
+include::migration/14_benchmarking_and_performance.adoc[]
 
-Measured results on Apple M4 show XXH3/XXH128 throughput in the ~45–49 GB/s range, competitive with the upstream C implementation. Please refer to `PERFORMANCE_OPTIMIZATIONS.md` for implementation details and microbenchmarks.

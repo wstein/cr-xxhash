@@ -1,8 +1,8 @@
-== Native xxHash Implementation Strategy
+== 11 Native xxHash Implementation Strategy
 
 This section documents the design and implementation approach for porting the xxHash library from C99 to idiomatic yet high-performance Crystal. The goal is to achieve >90% of native C throughput while maintaining bit-identical outputs and zero external dependencies.
 
-=== 12.1 Architecture Overview
+=== 11.1 Architecture Overview
 
 The native implementation replaces FFI bindings with pure Crystal code organized in a composable, dispatch-driven architecture:
 
@@ -26,7 +26,7 @@ src/
     └── hasher.cr              # Updated to use native impl
 ----
 
-=== 12.2 Memory & Buffer Strategy
+=== 11.2 Memory & Buffer Strategy
 
 **Goal**: Zero-copy, reusable buffers with predictable allocation patterns.
 
@@ -58,7 +58,7 @@ end
 - Cache-line aligned (64 bytes) for SIMD
 - Fallback to standard malloc on systems without posix_memalign
 
-=== 12.3 Primitives & Low-Level Operations
+=== 11.3 Primitives & Low-Level Operations
 
 **Goal**: Extract bit-level operations into @[AlwaysInline] primitives for cross-boundary optimization.
 
@@ -99,7 +99,7 @@ module XXH::Primitives
 end
 ----
 
-=== 12.4 CPU Detection & Dispatch
+=== 11.4 CPU Detection & Dispatch
 
 **Goal**: Single runtime detection with cached results. Route calls to optimal SIMD implementation.
 
@@ -146,13 +146,13 @@ module XXH::Dispatch
 end
 ----
 
-=== 12.5 SIMD Implementation Strategy
+=== 11.5 SIMD Implementation Strategy
 
 // Session 7 summary: advanced vectorization readiness and strategy
-include::../SIMD_OPTIMIZATION.adoc[]
+include::migration/12_simd_optimization.adoc[]
 
 
-==== 12.5.1 ARM NEON (Apple Silicon M1/M2/M3/M4)
+==== 11.5.1 ARM NEON (Apple Silicon M1/M2/M3/M4)
 
 **Target**: 50+ GB/s throughput using 128-bit vectors.
 

@@ -1,0 +1,50 @@
+== Benchmarking & Performance Optimizations
+
+This project includes a vendor-compatible benchmarking mode (`-b` / `-bX`) to reproduce throughput claims and validate implementation parity. The benchmark uses a 100 KB sample buffer by default and prints per-variant statistics in a vendor-compatible layout (e.g., `1#XXH32 : 102400 -> 128640 it/s (12562.5 MB/s)`).
+
+Performance optimizations implemented in the Crystal port are documented in `PERFORMANCE_OPTIMIZATIONS.md` and include:
+
+* Zero-copy hex conversion and pre-allocated byte buffers to eliminate intermediate String allocations
+* Slice-based (Bytes) processing instead of String copies for binary data
+* Branch-friendly bit-shifting for endianness conversion on hot paths
+
+=== Benchmark Matrix (summary)
+
+| Hardware | Binary | Compiler & Flags | Sample | Build notes | XXH32 | XXH64 | XXH3 | XXH128 | Date |
+|---|---|---|---:|---|---:|---:|---:|---:|---:|
+| Mac mini (10-core M4) | Crystal (auto-vectorized) | `crystal build --release -O3 --mcpu=apple-m4` | 100 KB | default auto-vec (LLVM) | — | — | ~30 GB/s | ~30 GB/s | 2026-02-11 |
+| Mac mini (10-core M4) | C (handwritten SIMD) | `gcc -O3 -march=native -ffast-math` | 100 KB | manual intrinsics, tuned unroll | — | — | ~50 GB/s | ~50 GB/s | 2026-02-11 |
+
+*Notes*: The entries above reflect representative runs documented in `tmp/asm_analysis_reports/`. Use `./bin/xxhsum -b -B100K` to reproduce the per-variant samples.
+
+=== Benchmark Variants & Context
+
+* **Typical (Crystal, release -O3)** — The Crystal implementation, when built with standard release flags, relies on LLVM's auto-vectorizer and has been observed to reach **~30 GB/s** for `XXH3` on Apple M4 hardware for the 100 KB sample (this is the typical reproducible result using the project's standard build and benchmark commands).
+
+* **Best-case (C, manual SIMD / tuned builds)** — The handwritten SIMD implementation in the upstream C library (or heavily tuned C builds) can reach **~45–50 GB/s** on the same hardware due to explicit intrinsics and manual unrolling. These are best-case numbers obtained with specialized C intrinsics, different compiler flags, or careful unroll/ILP tuning.
+
+* **Implication** — The measured gap (Crystal ~30 GB/s vs C ~50 GB/s) is primarily due to **unroll depth and explicit SIMD intrinsics** in the C implementation. LLVM auto-vectorization produces maintainable, portable code with excellent performance (~60% of handcrafted SIMD in our measurements), but a small performance deficit remains in best-case scenarios.
+
+=== Measurement Methodology
+
+To make measurements reproducible and comparable, follow this procedure:
+
+* **Warm-up**: perform 5 warm-up runs to stabilize caches and CPU clocks.
+* **Sample size**: default 100 KB (use `-B100K` with `xxhsum -b`).
+* **Iterations**: use the benchmark harness' calibration (auto-calibrated iterations per variant); ensure >1s sampling per variant.
+* **Environment**: run on an idle system, disable turbo frequency scaling if possible, record ambient/thermal state.
+* **Reporting**: record compiler & flags, Crystal/LLVM versions, and the exact command used (see reproducibility appendix).
+
+=== Verification Checklist (vectorization)
+
+1. Build the Crystal binary: `crystal build --release -O3 --mcpu=apple-m4`.
+2. Emit and inspect LLVM IR: `crystal build --release --emit llvm-ir src/xxh3.cr` and look for `<n x i64>` vector types in the IR.
+3. Disassemble the binary: `objdump -d bin/xxhsum > xxhsum_crystal.asm` and search for vector mnemonics (e.g., `vmovdqu`, `vpadduq`, `umull`).
+4. Run the analysis tool: `ruby scripts/asm_analyzer.rb tmp/asm_analysis_reports/xxhash_c.asm tmp/asm_analysis_reports/xxhsum_crystal.asm --json tmp/detailed_asm_report.json` and review the vector instruction counts in the JSON report.
+
+=== Limitations & Threats to Validity
+
+* **Compiler/LLVM version sensitivity**: vectorization quality can vary between LLVM releases; include `llvm-config --version` in reports.
+* **Hardware dependence**: results reported here are measured on Apple M4; other microarchitectures may show different gaps.
+* **Thermal/power effects**: sustained benchmarks can be affected by thermal throttling — record temperatures and use short calibration windows where necessary.
+* **Measurement noise**: run multiple trials and prefer median or trimmed-mean aggregation; include raw CSV/JSON artifacts in `tmp/asm_analysis_reports/` for audit.
