@@ -324,6 +324,24 @@ Sample of 100.0 KB...
 * LLVM optimizations enabled for maximum performance
 * Aliases (`./bin/xxh32sum`, `./bin/xxh64sum`, `./bin/xxh128sum`, `./bin/xxh3sum`) are created by the postinstall hook and `./bin` is gitignored; to recreate aliases run `shards install` or execute the manual commands from the contributing guide.
 
+## Nix Development (💡)
+
+This repository includes a Nix development configuration to get a reproducible shell for building and testing the project.
+
+## Usage
+
+- Without flakes:
+
+  - Enter the shell: `nix-shell`
+  - Inside the shell run: `shards install && crystal spec`
+
+## Notes
+
+- `shard.yml` runs `make -C vendor/xxHash libxxhash.a` during `shards install` (see `postinstall`) so the dev shell includes `gcc` and `make`.
+- The `CRYSTAL_PATH` environment variable is set in the shell so the local sources are visible to Crystal.
+
+If you want CI integration or extra packages (bench tooling, cross-platform variants), tell me where you'd like them and I can add them. ✅
+
 ### Verified Test Results ✅
 
 All algorithms validated against vendor xxHash implementation:
