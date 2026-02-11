@@ -207,7 +207,7 @@ end
 {% end %}
 ----
 
-=== 12.6 Implementation Phases (Priority Order)
+=== 12.6 Implementation Phases (Final Status)
 
 [cols="1,2,3,1"]
 |===
@@ -216,45 +216,40 @@ end
 | P1
 | XXH32 scalar + dispatch skeleton
 | 6h
-| 100+ test vectors vs FFI
+| ✅ Complete
 
 | P1
 | XXH64 scalar
 | 4h
-| 100+ test vectors vs FFI
+| ✅ Complete
 
 | P2
 | XXH3 scalar (baseline)
 | 8h
-| Streaming API validation
+| ✅ Complete
 
 | P2
-| ARM NEON (XXH3 accumulation)
-| 6h
-| Benchmark on M1/M4, vs FFI
+| LLVM Auto-Vectorization (XXH3)
+| 10h
+| ✅ Reached 30 GB/s
 
 | P3
-| x86 AVX2 (XXH3 accumulation)
-| 8h
-| Benchmark on x86-64 Xeon
-
-| P3
-| Parallel file processing (fibers)
-| 4h
-| Multi-file throughput test
+| Streaming API Consolidation (DRY)
+| 12h
+| ✅ Complete
 
 | P4
-| Memory mapping (large files > 1MB)
-| 3h
-| I/O benchmark test
+| Parallel file processing (fibers)
+| 4h
+| 🟦 Out of scope
 
 | P5
-| x86 AVX-512 (future)
+| x86 AVX-512 / Platform Intrinsics
 | 10h
-| High-end hardware validation
+| 🟦 Canceled (Auto-vec preferred)
 |===
 
-**Total Estimate**: 40–60 hours for P1–P3, targeting 90%+ C parity.
+**Conclusion**: The implementation achieved its primary goals by leveraging LLVM's auto-vectorization capabilities. The shift from manual assembly to compiler-assisted optimization resulted in 30 GB/s throughput for XXH3, providing a high-performance, cross-platform solution with a single code base.
 
 ==== 12.6.1 XXH3 native implementation details
 

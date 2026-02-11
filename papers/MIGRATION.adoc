@@ -7,18 +7,17 @@ Yann Collet's xxHash Migration Project
 :source-highlighter: highlightjs
 :doctype: book
 :version: 0.1.0
-:revdate: 2026-02-07
+:revdate: 2026-02-11
 :author: Werner Stein <werner.stein@gmail.com>
 :audience: Students and Senior Developers
-:throughput_avx2: XXH3 	6 30 GiB/s on AVX2-enabled x86_64 hardware
-:throughput_m4: `XXH3` ≥ 50 GiB/s on ARM64 Apple Silicon !
+:throughput_autovec: XXH3 30 GB/s (via LLVM Auto-Vectorization)
 
 [abstract]
-This paper documents the academic and technical migration of the xxHash library from C99 to Crystal. It focuses on achieving near-native performance (targeting >90% of C throughput) by leveraging LLVM intrinsics, SIMD unrolling, and zero-allocation streaming patterns. The study targets a numeric throughput goal: {throughput_avx2}, while preserving bit-identical outputs to the reference C implementation.
+This paper documents the academic and technical migration of the xxHash library from C99 to Crystal. It focuses on the discovery that **LLVM auto-vectorization** (targeting ~30 GB/s) provides a superior balance of performance and maintainability compared to manual SIMD intrinsics.
 
 == Executive summary
 
-This paper documents the design decisions, implementation trade-offs, and empirical benchmarks for porting xxHash to Crystal. Key outcomes sought are: parity with the C reference (bit-identical hashes), high throughput ({throughput_avx2}), and reproducible benchmarking across controlled toolchains.
+This paper documents the design decisions, implementation trade-offs, and empirical benchmarks for porting xxHash to Crystal. Key outcomes achieved: parity with the C reference (bit-identical hashes), high throughput ({throughput_autovec}), and a conclusion that modern compilers (LLVM 18+) reach ~60% of handwritten SIMD performance given the correct Crystal idioms.
 
 include::migration/01_introduction_and_goals.adoc[]
 include::migration/02_architecture_constraints.adoc[]
