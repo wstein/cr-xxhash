@@ -1,3 +1,4 @@
+
 = Benchmark Feature Implementation
 
 == Overview
@@ -10,7 +11,8 @@ The cr-xxhash project implements a comprehensive benchmark mode (`-b` flag) that
 
 All 28 benchmark variants are represented by a single `BenchmarkVariant` struct:
 
-```crystal
+[source,crystal]
+----
 private struct BenchmarkVariant
   def initialize(@id : Int32, @name : String, @aligned : Bool,
                  @variant_type : String, @algorithm : Algorithm)
@@ -22,7 +24,7 @@ private struct BenchmarkVariant
   getter variant_type : String   # "basic", "seeded", "secret", "stream"
   getter algorithm : Algorithm   # XXH32, XXH64, XXH3, XXH128
 end
-```
+----
 
 === Variant IDs and Mapping
 
@@ -56,7 +58,8 @@ The 28 variants are organized into four categories:
 
 The benchmark tests each variant with two memory alignments:
 
-```crystal
+[source,crystal]
+----
 # Aligned data (buffer start at byte 0)
 aligned_data = Bytes.new(sample_size) { |i| data_array[i] }
 
@@ -64,7 +67,7 @@ aligned_data = Bytes.new(sample_size) { |i| data_array[i] }
 padded_array = Array(UInt8).new(sample_size + 3) { 0_u8 }
 data_array.each_with_index { |byte, i| padded_array[i + 3] = byte }
 unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
-```
+----
 
 Unaligned testing reveals performance differences in SIMD optimizations across CPU architectures.
 
@@ -83,7 +86,8 @@ See `SESSION_5_PERFORMANCE_OPTIMIZATIONS.md` for the detailed Session 5 report a
 === 3. Auto-tuning Iterations
 When the `-i` flag is not provided, the benchmark auto-calibrates the iteration count:
 
-```crystal
+[source,crystal]
+----
 private def self.auto_tune_iterations(data : Bytes, variant : BenchmarkVariant) : Int32
   # Warmup run
   run_benchmark_iterations(data, variant, 1)
@@ -101,13 +105,14 @@ private def self.auto_tune_iterations(data : Bytes, variant : BenchmarkVariant) 
     1000  # Very fast, use 1000 iterations
   end
 end
-```
+----
 
 === 3. Seeded Variant Support
 
 Seeded variants use a fixed seed value (42) for reproducibility:
 
-```crystal
+[source,crystal]
+----
 private def self.run_seeded_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
   seed = 42_u64
   case algorithm
@@ -130,13 +135,14 @@ private def self.run_seeded_benchmark(data : Bytes, algorithm : Algorithm, itera
     end
   end
 end
-```
+----
 
 === 4. Secret Variant Support
 
 Secret variants use a deterministic secret buffer sized to the XXH3 minimum (`XXH::Constants::XXH3_SECRET_SIZE_MIN` = 136 bytes):
 
-```crystal
+[source,crystal]
+----
 private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
   # Generate secret buffer (minimum XXH3 secret size: `XXH::Constants::XXH3_SECRET_SIZE_MIN` = 136 bytes)
   secret_buffer = Bytes.new(XXH::Constants::XXH3_SECRET_SIZE_MIN) { |i| ((i * 17) % 256).to_u8 }
@@ -156,13 +162,14 @@ private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, itera
     end
   end
 end
-```
+----
 
 === 5. Streaming Variant Support
 
 Streaming variants use the streaming API with proper state management:
 
-```crystal
+[source,crystal]
+----
 private def self.run_streaming_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
   case algorithm
   when Algorithm::XXH32
@@ -183,40 +190,44 @@ private def self.run_streaming_benchmark(data : Bytes, algorithm : Algorithm, it
     # Similar pattern for XXH3 128-bit
   end
 end
-```
+----
 
 == Variant Selection
 
 The benchmark mode supports flexible variant selection through the `-b` flag:
 
 === All Variants
-```bash
+[source,shell]
+----
 ./bin/xxhsum -b          # Auto-tunes iterations
 ./bin/xxhsum -b -i100    # Fixed 100 iterations
 ./bin/xxhsum -b0         # Special alias for "all"
 ./bin/xxhsum -b29        # Special alias for "all"
 ./bin/xxhsum -b77        # Vendor convention for "all"
-```
+----
 
 === Single Variant
-```bash
+[source,shell]
+----
 ./bin/xxhsum -b1         # Only XXH32
 ./bin/xxhsum -b5         # Only XXH3_64b
 ./bin/xxhsum -b11        # Only XXH128
 ./bin/xxhsum -b17        # Only XXH32_stream
-```
+----
 
 === Multiple Variants
-```bash
+[source,shell]
+----
 ./bin/xxhsum -b1,3,5,11   # Basic variants only
 ./bin/xxhsum -b7,8,13,14  # Seeded variants only
 ./bin/xxhsum -b9,10,15,16 # Secret variants only
 ./bin/xxhsum -b17,19,21,25 # Streaming variants only
-```
+----
 
 === Variant Selection Logic
 
-```crystal
+[source,crystal]
+----
 variants_to_run = if !options.benchmark_variants.empty?
                     # User specified -b1,3,5
                     options.benchmark_variants.map { |id|
@@ -230,23 +241,26 @@ variants_to_run = if !options.benchmark_variants.empty?
                     # -b with no ID, run all
                     all_variants
                   end
-```
+----
 
 == Output Format
 
 The benchmark output follows the vendor format:
 
-```
+[source]
+----
 {id}#{name:<30} : {size:>10} -> {throughput:>8} it/s ({mbps:>7.1f} MB/s)
-```
+----
 
 Example output:
-```
+
+[source]
+----
  1#XXH32                         :     102400 ->   100000 it/s ( 9765.6 MB/s)
  2#XXH32 unaligned               :     102400 ->   117000 it/s (11425.8 MB/s)
  5#XXH3_64b                      :     102400 ->   400000 it/s (39062.5 MB/s)
 11#XXH128                        :     102400 ->   380000 it/s (37109.4 MB/s)
-```
+----
 
 == Testing and Validation
 

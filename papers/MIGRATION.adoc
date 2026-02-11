@@ -59,30 +59,4 @@ include::migration/09_architecture_decisions.adoc[]
 
 == 10 Quality Requirements & Tests
 include::migration/10_quality_requirements.adoc[]
-include::migration/11_benchmark_implementation.adoc[]
-
-== 11 Native Implementation Strategy
-include::migration/12_native_implementation_strategy.adoc[]
-
-// Supplemental: SIMD optimization deep-dive (kept as separate paper and included)
-include::migration/12_simd_optimization.adoc[]
-
-
-== Reproducibility
-
-To aid reproducible measurement, this repository includes helper scripts and guidance:
-
-* link:papers/CONTRIBUTING.adoc[Contributing & Performance Methodology]
-* link:scripts/README.md[Scripts README — tool_versions.rb]
-* link:vendor/xxHash/LICENSE[Upstream xxHash license]
-
-Tips: Include the output of `ruby scripts/tool_versions.rb --json` with each benchmark run and attach it to CI artifacts.
-
-=== Appendix: Reproducibility (Exact commands)
-
-For exact commands, artifact locations, and structured reproducibility guidance, see the Reproducibility appendix and the Benchmarking subdocument (included below).
-
-include::migration/13_reproducibility.adoc[]
-
-include::migration/14_benchmarking_and_performance.adoc[]
-
+include::migration/10_benchmark_implementation.adoc[]

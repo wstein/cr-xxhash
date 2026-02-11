@@ -37,16 +37,19 @@ For developer convenience this project creates lightweight CLI aliases that defa
 
 These aliases are created by the `postinstall` script defined in `shard.yml` (runs during `shards install`). The `./bin` directory is ignored by `.gitignore`, so you may need to recreate aliases locally. To recreate them manually, run:
 
-```
+[source,shell]
+----
 make -C vendor/xxHash libxxhash.a
 mkdir -p bin
 ln -sf ./bin/xxhsum ./bin/xxh32sum
 ln -sf ./bin/xxhsum ./bin/xxh64sum
 ln -sf ./bin/xxhsum ./bin/xxh128sum
 ln -sf ./bin/xxhsum ./bin/xxh3sum
-```
+----
 
-Or simply run `shards install` to execute the `postinstall` hook automatically.4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
+Or simply run `shards install` to execute the `postinstall` hook automatically.
+
+4. **Pull Request**: Detail the performance implications. If applicable, include a `bench` output.
 
 == Technical Standards
 
