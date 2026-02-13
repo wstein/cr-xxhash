@@ -1,10 +1,10 @@
 # Benchmark midsize XXH3 128-bit: compare native vs FFI
 # Usage: crystal scripts/bench_midsize.cr
 
-require "../src/xxh/common.cr"
-require "../src/xxh/xxh64.cr"
-require "../src/xxh/xxh3.cr"
-require "../src/ffi/bindings.cr"
+require "../src/common/common.cr"
+require "../src/xxh64/xxh64.cr"
+require "../src/xxh3/xxh3.cr"
+require "../src/vendor/bindings"
 
 sizes = [17, 20, 32, 48, 64, 96, 128, 129, 160, 200, 240]
 

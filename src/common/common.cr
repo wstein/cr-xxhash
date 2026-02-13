@@ -1,7 +1,7 @@
 # Minimal common shim after native removal
 # Keeps constants and a tiny Buffers API used by higher-level code.
 
-require "./bindings"
+require "../vendor/bindings"
 
 module XXH
   module Constants

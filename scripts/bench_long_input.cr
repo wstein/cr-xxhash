@@ -2,11 +2,11 @@
 # Usage:
 #   crystal run --release scripts/bench_long_input.cr -- --samples=5 --target=1.0 --out=bench_long_input_results.csv
 
-require "../src/xxh/common"
-require "../src/xxh/primitives"
-require "../src/xxh/xxh64"
-require "../src/xxh/xxh3"
-require "../src/xxh/bindings"
+require "../src/common/common"
+require "../src/common/primitives"
+require "../src/xxh64/xxh64"
+require "../src/xxh3/xxh3"
+require "../src/vendor/bindings"
 
 # Parse CLI args
 samples = 5

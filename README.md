@@ -19,7 +19,7 @@ XXH::XXH32.hash(data)        # 32-bit — now calls vendored C
 XXH::XXH64.hash(data)        # 64-bit (default) — C-backed
 XXH::XXH3.hash(data)         # Modern 64-bit — C-backed
 
-# Direct FFI usage also available (exported in `src/xxh/bindings.cr`)
+# Direct FFI usage also available (exported in `src/vendor/bindings.cr`)
 LibXXH.XXH32(ptr, len, seed)
 LibXXH.XXH64(ptr, len, seed)
 LibXXH.XXH3_64bits(ptr, len)
@@ -173,7 +173,7 @@ Notes:
 
 * Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
 * Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
-* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical binding now lives at `src/xxh/bindings.cr`. If you need to update the binding used by tests, edit that file and ensure `vendor/xxHash` is rebuilt (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers (e.g., `XXH::XXH3.hash128_stream`).
+* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical binding now lives at `src/vendor/bindings.cr`. If you need to update the binding used by tests, edit that file and ensure `vendor/xxHash` is rebuilt (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers (e.g., `XXH::XXH3.hash128_stream`).
 
 ## Migration Paper
 

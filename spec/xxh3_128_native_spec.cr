@@ -1,5 +1,5 @@
 require "spec"
-require "../src/xxh/dispatch.cr"
+require "../src/dispatch.cr"
 
 describe "XXH3 128-bit (FFI-backed)" do
   it "returns a 128-bit tuple for example input" do
