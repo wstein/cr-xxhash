@@ -1,6 +1,8 @@
 # Minimal common shim after native removal
 # Keeps constants and a tiny Buffers API used by higher-level code.
 
+require "./bindings"
+
 module XXH
   module Constants
     PRIME32_1 = 0x9E3779B1_u32

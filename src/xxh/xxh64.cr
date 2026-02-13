@@ -130,24 +130,9 @@ module XXH::XXH64
     avalanche(h)
   end
 
-  # One-shot hashing
+  # One-shot hashing (C-backed via LibXXH)
   def self.hash(input : Bytes, seed : UInt64 = 0_u64) : UInt64
-    len = input.size
-    @[Likely]
-    if len >= 32
-      accs = uninitialized UInt64[4]
-      init_accs(accs.to_unsafe, seed)
-      ptr = input.to_unsafe
-      # consume long
-      ptr = consume_long(accs.to_unsafe, ptr, len)
-      h64 = merge_accs(accs.to_unsafe)
-      finalize_hash(h64 &+ len.to_u64, ptr, len & 31)
-    else
-      h64 = seed &+ XXH::Constants::PRIME64_5
-      h64 = h64 &+ len.to_u64
-      ptr = input.to_unsafe
-      finalize_hash(h64, ptr, len)
-    end
+    LibXXH.XXH64(input.to_unsafe, input.size, seed)
   end
 
   # Streaming state wrapper

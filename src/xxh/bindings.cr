@@ -1,9 +1,3 @@
-# FFI bindings to the vendored xxHash C library (for specs)
-#
-# This file mirrors the historical `src/ffi/bindings.cr` content and is used
-# exclusively by the test suite as the canonical FFI reference. Tests should
-# require this file via `require "./bindings"` from `spec/support`.
-
 @[Link(ldflags: "#{__DIR__}/../../vendor/xxHash/xxhash.o")]
 lib LibXXH
   # =========================================

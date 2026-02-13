@@ -100,49 +100,11 @@ module XXH::XXH3
   # ============================================================================
 
   def self.hash64(input : Bytes) : UInt64
-    ptr = input.to_unsafe
-    len = input.size
-
-    @[Likely]
-    if len <= 16
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_0to16_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-    elsif len <= 128
-      # Phase 2a: 17-128 bytes
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_17to128_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-    elsif len <= 240
-      # Phase 2b: 129-240 bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_129to240_64b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-      @[Unlikely]
-    else
-      # Phase 3: 240+ bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return hash_long_64b(ptr, len, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
-    end
+    LibXXH.XXH3_64bits(input.to_unsafe, input.size)
   end
 
   def self.hash64_with_seed(input : Bytes, seed : UInt64) : UInt64
-    ptr = input.to_unsafe
-    len = input.size
-
-    if len <= 16
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_0to16_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    elsif len <= 128
-      # Phase 2a: 17-128 bytes
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_17to128_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    elsif len <= 240
-      # Phase 2b: 129-240 bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_129to240_64b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    else
-      # Phase 3: 240+ bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return hash_long_64b_with_seed(ptr, len, seed, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
-    end
+    LibXXH.XXH3_64bits_withSeed(input.to_unsafe, input.size, seed)
   end
 
   # ============================================================================

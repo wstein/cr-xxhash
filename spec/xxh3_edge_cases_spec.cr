@@ -4,7 +4,6 @@ require "../src/xxh/common.cr"
 require "../src/xxh/dispatch.cr"
 require "../src/xxh/xxh64.cr"
 require "../src/xxh/xxh3.cr"
-require "./support/libxxh_helper"
 
 describe "XXH3 Edge Cases" do
   describe "Seed initialization (64-bit)" do
@@ -84,9 +83,9 @@ describe "XXH3 Edge Cases" do
   describe "Streaming chunk transitions (128-bit)" do
     it "128-bit streaming (FFI) matches one-shot" do
       input = Bytes.new(300) { |i| (i % 256).to_u8 }
-      expected = SpecFFI.xxh3_128(input)
+      expected = XXH::XXH3.hash128(input)
 
-      got = SpecFFI.xxh3_128_stream_digest(input)
+      got = XXH::XXH3.hash128_stream(input)
 
       {got.low64, got.high64}.should eq({expected.low64, expected.high64})
     end
@@ -94,9 +93,9 @@ describe "XXH3 Edge Cases" do
     it "128-bit streaming with seed (FFI) matches one-shot" do
       input = Bytes.new(300) { |i| (i % 256).to_u8 }
       seed = 0xDEAD_BEEF_DEAD_BEEFu64
-      expected = SpecFFI.xxh3_128_with_seed(input, seed)
+      expected = XXH::XXH3.hash128_with_seed(input, seed)
 
-      got = SpecFFI.xxh3_128_stream_digest_with_seed(input, seed)
+      got = XXH::XXH3.hash128_stream_with_seed(input, seed)
 
       {got.low64, got.high64}.should eq({expected.low64, expected.high64})
     end

@@ -157,49 +157,13 @@ module XXH::XXH3
   # ============================================================================
 
   def self.hash128(input : Bytes) : Hash128
-    ptr = input.to_unsafe
-    len = input.size
-
-    @[Likely]
-    if len <= 16
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_0to16_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-    elsif len <= 128
-      # Phase 2a: 17-128 bytes
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-    elsif len <= 240
-      # Phase 2b: 129-240 bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_129to240_128b(ptr, len, secret.as(Pointer(UInt8)), 0_u64)
-      @[Unlikely]
-    else
-      # Phase 3: 240+ bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return hash_long_128b(ptr, len, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
-    end
+    c = LibXXH.XXH3_128bits(input.to_unsafe, input.size)
+    Hash128.new(c.low64, c.high64)
   end
 
   def self.hash128_with_seed(input : Bytes, seed : UInt64) : Hash128
-    ptr = input.to_unsafe
-    len = input.size
-
-    if len <= 16
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_0to16_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    elsif len <= 128
-      # Phase 2a: 17-128 bytes
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_17to128_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    elsif len <= 240
-      # Phase 2b: 129-240 bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return len_129to240_128b(ptr, len, secret.as(Pointer(UInt8)), seed)
-    else
-      # Phase 3: 240+ bytes (native implementation)
-      secret = XXH::Buffers.default_secret.to_unsafe
-      return hash_long_128b_with_seed(ptr, len, seed, secret.as(Pointer(UInt8)), XXH::Buffers.default_secret.size)
-    end
+    c = LibXXH.XXH3_128bits_withSeed(input.to_unsafe, input.size, seed)
+    Hash128.new(c.low64, c.high64)
   end
 
   # ============================================================================

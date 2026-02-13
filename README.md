@@ -9,21 +9,26 @@ High-performance Crystal implementation and migration study of Yann Collet's xxH
 * [ ] Deliver SIMD-accelerated LLVM paths that approach native C performance for modern CPUs.
 * [ ] Document the architectural trade-offs in an arc42-style migration paper.
 
-## ⚠️ Important: FFI Bindings Deprecation
+## ⚠️ Important: C bindings (FFI) available / hybrid default
 
-The current FFI bindings to the vendored C implementation are **deprecated**. For new code, use the native Crystal implementations:
+This shard now ships and exposes full `LibXXH` C99 bindings (vendored `vendor/xxHash`) and uses the C implementation for core one-shot paths by default (hybrid approach). Small Crystal helpers and streaming states remain available in Crystal.
 
 ```crystal
-# Recommended: Native Crystal implementations
-XXH::XXH32.hash(data)        # 32-bit
-XXH::XXH64.hash(data)        # 64-bit (default)
-XXH::XXH3.hash(data)         # Modern 64-bit
+# Recommended: public Crystal API (C-backed for one-shot)
+XXH::XXH32.hash(data)        # 32-bit — now calls vendored C
+XXH::XXH64.hash(data)        # 64-bit (default) — C-backed
+XXH::XXH3.hash(data)         # Modern 64-bit — C-backed
 
-# Deprecated: FFI bindings (backward compatibility only)
-LibXXH.XXH32(ptr, len, seed) # Use XXH::XXH32 instead
-LibXXH.XXH64(ptr, len, seed) # Use XXH::XXH64 instead
-LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
+# Direct FFI usage also available (exported in `src/xxh/bindings.cr`)
+LibXXH.XXH32(ptr, len, seed)
+LibXXH.XXH64(ptr, len, seed)
+LibXXH.XXH3_64bits(ptr, len)
 ```
+
+Notes:
+
+* `vendor/xxHash` is built automatically in `shards install` (see `postinstall`).
+* Streaming/State APIs remain implemented in Crystal for parity and low-overhead streaming; we can switch those to C on request.
 
 **CLI SIMD Control**: Use `--simd=MODE` flag to select implementation:
 
@@ -40,6 +45,7 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 **Status**: ✅ **Project Complete** — All algorithms (XXH32, XXH64, XXH3 64-bit and 128-bit) have complete native implementations with benchmark parity. The project concluded that **LLVM auto-vectorization** (using `StaticArray` and `@AlwaysInline`) provides a maintainable 30 GB/s for XXH3, while XXH32/XXH64 achieve near-native performance with `-O3` optimizations. No further handwritten SIMD assembly is planned.
 
 **Final Findings:**
+
 * **Auto-Vectorization vs. Manual SIMD**: LLVM successfully auto-vectorizes the 8-lane accumulator loops in XXH3 to ~30 GB/s (vs. ~50 GB/s for manual C SIMD).
 * **Parity**: XXH32 and XXH64 performance in Crystal with `-O3` is virtually identical to the original C99 implementation on modern hardware.
 * **Architecture**: The `StaticArray` + `@[AlwaysInline]` pattern proved sufficient for performance targets without the complexity of platform-specific intrinsics.
@@ -167,7 +173,7 @@ LibXXH.XXH3_64bits(ptr, len) # Use XXH::XXH3 instead
 
 * Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
 * Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
-* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the test suite centralizes the FFI bindings in `spec/support/bindings.cr` (exposed by `spec/support/libxxh_helper.cr`). The detailed FFI binding was removed from `src/` and is now maintained for tests only; if you need to update it, edit `spec/support/bindings.cr` and ensure `vendor/xxHash` is built (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks and use the test suite against `XXH::*` functions.
+* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical binding now lives at `src/xxh/bindings.cr`. If you need to update the binding used by tests, edit that file and ensure `vendor/xxHash` is rebuilt (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers (e.g., `XXH::XXH3.hash128_stream`).
 
 ## Migration Paper
 
@@ -330,15 +336,15 @@ This repository includes a Nix development configuration to get a reproducible s
 
 ## Usage
 
-- Without flakes:
+* Without flakes:
 
-  - Enter the shell: `nix-shell`
-  - Inside the shell run: `shards install && crystal spec`
+  * Enter the shell: `nix-shell`
+  * Inside the shell run: `shards install && crystal spec`
 
 ## Notes
 
-- `shard.yml` runs `make -C vendor/xxHash libxxhash.a` during `shards install` (see `postinstall`) so the dev shell includes `gcc` and `make`.
-- The `CRYSTAL_PATH` environment variable is set in the shell so the local sources are visible to Crystal.
+* `shard.yml` runs `make -C vendor/xxHash libxxhash.a` during `shards install` (see `postinstall`) so the dev shell includes `gcc` and `make`.
+* The `CRYSTAL_PATH` environment variable is set in the shell so the local sources are visible to Crystal.
 
 If you want CI integration or extra packages (bench tooling, cross-platform variants), tell me where you'd like them and I can add them. ✅
 

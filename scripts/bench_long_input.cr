@@ -6,7 +6,7 @@ require "../src/xxh/common"
 require "../src/xxh/primitives"
 require "../src/xxh/xxh64"
 require "../src/xxh/xxh3"
-require "../spec/support/bindings"
+require "../src/xxh/bindings"
 
 # Parse CLI args
 samples = 5
