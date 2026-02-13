@@ -1,7 +1,6 @@
 require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
-require "../src/dispatch.cr"
 require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 Edge Cases" do
@@ -48,7 +47,7 @@ describe "XXH3 Edge Cases" do
       it "128-bit one-shot matches vendor for #{len} bytes" do
         input = Bytes.new(len) { |i| (i % 256).to_u8 }
         expected = LibXXH.XXH3_128bits(input.to_unsafe, input.size)
-        result = XXH::Dispatch.hash_xxh128(input)
+        result = XXH::XXH3.hash128(input).to_tuple
         result.should eq({expected.low64, expected.high64})
       end
     end

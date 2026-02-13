@@ -1,7 +1,6 @@
 require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
-require "../src/dispatch.cr"
 require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 Native Implementation" do

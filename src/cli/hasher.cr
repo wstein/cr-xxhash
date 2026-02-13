@@ -1,4 +1,3 @@
-require "../dispatch"
 require "../xxh32/wrapper"
 require "../xxh64/wrapper"
 require "../xxh3/wrapper"
@@ -140,8 +139,8 @@ module XXH::CLI
 
     private def self.hash_file_xxh128(path : String, simd_mode : SIMDMode, block_size : Int32) : Tuple(UInt64, UInt64)
       data = File.read(path).to_slice
-      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
-      {result[0], result[1]}
+      h = XXH::XXH3.hash128(data)
+      {h.low64, h.high64}
     end
 
     private def self.hash_file_xxh3(path : String, simd_mode : SIMDMode, block_size : Int32) : UInt64
@@ -170,8 +169,8 @@ module XXH::CLI
 
     private def self.hash_io_xxh128(io : IO, simd_mode : SIMDMode, block_size : Int32) : Tuple(UInt64, UInt64)
       data = io.gets_to_end.to_slice
-      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
-      {result[0], result[1]}
+      h = XXH::XXH3.hash128(data)
+      {h.low64, h.high64}
     end
 
     private def self.hash_io_xxh3(io : IO, simd_mode : SIMDMode, block_size : Int32) : UInt64
@@ -189,8 +188,8 @@ module XXH::CLI
       when Algorithm::XXH64
         result.hash64 = XXH::XXH64.hash(data, 0_u64)
       when Algorithm::XXH128
-        res = XXH::Dispatch.hash_xxh128(data, 0_u64)
-        result.hash128 = {res[0], res[1]}
+        h = XXH::XXH3.hash128(data)
+        result.hash128 = {h.low64, h.high64}
       when Algorithm::XXH3
         result.hash64 = XXH::XXH3.hash(data)
       end

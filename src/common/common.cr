@@ -3,32 +3,17 @@
 
 module XXH
   module Constants
-    SECRET_DEFAULT_SIZE =  192
-    STRIPE_LEN          =   64
-    BLOCK_LEN           = 1024
+    SECRET_DEFAULT_SIZE = 192
 
     # Precomputed masks for performance
     MASK64 = (1_u128 << 64) - 1
 
-    # XXH3 midsize constants (kept because used by higher-level logic)
-    XXH3_SECRET_SIZE_MIN     = 136
-    XXH3_MIDSIZE_MAX         = 240
-    XXH3_MIDSIZE_STARTOFFSET =   3
-    XXH3_MIDSIZE_LASTOFFSET  =  17
+    # Minimum secret size used by XXH3 helpers and tests
+    XXH3_SECRET_SIZE_MIN = 136
   end
 
   module Buffers
-    @@scratch_buffer : Bytes? = nil
-    @@stripe_buffer : Bytes? = nil
     @@default_secret : Bytes? = nil
-
-    def self.scratch_buffer : Bytes
-      @@scratch_buffer ||= Bytes.new(256)
-    end
-
-    def self.stripe_buffer : Bytes
-      @@stripe_buffer ||= Bytes.new(64)
-    end
 
     def self.default_secret : Bytes
       @@default_secret ||= begin
@@ -50,14 +35,6 @@ module XXH
         data.each_with_index { |b, i| secret[i] = b }
         secret
       end
-    end
-
-    def self.aligned_alloc(size : Int32, _alignment : Int32 = 64) : Pointer(Void)
-      LibC.malloc(size.to_size)
-    end
-
-    def self.aligned_free(ptr : Pointer(Void))
-      LibC.free(ptr)
     end
   end
 end

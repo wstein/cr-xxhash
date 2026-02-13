@@ -491,8 +491,8 @@ module XXH::CLI
     when Algorithm::XXH3
       XXH::XXH3.hash_with_seed(data, seed_u.to_u64)
     when Algorithm::XXH128
-      result = XXH::Dispatch.hash_xxh128(data, 0_u64)
-      (result[0] ^ result[1]).to_u64
+      h = XXH::XXH3.hash128(data)
+      (h.low64 ^ h.high64).to_u64
     else
       0_u64
     end
@@ -515,7 +515,7 @@ module XXH::CLI
       end
     when Algorithm::XXH128
       iterations.times do
-        XXH::Dispatch.hash_xxh128(data, 0_u64)
+        XXH::XXH3.hash128(data)
       end
     end
   end
@@ -534,8 +534,8 @@ module XXH::CLI
     when Algorithm::XXH3
       XXH::XXH3.hash_with_seed(data, seed)
     when Algorithm::XXH128
-      result = XXH::Dispatch.hash_xxh128(data, seed)
-      (result[0] ^ result[1]).to_u64
+      h = XXH::XXH3.hash128_with_seed(data, seed)
+      (h.low64 ^ h.high64).to_u64
     else
       0_u64
     end
@@ -559,7 +559,7 @@ module XXH::CLI
       end
     when Algorithm::XXH128
       iterations.times do
-        XXH::Dispatch.hash_xxh128(data, seed)
+        XXH::XXH3.hash128_with_seed(data, seed)
       end
     end
   end
@@ -582,8 +582,8 @@ module XXH::CLI
     when Algorithm::XXH3
       XXH::XXH3.hash_with_seed(data, seed_from_secret)
     when Algorithm::XXH128
-      result = XXH::Dispatch.hash_xxh128(data, seed_from_secret)
-      (result[0] ^ result[1]).to_u64
+      h = XXH::XXH3.hash128_with_seed(data, seed_from_secret)
+      (h.low64 ^ h.high64).to_u64
     else
       0_u64
     end
@@ -610,7 +610,7 @@ module XXH::CLI
       end
     when Algorithm::XXH128
       iterations.times do
-        XXH::Dispatch.hash_xxh128(data, seed_from_secret)
+        XXH::XXH3.hash128_with_seed(data, seed_from_secret)
       end
     end
   end
