@@ -4,8 +4,8 @@
 
 require "../src/common/common"
 require "../src/common/primitives"
-require "../src/xxh64/xxh64"
-require "../src/xxh3/xxh3"
+require "../src/xxh64/wrapper"
+require "../src/xxh3/wrapper"
 require "../src/vendor/bindings"
 
 # Parse CLI args

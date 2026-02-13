@@ -1,9 +1,9 @@
 require "../common/common"
 require "../common/primitives"
 require "../dispatch"
-require "../xxh32/xxh32"
-require "../xxh64/xxh64"
-require "../xxh3/xxh3"
+require "../xxh32/wrapper"
+require "../xxh64/wrapper"
+require "../xxh3/wrapper"
 require "file"
 require "channel"
 

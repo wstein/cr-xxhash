@@ -2,7 +2,7 @@ require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
 require "../src/dispatch.cr"
-require "../src/xxh64/xxh64.cr"
+require "../src/xxh64/wrapper.cr"
 
 describe "XXH64 Native Implementation" do
   describe "Streaming API" do

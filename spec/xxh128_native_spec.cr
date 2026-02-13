@@ -2,7 +2,7 @@ require "spec"
 require "../src/vendor/bindings"
 require "../src/common/primitives.cr"
 require "../src/dispatch.cr"
-require "../src/xxh3/xxh3.cr"
+require "../src/xxh3/wrapper.cr"
 
 describe "XXH128 Dispatch (XXH3-based)" do
   describe "Streamed hashing via FFI oracle" do

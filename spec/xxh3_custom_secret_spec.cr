@@ -1,7 +1,7 @@
 require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
-require "../src/xxh3/xxh3.cr"
+require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 custom secret helper" do
   it "seeds the default secret correctly for non-zero seed" do

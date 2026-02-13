@@ -96,7 +96,7 @@ Notes:
   * **Code Metrics**: XXH32::State 150→115 lines (-23%), XXH64::State 150→115 lines (-23%), Net -64 lines
 
 * **Refactoring Phase 3 (XXH3 State/State128 Consolidation):** ✅ **COMPLETED** (2026-02-09)
-  * ✅ Created `src/xxh/xxh3/xxh3_streaming_helpers.cr` with `XXH::XXH3::StreamingStateBase` class (~150 lines)
+  * ✅ Created `src/xxh/xxh3/wrapper_streaming_helpers.cr` with `XXH::XXH3::StreamingStateBase` class (~150 lines)
   * ✅ Refactored `State` and `State128` to inherit from shared base class
   * ✅ **Code Reduction**:
 

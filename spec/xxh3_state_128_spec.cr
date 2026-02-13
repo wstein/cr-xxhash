@@ -1,8 +1,8 @@
 require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
-require "../src/xxh64/xxh64.cr"
-require "../src/xxh3/xxh3.cr"
+require "../src/xxh64/wrapper.cr"
+require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 State128 Streaming" do
   describe "Streaming API - Single Update" do

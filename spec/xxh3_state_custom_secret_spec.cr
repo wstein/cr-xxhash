@@ -1,7 +1,7 @@
 require "spec"
 require "../src/common/primitives.cr"
 require "../src/common/common.cr"
-require "../src/xxh3/xxh3.cr"
+require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 Streaming seeded secret usage" do
   it "State uses custom_secret when seeded (64-bit)" do
