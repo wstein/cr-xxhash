@@ -4,13 +4,8 @@ module XXH::XXH3
   # Streaming state wrapper (FFI-backed) - 64-bit output
   class State < StreamingStateBase
     def digest : UInt64
-      # Use the accumulated buffer and delegate finalization to LibXXH
-      data = @data_all
-      if @use_seed
-        LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, @seed)
-      else
-        LibXXH.XXH3_64bits(data.to_unsafe, data.size)
-      end
+      # Finalize FFI state and return hash (state is freed automatically on finalize)
+      LibXXH.XXH3_64bits_digest(@ffi_state)
     end
   end
 

@@ -11,7 +11,6 @@ describe "XXH3 Streaming shared behavior" do
     s64.update(bytes)
     s128.update(bytes)
 
-    s64.debug_state[:total_len].should eq s128.debug_state[:total_len]
     s64.debug_state[:buffered_size].should eq s128.debug_state[:buffered_size]
     s64.test_debug_secret[:use_seed].should eq s128.test_debug_secret[:use_seed]
   end

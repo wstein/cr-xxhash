@@ -629,8 +629,10 @@ module XXH::CLI
       state.update(data)
       state.digest
     when Algorithm::XXH128
-      res = XXH::Dispatch.hash_xxh128(data, seed_u.to_u64)
-      (res[0] ^ res[1]).to_u64
+      state = XXH::XXH3.new_state128(seed_u.to_u64)
+      state.update(data)
+      h = state.digest
+      (h.low64 ^ h.high64).to_u64
     else
       0_u64
     end
@@ -659,7 +661,9 @@ module XXH::CLI
       end
     when Algorithm::XXH128
       iterations.times do
-        XXH::Dispatch.hash_xxh128(data, 0_u64)
+        state = XXH::XXH3.new_state128(0_u64)
+        state.update(data)
+        state.digest
       end
     end
   end

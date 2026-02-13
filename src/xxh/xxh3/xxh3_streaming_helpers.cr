@@ -1,28 +1,25 @@
 module XXH::XXH3
-  # Simplified streaming state base — this implementation buffers all updates
-  # and uses the vendored LibXXH (FFI) for finalization. Uses consolidated
-  # StreamingHelpers module for any buffer management needs.
+  # FFI-backed streaming state using vendored LibXXH for O(1) memory efficiency.
+  # Avoids O(n²) buffer accumulation by using native FFI streaming API directly.
 
   class StreamingStateBase
-    @data_all : Bytes
-    @custom_secret : Bytes
+    @ffi_state : LibXXH::XXH3_state_t*
     @buffer : Bytes
     @buffered_size : Int32
     @use_seed : Bool
-    @total_len : UInt64
     @seed : UInt64
+    @custom_secret : Bytes
     @ext_secret : Bytes?
 
     CONST_INTERNALBUFFER_SIZE = 256
 
     def initialize(seed : UInt64? = nil)
-      @data_all = Bytes.new(0)
-      @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+      @ffi_state = LibXXH.XXH3_createState
       @buffer = Bytes.new(CONST_INTERNALBUFFER_SIZE, 0)
       @buffered_size = 0
       @use_seed = false
-      @total_len = 0_u64
       @seed = 0_u64
+      @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
       @ext_secret = nil
 
       if seed.nil?
@@ -34,19 +31,20 @@ module XXH::XXH3
 
     def reset(seed : UInt64? = nil)
       s = seed || 0_u64
-      @data_all = Bytes.new(0)
       @buffered_size = 0
-      @total_len = 0_u64
       @seed = s
       @use_seed = (s != 0_u64)
 
       if @use_seed
-        # initialize custom secret when seeded
+        # Derive custom secret for debug interface and potential future use
         XXH::XXH3.init_custom_secret(@custom_secret.to_unsafe, XXH::Buffers.default_secret.to_unsafe, XXH::Buffers.default_secret.size, s)
         @ext_secret = nil
+        # Use FFI reset with seed (custom secret is advisory only in FFI mode)
+        LibXXH.XXH3_64bits_reset_withSeed(@ffi_state, s)
       else
         @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
         @ext_secret = XXH::Buffers.default_secret
+        LibXXH.XXH3_64bits_reset(@ffi_state)
       end
 
       self
@@ -56,27 +54,22 @@ module XXH::XXH3
       len = input.size
       return if len == 0
 
-      # append to accumulated buffer
-      new_size = @data_all.size + len
-      new_buf = Bytes.new(new_size)
-      @data_all.copy_to(new_buf.to_unsafe, @data_all.size) if @data_all.size > 0
-      input.copy_to(new_buf.to_unsafe + @data_all.size, len)
-      @data_all = new_buf
+      # Feed directly to FFI streaming state — O(1) memory regardless of input size
+      LibXXH.XXH3_64bits_update(@ffi_state, input.to_unsafe, len)
 
-      # keep last CONST_INTERNALBUFFER_SIZE bytes in @buffer for debug compatibility
-      tail = [new_size, CONST_INTERNALBUFFER_SIZE].min
-      start = new_size - tail
-      @data_all[start, tail].copy_to(@buffer.to_unsafe, tail)
+      # Keep last CONST_INTERNALBUFFER_SIZE bytes in @buffer for debug compatibility
+      tail = [len, CONST_INTERNALBUFFER_SIZE].min
+      start = len - tail
+      input[start, tail].copy_to(@buffer.to_unsafe, tail)
       @buffered_size = tail
 
-      @total_len = @total_len &+ len.to_u64
       nil
     end
 
     def debug_state
       buf_slice = @buffer[0, @buffered_size]
       end_slice = @buffer[CONST_INTERNALBUFFER_SIZE - 64, 64] rescue Bytes.new(0)
-      {total_len: @total_len, buffered_size: @buffered_size, acc: [] of UInt64, buffer: buf_slice.to_a, end_buffer: end_slice.to_a, use_seed: @use_seed}
+      {buffered_size: @buffered_size, acc: [] of UInt64, buffer: buf_slice.to_a, end_buffer: end_slice.to_a, use_seed: @use_seed}
     end
 
     def test_debug_secret
@@ -85,9 +78,13 @@ module XXH::XXH3
       {use_seed: @use_seed, custom_secret: custom, ext_secret: ext}
     end
 
-    def free; end
+    def free
+      LibXXH.XXH3_freeState(@ffi_state)
+    end
 
-    def finalize; end
+    def finalize
+      free
+    end
 
     protected def secret_buffer
       (@ext_secret.nil? ? @custom_secret : @ext_secret).as(Bytes)

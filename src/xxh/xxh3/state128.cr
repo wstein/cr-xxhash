@@ -4,12 +4,8 @@ module XXH::XXH3
   # 128-bit Streaming state wrapper (FFI-backed) - 128-bit output
   class State128 < StreamingStateBase
     def digest : Hash128
-      data = @data_all
-      if @use_seed
-        c = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, @seed)
-      else
-        c = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-      end
+      # Finalize FFI state and return 128-bit hash
+      c = LibXXH.XXH3_128bits_digest(@ffi_state)
       Hash128.new(c.low64, c.high64)
     end
   end
