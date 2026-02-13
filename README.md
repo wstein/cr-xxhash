@@ -87,17 +87,17 @@ Notes:
   * **Next**: Phase 2 (Extract XXH32/XXH64 shared streaming base)
 
 * **Refactoring Phase 2 (Streaming Consolidation):** ✅ **COMPLETED**
-  * ✅ Created `src/xxh/xxh_streaming_helpers.cr` module (~58 lines) with block delegation pattern
+  * ✅ Consolidated streaming helpers into per-algorithm `state.cr` modules (e.g. `src/xxh3/state.cr`, `src/xxh32/state.cr`, `src/xxh64/state.cr`) — removed prior shared helper duplication
   * ✅ Refactored `XXH32::State.update_slice`: 60 → 30 lines (-50% duplication)
   * ✅ Refactored `XXH64::State.update_slice`: 60 → 30 lines (-50% duplication)
   * ✅ Eliminated ~64 lines of duplicated buffer management logic across both classes
-  * ✅ Block delegation pattern: Variant-specific round operations passed as closures
+  * ✅ Block delegation pattern retained where helpful; FFI-backed states used for streaming to ensure O(1) memory
   * ✅ All 167 tests passing; zero performance regression; 100% API compatibility
   * **Code Metrics**: XXH32::State 150→115 lines (-23%), XXH64::State 150→115 lines (-23%), Net -64 lines
 
 * **Refactoring Phase 3 (XXH3 State/State128 Consolidation):** ✅ **COMPLETED** (2026-02-09)
-  * ✅ Created `src/xxh/xxh3/wrapper_streaming_helpers.cr` with `XXH::XXH3::StreamingStateBase` class (~150 lines)
-  * ✅ Refactored `State` and `State128` to inherit from shared base class
+  * ✅ Implemented shared streaming base in `src/xxh3/state.cr` (`XXH::XXH3::StreamingStateBase`)
+  * ✅ Refactored `State` and `State128` to inherit from the shared base class
   * ✅ **Code Reduction**:
 
     | Before | After | Reduction |
@@ -117,6 +117,26 @@ Notes:
   * Replaced `.tdiv` with `/` where appropriate (with `.to_i` casts)
   * Expected gains: 20-30% for small inputs (0-16B), 15-25% for medium (17-240B), 10-15% for large (240B+)
   * See [SESSION_5_PERFORMANCE_OPTIMIZATIONS.md](SESSION_5_PERFORMANCE_OPTIMIZATIONS.md) for detailed breakdown
+
+
+## Folder conventions (per-algorithm)
+
+Each algorithm implementation follows a small, consistent folder schema to keep code easy to navigate and extend. Create new algorithm folders using this layout:
+
+- `wrapper.cr` — Public API, one-shot helpers, and factory functions (always required)
+- `state.cr` — Streaming State implementation (FFI-backed for vendor/state where applicable)
+- `types.cr` — Optional small type definitions (e.g. `Hash128`) when needed
+
+Example:
+
+```
+src/xxh3/
+  ├── state.cr      # StreamingStateBase, State, State128
+  ├── wrapper.cr    # public API: hash, hash_with_seed, new_state(...)
+  └── types.cr      # Hash128 struct (optional)
+```
+
+Follow this convention for any future algorithm folders to ensure consistency and easy discovery.
 
 * ✅ **Session 7 — SIMD Foundation**: Prepared the codebase for LLVM auto-vectorization by replacing heap-allocated accumulators with stack-allocated `StaticArray` buffers and adding aggressive inlining. See `papers/SIMD_OPTIMIZATION.adoc` for the full Session 7 report and verification guidance.
 
