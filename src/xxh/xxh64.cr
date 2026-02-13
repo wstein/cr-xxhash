@@ -1,14 +1,6 @@
-require "../xxh/primitives"
-require "../xxh/common"
-
 module XXH::XXH64
-  # Pure-Crystal implementation of XXH64 (translated from vendored C)
-
-  # round removed — use LibXXH (FFI) for streaming implementation.
-
-  # merge_round removed — native implementation used via FFI.
-
-  # avalanche removed — native implementation (use LibXXH via FFI).
+  # XXH64 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
+  # Native implementations are used via LibXXH; Crystal helpers were removed.
 
   # init_accs removed — not needed with FFI-backed State.
 

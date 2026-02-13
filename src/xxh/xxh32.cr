@@ -1,15 +1,6 @@
-require "../xxh/primitives"
-require "../xxh/common"
-
 module XXH::XXH32
-  # Pure-Crystal XXH32 implementation (translated from vendored C)
-
-  # Implementation removed — streaming is delegated to LibXXH (FFI)
-  # Round/stripe helpers were removed after migrating State to FFI.
-
-  # merge_accs removed — use LibXXH internal implementation via FFI.
-
-  # avalanche removed — use LibXXH's behavior via FFI.
+  # XXH32 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
+  # Former Crystal helpers were removed during consolidation.
 
   # init_accs removed — not needed with FFI-backed State.
 
