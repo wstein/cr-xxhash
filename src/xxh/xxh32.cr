@@ -1,6 +1,7 @@
 require "../xxh/primitives"
 require "../xxh/common"
 require "../xxh/xxh_streaming_helpers"
+require "../xxh/streaming_state_base"
 
 module XXH::XXH32
   # Pure-Crystal XXH32 implementation (translated from vendored C)
@@ -106,75 +107,41 @@ module XXH::XXH32
     LibXXH.XXH32(input.to_unsafe, input.size, seed)
   end
 
-  # Streaming state wrapper
-  class State
+  # Streaming state wrapper — inherits common lifecycle from StreamingStateBase
+  class State < XXH::StreamingStateBase
     @total_len : UInt32
     @accs : StaticArray(UInt32, 4)
-    @buffer : Bytes
-    @buffered : UInt32
     @seed : UInt32
 
-    def initialize(seed : UInt32 = 0_u32)
-      @total_len = 0_u32
-      @accs = uninitialized UInt32[4]
-      @buffer = Bytes.new(16)
-      @buffered = 0_u32
-      @seed = seed
-      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
+    def buffer_size : Int32
+      16
     end
 
-    def copy_from(other : State)
-      @total_len = other.@total_len
-      @buffered = other.@buffered
-      @seed = other.@seed
-      @accs[0] = other.@accs[0]
-      @accs[1] = other.@accs[1]
-      @accs[2] = other.@accs[2]
-      @accs[3] = other.@accs[3]
-      i = 0
-      while i < @buffered.to_i
-        @buffer[i] = other.@buffer[i]
-        i += 1
-      end
+    def init_state(seed : UInt64 | UInt32 | Nil) : Nil
+      s = (seed || 0_u32).as(UInt32)
+      @total_len = 0_u32
+      @seed = s
+      @accs = uninitialized UInt32[4]
+      XXH::XXH32.init_accs(@accs.to_unsafe, s)
       nil
     end
 
-    def update(input : Bytes)
-      update_slice(input.to_slice)
+    def update_total_len(input_size : Int) : Nil
+      @total_len = @total_len &+ input_size.to_u32
+      nil
     end
 
-    def update(input : Slice(UInt8))
-      update_slice(input)
+    def process_stripe(ptr : Pointer(UInt8), size : Int32) : Nil
+      # Process one 16-byte stripe (4 × 4-byte rounds)
+      p_mut = ptr
+      @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+      @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+      @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+      @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
+      nil
     end
 
-    private def update_slice(input : Slice(UInt8))
-      remaining = input.size
-      ptr = input.to_unsafe
-      @total_len = @total_len &+ remaining.to_u32
-
-      # Use streaming helper to manage buffer fill and stripe processing
-      @buffered, ptr, remaining = XXH::StreamingHelpers.buffer_and_process_stripes(
-        @buffer,
-        @buffered,
-        ptr,
-        remaining,
-        16
-      ) do |p, _size|
-        # Process one 16-byte stripe (4 × 4-byte rounds)
-        p_mut = p
-        @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-      end
-
-      # Buffer any remaining partial stripe
-      if remaining > 0
-        @buffered = XXH::StreamingHelpers.buffer_remainder(@buffer, ptr, remaining)
-      end
-    end
-
-    def digest : UInt32
+    def finalize_digest : UInt32
       if @total_len >= 16
         h32 = XXH::XXH32.merge_accs(@accs.to_unsafe)
       else
@@ -184,18 +151,30 @@ module XXH::XXH32
       XXH::XXH32.finalize_hash(h32, @buffer.to_unsafe, @total_len.to_i)
     end
 
-    def reset(seed : UInt32 = 0_u32)
-      @total_len = 0_u32
-      @buffered = 0_u32
-      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
+    def copy_state_details(other : StreamingStateBase) : Nil
+      other_state = other.as(State)
+      @accs[0] = other_state.@accs[0]
+      @accs[1] = other_state.@accs[1]
+      @accs[2] = other_state.@accs[2]
+      @accs[3] = other_state.@accs[3]
+      nil
     end
 
-    def free
-      # no-op
-    end
-
-    def finalize
-      free
+    def copy_from(other : State)
+      other_state = other.as(State)
+      @total_len = other_state.@total_len
+      @buffered = other_state.@buffered
+      @seed = other_state.@seed
+      @accs[0] = other_state.@accs[0]
+      @accs[1] = other_state.@accs[1]
+      @accs[2] = other_state.@accs[2]
+      @accs[3] = other_state.@accs[3]
+      i = 0
+      while i < @buffered.to_i
+        @buffer[i] = other_state.@buffer[i]
+        i += 1
+      end
+      nil
     end
   end
 

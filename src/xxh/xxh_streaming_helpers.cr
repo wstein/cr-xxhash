@@ -1,10 +1,11 @@
-module XXH::StreamingHelpers
-  # Consolidates shared streaming state management logic for both XXH32 and XXH64.
-  # Rather than duplicating ~150 lines in each State class, we provide helper methods
-  # that delegate type-specific operations (round functions, buffer sizes) to callers.
+# Consolidated streaming helpers for all hash algorithms (XXH32, XXH64, XXH3).
+# Provides common buffer management, stripe processing, and finalization utilities
+# Originally split across XXH::StreamingHelpers and XXH::XXH3::StreamingStateBase.
 
-  # Helper to fill buffer from input, processing complete stripes when buffer is full.
-  # Returns a tuple of (buffered_count, remaining_pointer, remaining_bytes).
+module XXH::StreamingHelpers
+  # Generic buffer fill and stripe processing with caller-provided block.
+  # Manages partial buffer completion and direct input stripe processing.
+  # Returns (buffered_size, remaining_input_ptr, remaining_bytes).
   def self.buffer_and_process_stripes(
     buffer : Bytes,
     buffered : UInt32,
@@ -50,7 +51,8 @@ module XXH::StreamingHelpers
     {buff_size, ptr, bytes_left.to_i32}
   end
 
-  # Helper to finalize buffering: copy remainder into buffer
+  # Copy remainder of input into buffer for later processing.
+  # Used when input has leftover bytes that don't fill a complete stride.
   def self.buffer_remainder(
     buffer : Bytes,
     input_ptr : Pointer(UInt8),

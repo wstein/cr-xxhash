@@ -1,9 +1,9 @@
 require "./xxh3_streaming_helpers"
 
 module XXH::XXH3
-  # 128-bit Streaming state wrapper (native) - 128-bit output
+  # 128-bit Streaming state wrapper (FFI-backed) - 128-bit output
   class State128 < StreamingStateBase
-    def digest : Hash128
+    def finalize_digest : Hash128
       data = @data_all
       if @use_seed
         c = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, @seed)
