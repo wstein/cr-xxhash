@@ -3,7 +3,8 @@ require "./xxh3_streaming_helpers"
 module XXH::XXH3
   # Streaming state wrapper (FFI-backed) - 64-bit output
   class State < StreamingStateBase
-    def finalize_digest : UInt64
+    def digest : UInt64
+      # Use the accumulated buffer and delegate finalization to LibXXH
       data = @data_all
       if @use_seed
         LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, @seed)

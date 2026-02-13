@@ -1,31 +1,42 @@
-require "../streaming_state_base"
-
 module XXH::XXH3
-  # Streaming state base class for XXH3 variants — buffers all input and
-  # finalizes via LibXXH. Inherits common lifecycle (update/reset/digest) from
-  # XXH::StreamingStateBase and overrides algorithm-specifics.
-  #
-  # The original native accumulation helpers were removed as we rely on
-  # the canonical C library (LibXXH) for finalization.
+  # Simplified streaming state base — this implementation buffers all updates
+  # and uses the vendored LibXXH (FFI) for finalization. Uses consolidated
+  # StreamingHelpers module for any buffer management needs.
 
-  class StreamingStateBase < XXH::StreamingStateBase
+  class StreamingStateBase
     @data_all : Bytes
     @custom_secret : Bytes
+    @buffer : Bytes
+    @buffered_size : Int32
     @use_seed : Bool
+    @total_len : UInt64
     @seed : UInt64
     @ext_secret : Bytes?
 
     CONST_INTERNALBUFFER_SIZE = 256
 
-    def buffer_size : Int32
-      CONST_INTERNALBUFFER_SIZE
-    end
-
-    def init_state(seed : UInt64 | UInt32 | Nil) : Nil
+    def initialize(seed : UInt64? = nil)
       @data_all = Bytes.new(0)
       @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+      @buffer = Bytes.new(CONST_INTERNALBUFFER_SIZE, 0)
+      @buffered_size = 0
+      @use_seed = false
       @total_len = 0_u64
-      s = (seed || 0_u64).as(UInt64)
+      @seed = 0_u64
+      @ext_secret = nil
+
+      if seed.nil?
+        reset
+      else
+        reset(seed)
+      end
+    end
+
+    def reset(seed : UInt64? = nil)
+      s = seed || 0_u64
+      @data_all = Bytes.new(0)
+      @buffered_size = 0
+      @total_len = 0_u64
       @seed = s
       @use_seed = (s != 0_u64)
 
@@ -38,25 +49,14 @@ module XXH::XXH3
         @ext_secret = XXH::Buffers.default_secret
       end
 
-      nil
+      self
     end
 
-    def update_total_len(input_size : Int) : Nil
-      @total_len = @total_len.as(UInt64) &+ input_size.to_u64
-      nil
-    end
-
-    def process_stripe(ptr : Pointer(UInt8), size : Int32) : Nil
-      # XXH3 buffers all input; stripe processing is deferred until finalization.
-      # This is a no-op for XXH3, which uses @data_all accumulation instead.
-      nil
-    end
-
-    protected def update_slice(input : Slice(UInt8)) : Nil
+    def update(input : Bytes)
       len = input.size
       return if len == 0
 
-      # append to accumulated buffer (XXH3 buffers everything, doesn't process stripes)
+      # append to accumulated buffer
       new_size = @data_all.size + len
       new_buf = Bytes.new(new_size)
       @data_all.copy_to(new_buf.to_unsafe, @data_all.size) if @data_all.size > 0
@@ -67,16 +67,16 @@ module XXH::XXH3
       tail = [new_size, CONST_INTERNALBUFFER_SIZE].min
       start = new_size - tail
       @data_all[start, tail].copy_to(@buffer.to_unsafe, tail)
-      @buffered = tail.to_u32
+      @buffered_size = tail
 
-      @total_len = @total_len.as(UInt64) &+ len.to_u64
+      @total_len = @total_len &+ len.to_u64
       nil
     end
 
     def debug_state
-      buf_slice = @buffer[0, @buffered.to_i]
+      buf_slice = @buffer[0, @buffered_size]
       end_slice = @buffer[CONST_INTERNALBUFFER_SIZE - 64, 64] rescue Bytes.new(0)
-      {total_len: @total_len, buffered_size: @buffered, acc: [] of UInt64, buffer: buf_slice.to_a, end_buffer: end_slice.to_a, use_seed: @use_seed}
+      {total_len: @total_len, buffered_size: @buffered_size, acc: [] of UInt64, buffer: buf_slice.to_a, end_buffer: end_slice.to_a, use_seed: @use_seed}
     end
 
     def test_debug_secret
@@ -85,34 +85,12 @@ module XXH::XXH3
       {use_seed: @use_seed, custom_secret: custom, ext_secret: ext}
     end
 
+    def free; end
+
+    def finalize; end
+
     protected def secret_buffer
       (@ext_secret.nil? ? @custom_secret : @ext_secret).as(Bytes)
-    end
-
-    def copy_state_details(other : StreamingStateBase) : Nil
-      # No-op - copy_from handles all XXH3 state
-      nil
-    end
-
-    def copy_from(other : StreamingStateBase) : Nil
-      # Override to properly copy XXH3-specific fields
-      if other.is_a?(StreamingStateBase)
-        other_state = other.as(StreamingStateBase)
-        @total_len = other_state.@total_len
-        @buffered = other_state.@buffered
-        @seed = other_state.@seed
-        @data_all = other_state.@data_all.dup
-        @custom_secret = other_state.@custom_secret.dup
-        @use_seed = other_state.@use_seed
-        @ext_secret = other_state.@ext_secret
-        # Copy buffer bytes
-        i = 0
-        while i < @buffered.to_i
-          @buffer[i] = other_state.@buffer[i]
-          i += 1
-        end
-      end
-      nil
     end
   end
 end
