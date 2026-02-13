@@ -1,3 +1,5 @@
+require "../vendor/bindings"
+
 module XXH::XXH32
   # XXH32 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
   # Former Crystal helpers were removed during consolidation.

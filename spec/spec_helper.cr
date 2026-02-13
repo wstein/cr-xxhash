@@ -1,4 +1,5 @@
 require "spec"
+require "../src/vendor/bindings"
 
 # Load CLI modules explicitly for specs
 require "../src/cli/options"

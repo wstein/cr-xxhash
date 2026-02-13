@@ -4,7 +4,6 @@
 
 require "../src/common/common"
 require "../src/common/primitives"
-require "../src/xxh64/wrapper"
 require "../src/xxh3/wrapper"
 require "../src/vendor/bindings"
 
@@ -108,7 +107,7 @@ def bench_streaming_for(size : Int32, bits : Int32, samples : Int32, target_sec 
   native_samples = [] of Float64
   ffi_samples = [] of Float64
 
-  samples.times do |s|
+  samples.times do |_|
     # native sample
     iterations, elapsed = timed_sample(target_sec) do
       reset_native.call

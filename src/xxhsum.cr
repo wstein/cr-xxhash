@@ -5,6 +5,8 @@
 require "./cli/options"
 require "./cli/hasher"
 require "./cli/formatter"
+require "./common/common"
+require "./common/primitives"
 
 module XXH::CLI
   # Main CLI entry point
@@ -131,17 +133,17 @@ module XXH::CLI
       hash_ok = false
       case algorithm
       when Algorithm::XXH32
-        if (h32 = actual.hash32)
+        if h32 = actual.hash32
           hash_bytes = endianness_to_bytes(h32, is_le)
           hash_ok = hash_bytes == expected_hash
         end
       when Algorithm::XXH64, Algorithm::XXH3
-        if (h64 = actual.hash64)
+        if h64 = actual.hash64
           hash_bytes = endianness_to_bytes(h64, is_le)
           hash_ok = hash_bytes == expected_hash
         end
       when Algorithm::XXH128
-        if (h128 = actual.hash128)
+        if h128 = actual.hash128
           # Output format: high64 then low64 for big-endian, low64_le then high64_le for little-endian
           if is_le
             hash_bytes = endianness_to_bytes(h128[0], true) + endianness_to_bytes(h128[1], true)

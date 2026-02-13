@@ -102,7 +102,7 @@ describe "XXH32 Native Implementation" do
   describe "Edge Cases" do
     it "handles unaligned memory access" do
       # Create buffer and use pointer offset
-      buffer = Bytes.new(32) { |i| i.to_u8 }
+      buffer = Bytes.new(32, &.to_u8)
 
       # Hash from byte 1 (unaligned)
       input1 = buffer[1...17]

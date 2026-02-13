@@ -205,7 +205,7 @@ module XXH::CLI
       return nil if line.starts_with?('#')
 
       # Try BSD format: "XXH32 (filename) = hash"
-      if (m = line.match(/^(\w+)\s*\(([^)]+)\)\s*=\s*(.+)$/))
+      if m = line.match(/^(\w+)\s*\(([^)]+)\)\s*=\s*(.+)$/)
         algo_name = m[1]
         filename = m[2]
         hash_str = m[3].strip

@@ -41,3 +41,7 @@ scripts:
     ln -sf xxhsum ./bin/xxh3sum
 
 license: BSD-2-Clause
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba

@@ -1,3 +1,5 @@
+require "../vendor/bindings"
+
 module XXH::XXH3
   # ============================================================================
   # XXH3 Streaming State (FFI-backed) — Base Class

@@ -84,7 +84,7 @@ class BenchmarkVariantTester
     # Test all 28 variants with -b0 (or --bench-all)
     result = run_command(@crystal_bin, ["-q", "-b0", "-i1"])
 
-    variant_count = result.lines.count { |line| line.includes?("#") }
+    variant_count = result.lines.count(&.includes?("#"))
     expected_count = 28
 
     if variant_count == expected_count
@@ -102,7 +102,7 @@ class BenchmarkVariantTester
     # Test default variants (1,3,5,11) when using -b without number
     result = run_command(@crystal_bin, ["-q", "-b", "-i1"])
 
-    variant_count = result.lines.count { |line| line.includes?("#") }
+    variant_count = result.lines.count(&.includes?("#"))
     expected_count = 4 # default: 1,3,5,11
 
     if variant_count == expected_count && result.includes?("1#") && result.includes?("3#") && result.includes?("5#") && result.includes?("11#")
@@ -156,7 +156,7 @@ class BenchmarkVariantTester
     result = run_command(@crystal_bin, ["-q", "-b1,2,3,4", "-i1"])
 
     # Check that output includes the expected format with #, sample size, it/s, MB/s
-    lines = result.lines.select { |l| l.includes?("#") }
+    lines = result.lines.select(&.includes?("#"))
 
     if lines.all? { |l| l.includes?("it/s") && l.includes?("MB/s") }
       status = "✓ PASS"

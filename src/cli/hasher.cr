@@ -1,5 +1,3 @@
-require "../common/common"
-require "../common/primitives"
 require "../dispatch"
 require "../xxh32/wrapper"
 require "../xxh64/wrapper"

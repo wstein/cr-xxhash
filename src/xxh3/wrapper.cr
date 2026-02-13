@@ -2,6 +2,7 @@
 # The pure-Crystal algorithmic implementation has been removed; streaming and one-shot
 # APIs now use the vendored xxHash via FFI.
 
+require "../vendor/bindings"
 require "./types"
 require "./state"
 

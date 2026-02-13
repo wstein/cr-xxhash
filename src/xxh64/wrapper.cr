@@ -1,3 +1,5 @@
+require "../vendor/bindings"
+
 module XXH::XXH64
   # XXH64 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
   # Native implementations are used via LibXXH; Crystal helpers were removed.

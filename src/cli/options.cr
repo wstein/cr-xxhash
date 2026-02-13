@@ -87,7 +87,7 @@ module XXH::CLI
         if arg.starts_with?("-b") && arg.size > 2
           bench_spec = arg[2..]
           # Check if it's all digits or digits with commas
-          if bench_spec.gsub(",", "").chars.all? { |c| c.ascii_number? }
+          if bench_spec.gsub(",", "").chars.all?(&.ascii_number?)
             @options.mode = Options::Mode::Benchmark
             @options.benchmark = true
 
@@ -132,7 +132,7 @@ module XXH::CLI
           when "2", "128" then @options.algorithm = Algorithm::XXH128
           when "3"        then @options.algorithm = Algorithm::XXH3
           else
-            next false
+            false
           end
         end
 
