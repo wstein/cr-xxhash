@@ -2,9 +2,8 @@
 # The pure-Crystal algorithmic implementation has been removed; streaming and one-shot
 # APIs now use the vendored xxHash via FFI.
 
-require "./xxh3/xxh3_types"
+require "./xxh3/types"
 require "./xxh3/state"
-require "./xxh3/state128"
 
 module XXH::XXH3
   # One-shot 64-bit (XXH3) - delegates to LibXXH
