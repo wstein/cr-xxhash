@@ -1,197 +1,59 @@
 require "../xxh/primitives"
 require "../xxh/common"
-require "../xxh/xxh_streaming_helpers"
 
 module XXH::XXH32
   # Pure-Crystal XXH32 implementation (translated from vendored C)
 
-  @[AlwaysInline]
-  def self.round(acc : UInt32, input : UInt32) : UInt32
-    tmp = (acc &+ (input &* XXH::Constants::PRIME32_2))
-    XXH::Primitives.rotl32(tmp, 13_u32) &* XXH::Constants::PRIME32_1
-  end
+  # Implementation removed — streaming is delegated to LibXXH (FFI)
+  # Round/stripe helpers were removed after migrating State to FFI.
 
-  @[AlwaysInline]
-  def self.merge_accs(accs : Pointer(UInt32)) : UInt32
-    XXH::Primitives.rotl32(accs[0], 1_u32) &+
-      XXH::Primitives.rotl32(accs[1], 7_u32) &+
-      XXH::Primitives.rotl32(accs[2], 12_u32) &+
-      XXH::Primitives.rotl32(accs[3], 18_u32)
-  end
+  # merge_accs removed — use LibXXH internal implementation via FFI.
 
-  @[AlwaysInline]
-  def self.avalanche(hash : UInt32) : UInt32
-    h = hash
-    h = h ^ (h >> 15)
-    h = (h &* XXH::Constants::PRIME32_2)
-    h = h ^ (h >> 13)
-    h = (h &* XXH::Constants::PRIME32_3)
-    h = h ^ (h >> 16)
-    h
-  end
+  # avalanche removed — use LibXXH's behavior via FFI.
 
-  @[AlwaysInline]
-  def self.init_accs(accs : Pointer(UInt32), seed : UInt32)
-    accs[0] = seed &+ (XXH::Constants::PRIME32_1 &+ XXH::Constants::PRIME32_2)
-    accs[1] = seed &+ XXH::Constants::PRIME32_2
-    accs[2] = seed &+ 0_u32
-    accs[3] = seed &- XXH::Constants::PRIME32_1
-  end
+  # init_accs removed — not needed with FFI-backed State.
 
-  @[AlwaysInline]
-  def self.consume_long(accs : Pointer(UInt32), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
-    input = ptr
-    limit = ptr + (len - 15)
-    # Unroll 4 iterations (64 bytes) to increase ILP
-    while input + 64 <= limit
-      # iter 1
-      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
-      # iter 2
-      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
-      # iter 3
-      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
-      # iter 4
-      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input)); input += 4
-      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input)); input += 4
-    end
+  # consume_long removed — native implementation is used via FFI.
 
-    # finish remaining iterations
-    while input < limit
-      accs[0] = round(accs[0], XXH::Primitives.read_u32_le(input))
-      input += 4
-      accs[1] = round(accs[1], XXH::Primitives.read_u32_le(input))
-      input += 4
-      accs[2] = round(accs[2], XXH::Primitives.read_u32_le(input))
-      input += 4
-      accs[3] = round(accs[3], XXH::Primitives.read_u32_le(input))
-      input += 4
-    end
-    input
-  end
-
-  def self.finalize_hash(h : UInt32, ptr : Pointer(UInt8), len : Int32) : UInt32
-    len = len & 15
-
-    @[Likely]
-    while len >= 4
-      h = h &+ (XXH::Primitives.read_u32_le(ptr) &* XXH::Constants::PRIME32_3)
-      ptr += 4
-      h = XXH::Primitives.rotl32(h, 17_u32) &* XXH::Constants::PRIME32_4
-      len -= 4
-    end
-
-    while len > 0
-      h = h &+ (ptr[0].to_u32 &* XXH::Constants::PRIME32_5)
-      ptr += 1
-      h = XXH::Primitives.rotl32(h, 11_u32) &* XXH::Constants::PRIME32_1
-      len -= 1
-    end
-
-    avalanche(h)
-  end
+  # finalize_hash removed — native finalize is used via FFI.
 
   # One-shot hashing (C-backed via LibXXH)
   def self.hash(input : Bytes, seed : UInt32 = 0_u32) : UInt32
     LibXXH.XXH32(input.to_unsafe, input.size, seed)
   end
 
-  # Streaming state wrapper — uses consolidated StreamingHelpers
+  # Streaming state wrapper — FFI-backed (delegates to LibXXH)
   class State
-    @total_len : UInt32
-    @accs : StaticArray(UInt32, 4)
-    @buffer : Bytes
-    @buffered : UInt32
-    @seed : UInt32
+    @ffi_state : LibXXH::XXH32_state_t*
 
     def initialize(seed : UInt32 = 0_u32)
-      @total_len = 0_u32
-      @accs = uninitialized UInt32[4]
-      @buffer = Bytes.new(16)
-      @buffered = 0_u32
-      @seed = seed
-      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
-    end
-
-    def copy_from(other : State)
-      @total_len = other.@total_len
-      @buffered = other.@buffered
-      @seed = other.@seed
-      @accs[0] = other.@accs[0]
-      @accs[1] = other.@accs[1]
-      @accs[2] = other.@accs[2]
-      @accs[3] = other.@accs[3]
-      i = 0
-      while i < @buffered.to_i
-        @buffer[i] = other.@buffer[i]
-        i += 1
-      end
-      nil
-    end
-
-    def update(input : Bytes)
-      update_slice(input.to_slice)
-    end
-
-    def update(input : Slice(UInt8))
-      update_slice(input)
-    end
-
-    private def update_slice(input : Slice(UInt8))
-      remaining = input.size
-      ptr = input.to_unsafe
-      @total_len = @total_len &+ remaining.to_u32
-
-      # Use consolidated streaming helper to manage buffer fill and stripe processing
-      @buffered, ptr, remaining = XXH::StreamingHelpers.buffer_and_process_stripes(
-        @buffer,
-        @buffered,
-        ptr,
-        remaining,
-        16
-      ) do |p, _size|
-        # Process one 16-byte stripe (4 × 4-byte rounds)
-        p_mut = p
-        @accs[0] = XXH::XXH32.round(@accs[0], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[1] = XXH::XXH32.round(@accs[1], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[2] = XXH::XXH32.round(@accs[2], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-        @accs[3] = XXH::XXH32.round(@accs[3], XXH::Primitives.read_u32_le(p_mut)); p_mut += 4
-      end
-
-      # Buffer any remaining partial stripe
-      if remaining > 0
-        @buffered = XXH::StreamingHelpers.buffer_remainder(@buffer, ptr, remaining)
-      end
-    end
-
-    def digest : UInt32
-      if @total_len >= 16
-        h32 = XXH::XXH32.merge_accs(@accs.to_unsafe)
-      else
-        h32 = @accs[2] &+ XXH::Constants::PRIME32_5
-      end
-      h32 = h32 &+ @total_len
-      XXH::XXH32.finalize_hash(h32, @buffer.to_unsafe, @total_len.to_i)
+      @ffi_state = LibXXH.XXH32_createState
+      reset(seed)
     end
 
     def reset(seed : UInt32 = 0_u32)
-      @total_len = 0_u32
-      @buffered = 0_u32
-      XXH::XXH32.init_accs(@accs.to_unsafe, seed)
+      @seed = seed
+      LibXXH.XXH32_reset(@ffi_state, seed)
+      self
+    end
+
+    def update(input : Bytes)
+      return if input.size == 0
+      LibXXH.XXH32_update(@ffi_state, input.to_unsafe, input.size)
+      nil
+    end
+
+    def digest : UInt32
+      LibXXH.XXH32_digest(@ffi_state)
+    end
+
+    def copy_from(other : State)
+      LibXXH.XXH32_copyState(@ffi_state, other.instance_variable_get(@ffi_state))
+      nil
     end
 
     def free
-      # no-op
+      LibXXH.XXH32_freeState(@ffi_state)
     end
 
     def finalize

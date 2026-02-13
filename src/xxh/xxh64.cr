@@ -1,230 +1,62 @@
 require "../xxh/primitives"
 require "../xxh/common"
-require "../xxh/xxh_streaming_helpers"
 
 module XXH::XXH64
   # Pure-Crystal implementation of XXH64 (translated from vendored C)
 
-  @[AlwaysInline]
-  def self.round(acc : UInt64, input : UInt64) : UInt64
-    # XXH64_round(acc, input) = ((acc + input * PRIME64_2) <<< 31) * PRIME64_1
-    tmp = acc &+ (input &* XXH::Constants::PRIME64_2)
-    XXH::Primitives.rotl64(tmp, 31_u32) &* XXH::Constants::PRIME64_1
-  end
+  # round removed — use LibXXH (FFI) for streaming implementation.
 
-  @[AlwaysInline]
-  def self.merge_round(h : UInt64, acc : UInt64) : UInt64
-    # (h ^ XXH64_round(0, acc)) * PRIME64_1 + PRIME64_4
-    ((h ^ round(0_u64, acc)) &* XXH::Constants::PRIME64_1) &+ XXH::Constants::PRIME64_4
-  end
+  # merge_round removed — native implementation used via FFI.
 
-  @[AlwaysInline]
-  def self.avalanche(hash : UInt64) : UInt64
-    # XXH64_avalanche
-    h = hash
-    h = h ^ (h >> 33)
-    h = h &* XXH::Constants::PRIME64_2
-    h = h ^ (h >> 29)
-    h = h &* XXH::Constants::PRIME64_3
-    h = h ^ (h >> 32)
-    h
-  end
+  # avalanche removed — native implementation (use LibXXH via FFI).
 
-  @[AlwaysInline]
-  def self.init_accs(accs : Pointer(UInt64), seed : UInt64)
-    accs[0] = seed &+ (XXH::Constants::PRIME64_1 &+ XXH::Constants::PRIME64_2)
-    accs[1] = seed &+ XXH::Constants::PRIME64_2
-    accs[2] = seed &+ 0_u64
-    accs[3] = seed &- XXH::Constants::PRIME64_1
-  end
+  # init_accs removed — not needed with FFI-backed State.
 
-  @[AlwaysInline]
-  def self.consume_long(accs : Pointer(UInt64), ptr : Pointer(UInt8), len : Int32) : Pointer(UInt8)
-    # Consume chunks of 32 bytes (4 lanes × 8 bytes)
-    input = ptr
-    limit = ptr + (len - 31)
-    # Unrolled loop (2×32 bytes per iteration) with light prefetch
-    prefetch_dist = 64
-    while input + prefetch_dist < limit
-      # prefetch next cache line (software read)
-      _ = XXH::Primitives.read_u64_le(input + prefetch_dist)
+  # consume_long removed — native implementation is used via FFI.
 
-      # first 32 bytes
-      accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[1] = round(accs[1], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[2] = round(accs[2], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[3] = round(accs[3], XXH::Primitives.read_u64_le(input))
-      input += 8
+  # merge_accs removed — use LibXXH via FFI.
 
-      # second 32 bytes
-      accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[1] = round(accs[1], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[2] = round(accs[2], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[3] = round(accs[3], XXH::Primitives.read_u64_le(input))
-      input += 8
-    end
-
-    # finish remaining iterations
-    while input < limit
-      accs[0] = round(accs[0], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[1] = round(accs[1], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[2] = round(accs[2], XXH::Primitives.read_u64_le(input))
-      input += 8
-      accs[3] = round(accs[3], XXH::Primitives.read_u64_le(input))
-      input += 8
-    end
-    input
-  end
-
-  @[AlwaysInline]
-  def self.merge_accs(accs : Pointer(UInt64)) : UInt64
-    h64 = XXH::Primitives.rotl64(accs[0], 1_u32) &+
-          XXH::Primitives.rotl64(accs[1], 7_u32) &+
-          XXH::Primitives.rotl64(accs[2], 12_u32) &+
-          XXH::Primitives.rotl64(accs[3], 18_u32)
-
-    h64 = merge_round(h64, accs[0])
-    h64 = merge_round(h64, accs[1])
-    h64 = merge_round(h64, accs[2])
-    h64 = merge_round(h64, accs[3])
-    h64
-  end
-
-  def self.finalize_hash(h : UInt64, ptr : Pointer(UInt8), len : Int32) : UInt64
-    # tail processing
-    # Only the remainder modulo 32 bytes is relevant here (match C behavior)
-    len = len & 31
-
-    # process 8-byte chunks
-    while len >= 8
-      k1 = round(0_u64, XXH::Primitives.read_u64_le(ptr))
-      ptr += 8
-      h ^= k1
-      h = XXH::Primitives.rotl64(h, 27_u32) &* XXH::Constants::PRIME64_1 &+ XXH::Constants::PRIME64_4
-      len -= 8
-    end
-
-    @[Likely]
-    if len >= 4
-      h ^= (XXH::Primitives.read_u32_le(ptr).to_u64) &* XXH::Constants::PRIME64_1
-      ptr += 4
-      h = XXH::Primitives.rotl64(h, 23_u32) &* XXH::Constants::PRIME64_2 &+ XXH::Constants::PRIME64_3
-      len -= 4
-    end
-
-    while len > 0
-      h ^= ptr[0].to_u64 &* XXH::Constants::PRIME64_5
-      h = XXH::Primitives.rotl64(h, 11_u32) &* XXH::Constants::PRIME64_1
-      ptr += 1
-      len -= 1
-    end
-
-    avalanche(h)
-  end
+  # finalize_hash removed — use LibXXH (FFI) finalize when streaming.
 
   # One-shot hashing (C-backed via LibXXH)
   def self.hash(input : Bytes, seed : UInt64 = 0_u64) : UInt64
     LibXXH.XXH64(input.to_unsafe, input.size, seed)
   end
 
-  # Streaming state wrapper — uses consolidated StreamingHelpers
+  # Streaming state wrapper — FFI-backed (delegates to LibXXH)
   class State
-    @total_len : UInt64
-    @accs : StaticArray(UInt64, 4)
-    @buffer : Bytes
-    @buffered : UInt32
+    @ffi_state : LibXXH::XXH64_state_t*
     @seed : UInt64
 
     def initialize(seed : UInt64 = 0_u64)
-      @total_len = 0_u64
-      @accs = uninitialized UInt64[4]
-      @buffer = Bytes.new(32)
-      @buffered = 0_u32
+      @ffi_state = LibXXH.XXH64_createState
       @seed = seed
-      XXH::XXH64.init_accs(@accs.to_unsafe, seed)
-    end
-
-    # Copy contents from another state (mirror behaviour of XXH64_copyState)
-    def copy_from(other : State)
-      @total_len = other.@total_len
-      @buffered = other.@buffered
-      @seed = other.@seed
-      # copy accumulators
-      @accs[0] = other.@accs[0]
-      @accs[1] = other.@accs[1]
-      @accs[2] = other.@accs[2]
-      @accs[3] = other.@accs[3]
-      # copy buffer bytes
-      i = 0
-      while i < @buffered.to_i
-        @buffer[i] = other.@buffer[i]
-        i += 1
-      end
-      nil
-    end
-
-    def update(input : Bytes)
-      update_slice(input.to_slice)
-    end
-
-    def update(input : Slice(UInt8))
-      update_slice(input)
-    end
-
-    private def update_slice(input : Slice(UInt8))
-      remaining = input.size
-      ptr = input.to_unsafe
-      @total_len = @total_len &+ remaining.to_u64
-
-      # Use consolidated streaming helper to manage buffer fill and stripe processing
-      @buffered, ptr, remaining = XXH::StreamingHelpers.buffer_and_process_stripes(
-        @buffer,
-        @buffered,
-        ptr,
-        remaining,
-        32
-      ) do |p, _size|
-        # Process one 32-byte stripe (4 × 8-byte rounds)
-        p_mut = p
-        @accs[0] = XXH::XXH64.round(@accs[0], XXH::Primitives.read_u64_le(p_mut)); p_mut += 8
-        @accs[1] = XXH::XXH64.round(@accs[1], XXH::Primitives.read_u64_le(p_mut)); p_mut += 8
-        @accs[2] = XXH::XXH64.round(@accs[2], XXH::Primitives.read_u64_le(p_mut)); p_mut += 8
-        @accs[3] = XXH::XXH64.round(@accs[3], XXH::Primitives.read_u64_le(p_mut)); p_mut += 8
-      end
-
-      # Buffer any remaining partial stripe
-      if remaining > 0
-        @buffered = XXH::StreamingHelpers.buffer_remainder(@buffer, ptr, remaining)
-      end
-    end
-
-    def digest : UInt64
-      if @total_len >= 32
-        h64 = XXH::XXH64.merge_accs(@accs.to_unsafe)
-      else
-        # use acc[2] as per reference implementation (gives seed + PRIME64_5)
-        h64 = @accs[2] &+ XXH::Constants::PRIME64_5
-      end
-      h64 = h64 &+ @total_len
-      XXH::XXH64.finalize_hash(h64, @buffer.to_unsafe, @total_len.to_i)
+      reset(seed)
     end
 
     def reset(seed : UInt64 = 0_u64)
-      @total_len = 0_u64
-      @buffered = 0_u32
-      XXH::XXH64.init_accs(@accs.to_unsafe, seed)
+      @seed = seed
+      LibXXH.XXH64_reset(@ffi_state, seed)
+      self
+    end
+
+    def update(input : Bytes)
+      return if input.size == 0
+      LibXXH.XXH64_update(@ffi_state, input.to_unsafe, input.size)
+      nil
+    end
+
+    def digest : UInt64
+      LibXXH.XXH64_digest(@ffi_state)
+    end
+
+    def copy_from(other : State)
+      LibXXH.XXH64_copyState(@ffi_state, other.@ffi_state)
+      nil
     end
 
     def free
-      # no-op for pure Crystal implementation
+      LibXXH.XXH64_freeState(@ffi_state)
     end
 
     def finalize
