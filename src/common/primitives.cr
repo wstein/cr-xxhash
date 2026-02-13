@@ -58,51 +58,6 @@ module XXH::Primitives
   end
 
   @[AlwaysInline]
-  def self.bswap32(x : UInt32) : UInt32
-    ((x << 24) & 0xFF000000_u32) |
-      ((x << 8) & 0xFF0000_u32) |
-      ((x >> 8) & 0xFF00_u32) |
-      ((x >> 24) & 0xFF_u32)
-  end
-
-  @[AlwaysInline]
-  def self.bswap64(x : UInt64) : UInt64
-    ((x << 56) & 0xFF00000000000000_u64) |
-      ((x << 40) & 0xFF000000000000_u64) |
-      ((x << 24) & 0xFF0000000000_u64) |
-      ((x << 8) & 0xFF00000000_u64) |
-      ((x >> 8) & 0xFF000000_u64) |
-      ((x >> 24) & 0xFF0000_u64) |
-      ((x >> 40) & 0xFF00_u64) |
-      ((x >> 56) & 0xFF_u64)
-  end
-
-  @[AlwaysInline]
-  def self.add32(a : UInt32, b : UInt32) : UInt32
-    a &+ b
-  end
-
-  @[AlwaysInline]
-  def self.add64(a : UInt64, b : UInt64) : UInt64
-    a &+ b
-  end
-
-  @[AlwaysInline]
-  def self.low32(x : UInt64) : UInt32
-    x.to_u32
-  end
-
-  @[AlwaysInline]
-  def self.high32(x : UInt64) : UInt32
-    (x >> 32).to_u32
-  end
-
-  @[AlwaysInline]
-  def self.combine64(low : UInt32, high : UInt32) : UInt64
-    low.to_u64 | (high.to_u64 << 32)
-  end
-
-  @[AlwaysInline]
   def self.write_u64_le(ptr : Pointer(UInt8), v : UInt64)
     ptr[0] = (v & 0xFF).to_u8
     ptr[1] = ((v >> 8) & 0xFF).to_u8

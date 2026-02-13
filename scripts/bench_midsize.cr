@@ -2,7 +2,6 @@
 # Usage: crystal scripts/bench_midsize.cr
 
 require "../src/common/common.cr"
-require "../src/xxh64/wrapper.cr"
 require "../src/xxh3/wrapper.cr"
 require "../src/vendor/bindings"
 

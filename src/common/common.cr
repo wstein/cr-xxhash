@@ -5,34 +5,14 @@ require "../vendor/bindings"
 
 module XXH
   module Constants
-    PRIME32_1 = 0x9E3779B1_u32
-    PRIME32_2 = 0x85EBCA77_u32
-    PRIME32_3 = 0xC2B2AE3D_u32
-    PRIME32_4 = 0x27D4EB2F_u32
-    PRIME32_5 = 0x165667B1_u32
-
-    PRIME64_1 = 0x9E3779B185EBCA87_u64
-    PRIME64_2 = 0xC2B2AE3D27D4EB4F_u64
-    PRIME64_3 = 0x165667B19E3779F9_u64
-    PRIME64_4 = 0x85EBCA77C2B2AE63_u64
-    PRIME64_5 = 0x27D4EB2F165667C5_u64
-
-    PRIME_MIX           = 0x165667B19E3779F9_u64
-    PRIME_MX1           = 0x165667919E3779F9_u64
-    PRIME_MX2           = 0x9FB21C651E98DF25_u64
-    SECRET_DEFAULT_SIZE =                    192
-    STRIPE_LEN          =                     64
-    BLOCK_LEN           =                   1024
-    ACC_NB              =                      8
-
-    XXHASH32_BUFFER_SIZE =  16
-    XXHASH64_BUFFER_SIZE =  32
-    XXHASH3_BUFFER_SIZE  = 256
+    SECRET_DEFAULT_SIZE =  192
+    STRIPE_LEN          =   64
+    BLOCK_LEN           = 1024
 
     # Precomputed masks for performance
     MASK64 = (1_u128 << 64) - 1
 
-    # XXH3 midsize constants
+    # XXH3 midsize constants (kept because used by higher-level logic)
     XXH3_SECRET_SIZE_MIN     = 136
     XXH3_MIDSIZE_MAX         = 240
     XXH3_MIDSIZE_STARTOFFSET =   3
@@ -80,13 +60,6 @@ module XXH
 
     def self.aligned_free(ptr : Pointer(Void))
       LibC.free(ptr)
-    end
-  end
-
-  module ThreadLocal
-    def self.worker_accumulators : Array(Pointer(Void))
-      # Keep minimal stable API: return empty array (no preallocated simd accs)
-      [] of Pointer(Void)
     end
   end
 end
