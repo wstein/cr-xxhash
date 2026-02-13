@@ -123,4 +123,23 @@ describe "XXH3 State128 Streaming" do
       result.should eq(expected)
     end
   end
+
+  describe "Hash128#to_u128" do
+    it "converts to UInt128 correctly" do
+      h = XXH::XXH3::Hash128.new(0x0123456789ABCDEF_u64, 0xFEDCBA9876543210_u64)
+      h.to_u128.should be_a(UInt128)
+      # Implementation: (high64 << 64) | low64
+      h.to_u128.should eq(0x0123456789ABCDEF_u128 | (0xFEDCBA9876543210_u128 << 64))
+    end
+
+    it "works with zero values" do
+      h = XXH::XXH3::Hash128.new(0_u64, 0_u64)
+      h.to_u128.should eq(0_u128)
+    end
+
+    it "works with max UInt64 values" do
+      h = XXH::XXH3::Hash128.new(UInt64::MAX, UInt64::MAX)
+      h.to_u128.should eq(UInt128::MAX)
+    end
+  end
 end

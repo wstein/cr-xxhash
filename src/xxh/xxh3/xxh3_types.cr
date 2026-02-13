@@ -16,5 +16,9 @@ module XXH::XXH3
     def to_tuple
       {@low64, @high64}
     end
+
+    def to_u128 : UInt128
+      (high64.to_u128 << 64) | low64.to_u128
+    end
   end
 end
