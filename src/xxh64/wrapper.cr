@@ -1,61 +1,13 @@
 require "../vendor/bindings"
+require "./state"
 
 module XXH::XXH64
   # XXH64 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
   # Native implementations are used via LibXXH; Crystal helpers were removed.
 
-  # init_accs removed — not needed with FFI-backed State.
-
-  # consume_long removed — native implementation is used via FFI.
-
-  # merge_accs removed — use LibXXH via FFI.
-
-  # finalize_hash removed — use LibXXH (FFI) finalize when streaming.
-
   # One-shot hashing (C-backed via LibXXH)
   def self.hash(input : Bytes, seed : UInt64 = 0_u64) : UInt64
     LibXXH.XXH64(input.to_unsafe, input.size, seed)
-  end
-
-  # Streaming state wrapper — FFI-backed (delegates to LibXXH)
-  class State
-    @ffi_state : LibXXH::XXH64_state_t*
-    @seed : UInt64
-
-    def initialize(seed : UInt64 = 0_u64)
-      @ffi_state = LibXXH.XXH64_createState
-      @seed = seed
-      reset(seed)
-    end
-
-    def reset(seed : UInt64 = 0_u64)
-      @seed = seed
-      LibXXH.XXH64_reset(@ffi_state, seed)
-      self
-    end
-
-    def update(input : Bytes)
-      return if input.size == 0
-      LibXXH.XXH64_update(@ffi_state, input.to_unsafe, input.size)
-      nil
-    end
-
-    def digest : UInt64
-      LibXXH.XXH64_digest(@ffi_state)
-    end
-
-    def copy_from(other : State)
-      LibXXH.XXH64_copyState(@ffi_state, other.@ffi_state)
-      nil
-    end
-
-    def free
-      LibXXH.XXH64_freeState(@ffi_state)
-    end
-
-    def finalize
-      free
-    end
   end
 
   def self.new_state(seed : UInt64 = 0_u64)

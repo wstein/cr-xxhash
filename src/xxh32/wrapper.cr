@@ -1,57 +1,13 @@
 require "../vendor/bindings"
+require "./state"
 
 module XXH::XXH32
   # XXH32 — FFI-backed wrapper (streaming and one-shot delegate to LibXXH)
   # Former Crystal helpers were removed during consolidation.
 
-  # init_accs removed — not needed with FFI-backed State.
-
-  # consume_long removed — native implementation is used via FFI.
-
-  # finalize_hash removed — native finalize is used via FFI.
-
   # One-shot hashing (C-backed via LibXXH)
   def self.hash(input : Bytes, seed : UInt32 = 0_u32) : UInt32
     LibXXH.XXH32(input.to_unsafe, input.size, seed)
-  end
-
-  # Streaming state wrapper — FFI-backed (delegates to LibXXH)
-  class State
-    @ffi_state : LibXXH::XXH32_state_t*
-
-    def initialize(seed : UInt32 = 0_u32)
-      @ffi_state = LibXXH.XXH32_createState
-      reset(seed)
-    end
-
-    def reset(seed : UInt32 = 0_u32)
-      @seed = seed
-      LibXXH.XXH32_reset(@ffi_state, seed)
-      self
-    end
-
-    def update(input : Bytes)
-      return if input.size == 0
-      LibXXH.XXH32_update(@ffi_state, input.to_unsafe, input.size)
-      nil
-    end
-
-    def digest : UInt32
-      LibXXH.XXH32_digest(@ffi_state)
-    end
-
-    def copy_from(other : State)
-      LibXXH.XXH32_copyState(@ffi_state, other.instance_variable_get(@ffi_state))
-      nil
-    end
-
-    def free
-      LibXXH.XXH32_freeState(@ffi_state)
-    end
-
-    def finalize
-      free
-    end
   end
 
   def self.new_state(seed : UInt32 = 0_u32)
