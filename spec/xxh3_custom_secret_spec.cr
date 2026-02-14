@@ -5,7 +5,7 @@ require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 custom secret helper" do
   it "seeds the default secret correctly for non-zero seed" do
-    dest = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+    dest = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
     secret = XXH::Buffers.default_secret.as(Bytes)
     seed = 42_u64
 
@@ -26,7 +26,7 @@ describe "XXH3 custom secret helper" do
   end
 
   it "produces identical bytes when seed is zero" do
-    dest = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+    dest = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
     secret = XXH::Buffers.default_secret.as(Bytes)
 
     XXH::XXH3.init_custom_secret(dest.to_unsafe, secret.to_unsafe, secret.size, 0_u64)

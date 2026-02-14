@@ -568,7 +568,7 @@ module XXH::CLI
   # Single secret hash with seed variation (for time-based loop)
   private def self.run_secret_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
     # Generate a secret buffer (minimum required size for XXH3)
-    secret_buffer = Bytes.new(XXH::Constants::XXH3_SECRET_SIZE_MIN) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
+    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
 
     # Derive a seed from the secret for native fallback
     seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)
@@ -593,7 +593,7 @@ module XXH::CLI
   # Old: Fixed iteration method (kept for compatibility)
   private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
     # Generate a secret buffer (minimum required size for XXH3)
-    secret_buffer = Bytes.new(XXH::Constants::XXH3_SECRET_SIZE_MIN) { |i| ((i * 17) % 256).to_u8 }
+    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| ((i * 17) % 256).to_u8 }
 
     # Derive seed from secret for native fallback
     seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)

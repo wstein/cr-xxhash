@@ -334,10 +334,10 @@ Usage examples:
 ```
 Crystal port of xxhsum 0.8.3
 Sample of 100.0 KB...
- 1#XXH32                         :     102400 ->   134022 it/s (13088.1 MB/s)
- 3#XXH64                         :     102400 ->   267942 it/s (26166.2 MB/s)
- 5#XXH3_64b                      :     102400 ->   293440 it/s (28656.3 MB/s)
-11#XXH128                        :     102400 ->   314021 it/s (30666.1 MB/s)
+ 1#XXH32                         :     102400 ->   133987 it/s (13084.7 MB/s)
+ 3#XXH64                         :     102400 ->   265927 it/s (25969.4 MB/s)
+ 5#XXH3_64b                      :     102400 ->   500763 it/s (48902.6 MB/s)
+11#XXH128                        :     102400 ->   497193 it/s (48554.0 MB/s)
 ```
 
 > **Note:** Throughput varies by input size, CPU, and build flags. Run `./bin/xxhsum -b` on your system for baseline.
@@ -473,7 +473,8 @@ ID#Name                       :   SizeBytes ->   Throughput (MB/s)
 * `-H0..-H3` select algorithms for **hashing**, while `-b#` selects **benchmark variant IDs** (1–28)
 * Unaligned variants (IDs ending in even numbers) test performance with data offset by +3 bytes
 * Seeded variants use a fixed seed (42) for reproducibility
-* Secret variants use a generated secret buffer sized to the XXH3 minimum (`XXH::Constants::XXH3_SECRET_SIZE_MIN`, 136 bytes)
+* Secret variants use a generated secret buffer sized to the XXH3 minimum (`LibXXH::XXH3_SECRET_SIZE_MIN`, 136 bytes)
+  * **Note:** The default secret (`XXH3_kSecret` / `LibXXH::XXH_SECRET_DEFAULT_SIZE`) is a hardcoded, static buffer in the vendor headers — keep it hardcoded; it never changes.
 * Streaming variants use the streaming API (create state, update, digest, free)
 * Auto-tuning (no `-i` flag) targets ~1 second per variant
 * IDs 0, 29+, and `-b77` all expand to "benchmark all" (C99 vendor behavior)

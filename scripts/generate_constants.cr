@@ -81,6 +81,7 @@ def generate_crystal_file(constants : Hash(String, String)) : String
   end
 
   lines << "end"
+  lines << "" # final newline
   lines.join("\n")
 end
 

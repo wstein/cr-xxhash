@@ -41,7 +41,7 @@ module XXH::XXH3
     i = 0
     while i < nrounds
       lo = XXH::Primitives.read_u64_le(secret_ptr + (16 * i)) &+ seed
-      hi = ((XXH::Primitives.read_u64_le(secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & XXH::Constants::MASK64).to_u64
+      hi = ((XXH::Primitives.read_u64_le(secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & UInt64::MAX.to_u128).to_u64
       XXH::Primitives.write_u64_le(dest_ptr + (16 * i), lo)
       XXH::Primitives.write_u64_le(dest_ptr + (16 * i + 8), hi)
       i += 1

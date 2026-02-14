@@ -24,7 +24,7 @@ module XXH::XXH3
       @buffered_size = 0
       @use_seed = false
       @seed = 0_u64
-      @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+      @custom_secret = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
       @ext_secret = nil
 
       if seed.nil?
@@ -47,7 +47,7 @@ module XXH::XXH3
         # Use FFI reset with seed (custom secret is advisory only in FFI mode)
         LibXXH.XXH3_64bits_reset_withSeed(@ffi_state, s)
       else
-        @custom_secret = Bytes.new(XXH::Constants::SECRET_DEFAULT_SIZE, 0)
+        @custom_secret = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
         @ext_secret = XXH::Buffers.default_secret
         LibXXH.XXH3_64bits_reset(@ffi_state)
       end

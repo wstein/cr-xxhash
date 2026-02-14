@@ -1,23 +1,17 @@
 # Minimal common shim after native removal
 # Keeps constants and a tiny Buffers API used by higher-level code.
 
+require "../vendor/constants"
+
 module XXH
-  module Constants
-    SECRET_DEFAULT_SIZE = 192
-
-    # Precomputed masks for performance
-    MASK64 = (1_u128 << 64) - 1
-
-    # Minimum secret size used by XXH3 helpers and tests
-    XXH3_SECRET_SIZE_MIN = 136
-  end
-
   module Buffers
     @@default_secret : Bytes? = nil
 
+    # Default secret (XXH3_kSecret) is hardcoded in the vendor headers and
+    # must remain unchanged — the implementation relies on this static buffer.
     def self.default_secret : Bytes
       @@default_secret ||= begin
-        secret = Bytes.new(Constants::SECRET_DEFAULT_SIZE)
+        secret = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE)
         data = [
           0xb8, 0xfe, 0x6c, 0x39, 0x23, 0xa4, 0x4b, 0xbe, 0x7c, 0x01, 0x81, 0x2c, 0xf7, 0x21, 0xad, 0x1c,
           0xde, 0xd4, 0x6d, 0xe9, 0x83, 0x90, 0x97, 0xdb, 0x72, 0x40, 0xa4, 0xa4, 0xb7, 0xb3, 0x67, 0x1f,
