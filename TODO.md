@@ -765,6 +765,28 @@ include XXH::SpecHelper
 
 ## 🔧 PHASE 2: Core API Implementation (CRITICAL)
 
+### 2.0 Extend Safe Wrapper for IO + File Helpers
+
+**Priority**: ⭐⭐⭐⭐ | **Effort**: 1h | **Complexity**: Medium
+
+**Objective**: Add IO and file helper overloads in `src/bindings/safe.cr` so Phase 2 APIs can reuse safe wrappers for streaming input and file paths.
+
+**Tasks**:
+
+- [ ] Add `Bindings::XXH32.hash(io)` / `Bindings::XXH64.hash(io)` + seeded variants so callers can pass any IO.
+- [ ] Provide Crystal-friendly file helpers (`XXH32.hash_file`, `XXH64.hash_file`, `XXH3.hash_file`) that open the file and read via the IO helper.
+- [ ] Document the seeded overloads (`seed : Seed32 | Seed64`) and ensure default seeds remain zero.
+- [ ] Extend spec helpers or create new specs (T2) verifying the helpers against canonical vectors.
+
+**Validation**:
+
+- [ ] IO helper matches byte/string hash for the same payload and seed.
+- [ ] File helper produces identical results for `String` and `Path` inputs.
+- [ ] Seeded overloads accept explicit seeds and forward them correctly.
+
+**Dependencies**: 1.5
+**Blocks**: 2.1, 2.4, 2.5
+
 ### 2.1 Implement XXH32 One-Shot Hasher
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 1h | **Complexity**: Low

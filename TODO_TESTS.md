@@ -163,6 +163,7 @@ features/
 
 - [ ] Add deterministic buffer helper equivalent to C `fillTestBuffer`.
 - [ ] Add `random_update_chunks` helper mimicking `SANITY_TEST_XXH3_randomUpdate`.
+- [ ] Add streaming assertion helper (`assert_streaming_matches`) that compares safe wrapper streaming states against one-shot vectors.
 - [ ] Add fixture loader + vector accessor APIs.
 
 ### T1.3 Corpus management
