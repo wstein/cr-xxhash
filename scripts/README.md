@@ -4,22 +4,22 @@ This directory contains utility scripts for development, benchmarking, and CI en
 
 ## tool_versions.cr
 
-A Ruby script to detect and display the versions of core tooling used in the `cr-xxhash` project. This is essential for ensuring reproducibility of benchmarks and technical audits.
+A Crystal script to detect and display the versions of core tooling used in the `cr-xxhash` project. All `.cr` helper scripts in `scripts/` include a shebang and are executable so they can be run directly.
 
 ### Usage
 
 ```bash
-# Print a human-readable table of versions
+# Run directly (shebang + executable)
 ./tool_versions.cr
 
-# Filter for specific tools
+# Or use crystal run
 crystal run ./tool_versions.cr -- --tools crystal,llvm-config
 
 # Generate JSON for CI artifacts
 crystal run ./tool_versions.cr -- --json --output tooling.json
 ```
 
-### Dependencies
+### Notes
 
-- **Ruby** (>= 2.5)
-- **Standard Library**: `json`, `optparse`, `open3`
+- All `.cr` scripts in `scripts/` now include `#!/usr/bin/env crystal` and are executable.
+- Use `./scripts/<script>.cr` to run them directly, or `crystal run` if you need to pass Crystal flags.

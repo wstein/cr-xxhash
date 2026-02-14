@@ -69,7 +69,7 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 | `tests/test_alias.c` | alias/API compatibility semantics | `spec/unit/api_alias_spec.cr` | ⭐⭐⭐ | 🔴 Todo |
 | `tests/ppc_define.c` | platform macro behavior | docs + CI arch notes | ⭐⭐ | 🔴 Todo |
 | `tests/multiInclude.c` | C header include safety | not directly applicable (FFI binding stability test instead) | ⭐⭐ | 🟡 Adapt |
-| `tests/bench/*` | benchmark behavior | `scripts/bench_*` (non-gating CI) | ⭐⭐ | 🟡 Optional |
+| `tests/bench/*` | benchmark behavior | `scripts/bench_*` (non-gating CI; Crystal scripts, executable) | ⭐⭐ | 🟢 Ready |
 
 ---
 

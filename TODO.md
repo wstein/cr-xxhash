@@ -701,6 +701,31 @@ include XXH::SpecHelper
 
 ---
 
+### 1.14 Make `scripts/` Crystal-first, add shebangs, make executable ✅
+
+**Priority**: ⭐⭐ | **Effort**: 15min | **Complexity**: Low
+
+**Objective**: Ensure `scripts/` contains Crystal scripts with `#!/usr/bin/env crystal` and are executable so contributors can run them directly.
+
+**Files updated**:
+
+- `scripts/bench_long_input.cr` (added shebang)
+- `scripts/bench_midsize.cr` (added shebang)
+- `scripts/tool_versions.cr` (already had shebang)
+- `scripts/generate_constants.cr` (already had shebang)
+- `scripts/README.md` (usage updated)
+
+**Validation**:
+
+- [x] All `.cr` files in `scripts/` include a shebang
+- [x] All `.cr` scripts are executable (`chmod +x` applied)
+- [x] README updated with direct-exec usage
+
+**Dependencies**: None
+**Blocks**: None
+
+---
+
 ## ✅ PHASE 1: COMPLETE
 
 **Status**: Foundation layer delivered and verified ✅

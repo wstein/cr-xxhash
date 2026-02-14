@@ -1,5 +1,7 @@
-# Hardened long-input streaming benchmark for XXH3: compare native streaming vs FFI streaming
+#!/usr/bin/env crystal
+# Hardened long-input streaming benchmark for XXH3: compare native streaming vs FFI
 # Usage:
+#   ./scripts/bench_long_input.cr -- --samples=5 --target=1.0 --out=bench_long_input_results.csv
 #   crystal run --release scripts/bench_long_input.cr -- --samples=5 --target=1.0 --out=bench_long_input_results.csv
 
 require "../src/common/buffers"
