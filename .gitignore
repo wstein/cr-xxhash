@@ -5,6 +5,7 @@
 /tmp/
 -/tmp/*.md
 -/tmp/*.adoc
+/*.cr
 
 # Build artifacts
 *.dwarf

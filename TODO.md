@@ -1107,6 +1107,9 @@ end
   - `State` lifecycle: create/update/reset/digest/dispose
   - Streaming vs one-shot equivalence (chunked reads)
 
+- [x] `spec/vendor_parity_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
+  - Extended vendor-parity across many input sizes, alignment invariants, and seed-boundary checks (XXH32/XXH64/XXH3)
+
 - [x] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
   - Canonical round-trip and invalid-length assertions
 

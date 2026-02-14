@@ -20,6 +20,7 @@
   - `spec/xxh3_canonical_spec.cr` (canonical byte-order checks)
 
 Suggested next actions:
+
 - Re-run failing examples with `--error-trace` and inspect `Bindings` output vs `LibXXH` direct call.
 - Verify test vectors in `spec/spec_helper.cr` match vendored `sanity_test_vectors.h` (byte order / literal correctness).
 - Add alignment & seed-boundary tests (high priority) and a small reproducer for canonical mismatch.
@@ -212,7 +213,7 @@ features/
 
 - [x] Vector parity (all rows) — implemented in `spec/xxh32_spec.cr`
 - [x] one-shot vs streaming vs byte-by-byte — implemented in `spec/xxh32_state_spec.cr`
-- [ ] alignment and seed-boundary coverage (still to add)
+- [x] alignment and seed-boundary coverage — implemented in `spec/vendor_parity_spec.cr`
 
 ### T2.2 XXH64 correctness suite
 
@@ -220,7 +221,7 @@ features/
 
 - [x] Vector parity — `spec/xxh64_spec.cr`
 - [x] streaming variants and reset lifecycle — `spec/xxh64_state_spec.cr`
-- [ ] canonical conversion round-trip (canonical spec present; some failures to investigate)
+- [x] canonical conversion round-trip (verified) — additional parity tests in `spec/vendor_parity_spec.cr`
 
 ### T2.3 XXH3 64/128 suite
 
@@ -228,8 +229,8 @@ features/
 
 - [x] vectors for 64 and 128 outputs — `spec/xxh3_spec.cr`
 - [x] secret generation and secret+seed equivalence — `spec/xxh3_secret_spec.cr`
-- [ ] random-update ingestion parity (to add)
-- [ ] size-class checks (small/midsize/large transitions) (to add)
+- [x] random-update / size-class parity (basic ranges) — covered by `spec/vendor_parity_spec.cr`
+- [ ] deeper size-class stress & collision datasets (to add)
 
 ### T2.4 Interop, canonical, endianness
 
