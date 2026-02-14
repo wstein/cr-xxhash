@@ -353,6 +353,17 @@ Sample of 100.0 KB...
 
 This repository includes a Nix development configuration to get a reproducible shell for building and testing the project.
 
+### Regenerating vendor test vectors
+
+* Vendor sanity vectors are imported from `vendor/xxHash/tests/sanity_test_vectors.h` and emitted to per-algorithm fixtures under `spec/fixtures/` (files named `vendor_vectors_xxh32.json`, `vendor_vectors_xxh64.json`, `vendor_vectors_xxh3.json`, `vendor_vectors_xxh128.json`, plus `vendor_vectors_meta.json`). The runtime loader `spec/support/vector_loader.cr` exposes the vectors to specs (lazy‑loaded to avoid compile‑time bloat).
+* To regenerate after upstream updates run:
+
+```bash
+crystal scripts/generate_vectors.cr
+```
+
+The JSON fixture is consumed by `spec/support/vector_loader.cr` and used by `spec/vendor_generated_vectors_spec.cr` for algorithm parity checks.
+
 ## Usage
 
 * Without flakes:

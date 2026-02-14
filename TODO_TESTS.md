@@ -124,9 +124,9 @@ spec/
       midsize.bin
       long.bin
       huge.bin
-    vectors.json
+    vendor_vectors_xxh32.json, vendor_vectors_xxh64.json, vendor_vectors_xxh3.json, vendor_vectors_xxh128.json, vendor_vectors_meta.json
   support/
-    generated_vectors.cr
+    vector_loader.cr
     fixture_loader.cr
     snapshot_helper.cr
     cli_helpers.cr
@@ -175,9 +175,9 @@ features/
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] Create `scripts/generate_vectors.cr` to parse `sanity_test_vectors.h`.
-- [ ] Emit `spec/fixtures/vectors.json`.
-- [ ] Emit typed constants file `spec/support/generated_vectors.cr`.
+- [x] Create `scripts/generate_vectors.cr` to parse `sanity_test_vectors.h` and emit per-algorithm fixtures under `spec/fixtures/` (hex).
+- [x] Add `spec/support/vector_loader.cr` to parse the fixture and provide accessor APIs (lazy‑loaded).
+- [x] Remove the previous approach of emitting typed Crystal constants (`spec/support/generated_vectors.cr`) to avoid compile‑time bloat.
 
 ### T1.2 Spec helper foundation
 
