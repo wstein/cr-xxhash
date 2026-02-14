@@ -1,48 +1,51 @@
-name: "Verify generated vendor vectors"
+name: "Crystal CI - Verify generated vendor vectors"
 
 on:
-  pull_request:
-    paths:
-      - 'scripts/generate_vectors.cr'
-      - 'spec/fixtures/**'
-      - 'spec/support/vector_loader.cr'
-      - 'spec/generate_vectors_spec.cr'
-      - 'README.md'
   push:
-    branches: [ main ]
+    branches: ["develop"]
+  pull_request:
+    branches: ["develop"]
 
 jobs:
-  verify-generated-vectors:
-    name: Check generated vendor vectors
+  build:
+    name: Verify generated vendor vectors
     runs-on: ubuntu-latest
-    # use Crystal Docker image so `crystal` is available in the runner
-    container: crystal:1.19
+    container:
+      image: crystallang/crystal
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Verify crystal is available
-        run: crystal --version
+          fetch-depth: 1
+          submodules: recursive
+      - name: Mark repository safe for Git (CI container)
+        shell: bash
+        run: |
+          # Git may detect 'dubious ownership' inside the container; mark workspace safe for CI
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          shards install --ignore-crystal-version || true
 
       - name: Run generator
+        shell: bash
         run: |
           set -euo pipefail
           crystal scripts/generate_vectors.cr
 
       - name: Verify fixtures are up-to-date
+        shell: bash
         run: |
           set -euo pipefail
-          # show any repo changes for debugging
           git --no-pager status --porcelain
-          # fail if any fixture files would be changed by the generator
-          git diff --exit-code -- spec/fixtures || (
-            echo "::error ::Generated fixtures are out of date. Run 'crystal scripts/generate_vectors.cr' and commit the changes." 
-            && git --no-pager --no-color diff -- spec/fixtures
-            && exit 1
-          )
+          if ! git diff --exit-code -- spec/fixtures; then
+            echo "::error ::Generated fixtures are out of date. Run 'crystal scripts/generate_vectors.cr' and commit the changes."
+            git --no-pager --no-color diff -- spec/fixtures
+            exit 1
+          fi
 
       - name: Run generator spec
         run: crystal spec spec/generate_vectors_spec.cr

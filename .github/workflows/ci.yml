@@ -1,0 +1,42 @@
+# CI placeholder (disabled until Phase 3)
+# Purpose: document CI matrix and provide a manual entry point for Phase 3 work.
+# NOTE: This workflow is intentionally manual-only (workflow_dispatch). Enable `push`/`pull_request`
+# triggers and implement job matrix when Phase 3 is started.
+
+name: "CI (placeholder)"
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  ci-placeholder:
+    name: CI — placeholder (manual)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Placeholder - document CI requirements
+        run: |
+          echo "This is a placeholder CI workflow for Phase 3.\nSee TODO.md -> 1.11 Configure CI/CD Preparation for required matrix and steps."
+
+      # Example matrix (enable in Phase 3)
+      # jobs:
+      #   build-and-test:
+      #     runs-on: ${{ matrix.os }}
+      #     strategy:
+      #       matrix:
+      #         crystal: ["1.19", "1.20", "latest"]
+      #         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+      #         arch: ["x86_64", "arm64"]
+      #     steps:
+      #       - uses: actions/checkout@v4
+      #       - name: Set up Crystal
+      #         run: echo "install crystal ${{ matrix.crystal }}"
+      #       - name: Install deps
+      #         run: shards install
+      #       - name: Build & test
+      #         run: crystal spec
+      #       - name: Lint (ameba)
+      #         run: ameba

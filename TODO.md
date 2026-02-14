@@ -556,24 +556,29 @@ include XXH::SpecHelper
 
 **Objective**: Document CI requirements (implement later)
 
-**File**: `.github/workflows/ci.yml` (create placeholder)
+**File**: `.github/workflows/ci.yml` (placeholder created)
 
 **Status**: ⚠ **DEFERRED** (optional, Phase 3 integration point)
 
 **Tasks**:
 
-- [ ] Document CI requirements in TODO:
+- [x] Document CI requirements in TODO:
   - Crystal version matrix (1.19, 1.20, latest)
   - OS matrix (Ubuntu, macOS, Windows if supported)
   - Architecture matrix (x86_64, ARM64)
   - Required steps: build, test, ameba lint
-- [ ] Create `.github/` directory structure
-- [ ] Add placeholder CI config (disabled until Phase 3 complete)
+- [x] Create `.github/` directory structure
+- [x] Add placeholder CI config (disabled until Phase 3 complete)
+
+**Implementation**:
+
+- Created manual placeholder workflow at `.github/workflows/ci.yml` (manual `workflow_dispatch` only).
+- The placeholder contains an example matrix and TODO comments for Phase 3 enablement.
 
 **Dependencies**: None
 **Blocks**: None (optional enhancement)
 
-**Note**: CI setup deferred to Phase 3. Current priority is core API implementation.
+**Note**: CI setup remains deferred to Phase 3; placeholder exists so Phase 3 work can proceed with minimal setup.
 
 ---
 

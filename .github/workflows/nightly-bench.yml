@@ -1,0 +1,69 @@
+name: "Nightly benchmarks"
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # daily at 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  nightly-bench:
+    name: Nightly benchmark (smoke)
+    runs-on: ubuntu-latest
+    container:
+      image: crystallang/crystal
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Mark repository safe for Git (CI container)
+        shell: bash
+        run: |
+          # Prevent "dubious ownership" errors when running inside container-backed runners
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Verify Crystal
+        run: crystal --version
+
+      - name: Install dependencies (shards + vendor C)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shards install --ignore-crystal-version || true
+          # Build vendored C library used by FFI bindings (best-effort)
+          make -C vendor/xxHash xxhash.o libxxhash.a || true
+
+      - name: Sanity-check project (no-op build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # `shards build` is not used because shard.yml has no targets; ensure project loads
+          crystal eval "require \"./src/xxh\"; puts XXH::VERSION"
+
+      - name: Run streaming benchmark (scripted)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use the committed, tested benchmark script instead of inline Crystal eval
+          crystal run --release -O3 scripts/bench_long_input.cr
+
+          # Convert CSV -> human Markdown report and show in logs
+          mkdir -p bench_reports
+          crystal run scripts/bench_csv_to_md.cr -- bench_long_input_results.csv bench_reports/bench_long_input.md
+          echo "------ bench report (markdown) ------"
+          sed -n '1,200p' bench_reports/bench_long_input.md || true
+
+      - name: Collect benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-bench-results
+          path: |
+            bench_long_input_results.csv
+            bench_reports/bench_long_input.md
+
+      - name: Log summary
+        run: |
+          echo "Bench results uploaded as artifact: nightly-bench-results"
