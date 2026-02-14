@@ -33,6 +33,7 @@ This project aims to bridge the gap between low-level C optimization and High-le
       - Run the full test-suite: `crystal spec`.
       - If fixtures changed, commit the updated files and include them in your PR so CI can validate vendor parity.
       - Note: The repository includes a CI workflow `Verify generated vendor vectors` that runs `scripts/generate_vectors.cr` and fails the PR if any `spec/fixtures` files would change. Ensure you run the generator locally and include the updated fixtures in your PR to avoid CI failures.
+      - Benchmarks: the project runs a nightly benchmark job (see `.github/workflows/nightly-bench.yml`). The job uploads benchmark CSV artifacts; use those artifacts to compare performance trends before approving performance-sensitive changes.
 == Aliases & Local Bin
 
 For developer convenience this project creates lightweight CLI aliases that default to algorithm-specific behavior (matching the vendor tool). The aliases are:

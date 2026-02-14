@@ -1,0 +1,48 @@
+name: "Nightly benchmarks"
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # daily at 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  nightly-bench:
+    name: Nightly benchmark (smoke)
+    runs-on: ubuntu-latest
+    container:
+      image: crystallang/crystal
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Crystal
+        run: crystal --version
+
+      - name: Install dependencies (shards + vendor C)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shards install --ignore-crystal-version || true
+
+      - name: Build project (release)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shards build --release
+
+      - name: Run streaming benchmark (short)
+        shell: bash
+        run: |
+          set -euo pipefail
+          crystal run --release scripts/bench_long_input.cr -- --samples=3 --target=0.5 --out=bench_long_input_results.csv
+
+      - name: Collect benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-bench-results
+          path: bench_long_input_results.csv
+
+      - name: Log summary
+        run: |
+          echo "Bench results uploaded as artifact: nightly-bench-results"

@@ -12,4 +12,4 @@ Please include a summary of the change and which issue is fixed. Also include re
 
 ## Notes for reviewers
 
-- Regenerating vendor vectors: run `crystal scripts/generate_vectors.cr` and commit the files under `spec/fixtures/` (the PR CI will fail if fixtures change after generation).
+- Regenerating vendor vectors: run `crystal scripts/generate_vectors.cr` and commit the files under `spec/fixtures/` (the PR CI will fail if fixtures change after generation). See `papers/CONTRIBUTING.adoc` → "Regenerating vendor test vectors" for full instructions and CI expectations.
