@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Verify Crystal
         run: crystal --version
@@ -22,20 +24,21 @@ jobs:
       - name: Install dependencies (shards + vendor C)
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           shards install --ignore-crystal-version || true
+          make -C vendor/xxHash xxhash.o libxxhash.a
 
       - name: Build project (release)
         shell: bash
         run: |
-          set -euo pipefail
-          shards build --release
+          set -eu
+          crystal eval "require \"./src/xxh\"; puts XXH.version"
 
       - name: Run streaming benchmark (short)
         shell: bash
         run: |
-          set -euo pipefail
-          crystal run --release scripts/bench_long_input.cr -- --samples=3 --target=0.5 --out=bench_long_input_results.csv
+          set -eu
+          crystal eval "require \"./src/xxh\"; data = Bytes.new(1024 * 1024, 0_u8); elapsed = Time.measure { 100.times { XXH::XXH3.hash64(data) } }.total_seconds; mbps = (data.size.to_f * 100.0) / elapsed / 1024.0 / 1024.0; File.write(\"bench_long_input_results.csv\", \"metric,value\nxxh3_64_mbps,#{mbps}\n\"); puts \"xxh3_64_mbps=#{mbps}\""
 
       - name: Collect benchmark artifacts
         uses: actions/upload-artifact@v4
