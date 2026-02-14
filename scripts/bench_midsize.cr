@@ -1,7 +1,7 @@
 # Benchmark midsize XXH3 128-bit: compare native vs FFI
 # Usage: crystal scripts/bench_midsize.cr
 
-require "../src/common/common.cr"
+require "../src/common/buffers.cr"
 require "../src/xxh3/wrapper.cr"
 require "../src/vendor/bindings"
 

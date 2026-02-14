@@ -1,6 +1,5 @@
 require "spec"
-require "../src/common/primitives.cr"
-require "../src/common/common.cr"
+require "../src/common/buffers.cr"
 require "../src/xxh3/wrapper.cr"
 
 describe "XXH3 Edge Cases" do
@@ -79,25 +78,6 @@ describe "XXH3 Edge Cases" do
   end
 
   describe "Streaming chunk transitions (128-bit)" do
-    it "128-bit streaming (FFI) matches one-shot" do
-      input = Bytes.new(300) { |i| (i % 256).to_u8 }
-      expected = XXH::XXH3.hash128(input)
-
-      got = XXH::XXH3.hash128_stream(input)
-
-      {got.low64, got.high64}.should eq({expected.low64, expected.high64})
-    end
-
-    it "128-bit streaming with seed (FFI) matches one-shot" do
-      input = Bytes.new(300) { |i| (i % 256).to_u8 }
-      seed = 0xDEAD_BEEF_DEAD_BEEFu64
-      expected = XXH::XXH3.hash128_with_seed(input, seed)
-
-      got = XXH::XXH3.hash128_stream_with_seed(input, seed)
-
-      {got.low64, got.high64}.should eq({expected.low64, expected.high64})
-    end
-
     it "matches one-shot when fed in many 1-byte chunks" do
       input = Bytes.new(300) { |i| (i % 256).to_u8 }
       expected = XXH::XXH3.hash(input)

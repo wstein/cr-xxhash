@@ -1,6 +1,5 @@
-# Minimal primitives shim (native algorithm implementations removed)
-# Retains a small set of helper functions required by the rest
-# of the codebase (reading little-endian words, rotations, swaps).
+# Test helper primitives - moved from src/common/primitives.cr
+# These are only used by tests
 
 module XXH::Primitives
   @[AlwaysInline]
@@ -31,30 +30,6 @@ module XXH::Primitives
       (ptr[5].to_u64 << 40) |
       (ptr[6].to_u64 << 48) |
       (ptr[7].to_u64 << 56)
-  end
-
-  @[AlwaysInline]
-  def self.read_u64_le_safe(ptr : Pointer(UInt8), len : Int32) : UInt64
-    case len
-    when 0
-      0_u64
-    when 1
-      ptr[0].to_u64
-    when 2
-      (ptr[0].to_u64) | (ptr[1].to_u64 << 8)
-    when 3
-      (ptr[0].to_u64) | (ptr[1].to_u64 << 8) | (ptr[2].to_u64 << 16)
-    when 4
-      read_u32_le(ptr).to_u64 | (ptr[4].to_u64 << 32)
-    when 5
-      read_u32_le(ptr).to_u64 | (ptr[4].to_u64 << 32) | (ptr[5].to_u64 << 40)
-    when 6
-      read_u32_le(ptr).to_u64 | (ptr[4].to_u64 << 32) | (ptr[5].to_u64 << 40) | (ptr[6].to_u64 << 48)
-    when 7
-      read_u32_le(ptr).to_u64 | (ptr[4].to_u64 << 32) | (ptr[5].to_u64 << 40) | (ptr[6].to_u64 << 48) | (ptr[7].to_u64 << 56)
-    else
-      read_u64_le(ptr)
-    end
   end
 
   @[AlwaysInline]

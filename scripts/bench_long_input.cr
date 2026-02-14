@@ -2,7 +2,7 @@
 # Usage:
 #   crystal run --release scripts/bench_long_input.cr -- --samples=5 --target=1.0 --out=bench_long_input_results.csv
 
-require "../src/common/common"
+require "../src/common/buffers"
 require "../src/common/primitives"
 require "../src/xxh3/wrapper"
 require "../src/vendor/bindings"

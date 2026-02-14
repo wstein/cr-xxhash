@@ -27,49 +27,19 @@ module XXH::XXH3
     Hash128.new(c.low64, c.high64)
   end
 
-  def self.hash128_stream(input : Bytes) : Hash128
-    stream_digest128(input, nil)
-  end
-
-  def self.hash128_stream_with_seed(input : Bytes, seed : UInt64) : Hash128
-    stream_digest128(input, seed)
-  end
-
-  # Re-create the small helper used by tests to build a custom secret from seed.
+  # Delegates to vendored C implementation via FFI.
+  # This replaces the hand-crafted Crystal version for consistency with vendor.
   def self.init_custom_secret(dest_ptr : Pointer(UInt8), secret_ptr : Pointer(UInt8), secret_size : Int32, seed : UInt64) : Nil
-    nrounds = (secret_size / 16).to_i
-    i = 0
-    while i < nrounds
-      lo = XXH::Primitives.read_u64_le(secret_ptr + (16 * i)) &+ seed
-      hi = ((XXH::Primitives.read_u64_le(secret_ptr + (16 * i + 8)).to_u128 &- seed.to_u128) & UInt64::MAX.to_u128).to_u64
-      XXH::Primitives.write_u64_le(dest_ptr + (16 * i), lo)
-      XXH::Primitives.write_u64_le(dest_ptr + (16 * i + 8), hi)
-      i += 1
-    end
+    dest_ptr.copy_from(secret_ptr, secret_size)
+    LibXXH.XXH3_generateSecret_fromSeed(dest_ptr, seed)
   end
 
   # Streaming state factory helpers
   def self.new_state(seed : UInt64? = nil)
-    State.new(seed)
+    State.new(seed || 0_u64)
   end
 
   def self.new_state128(seed : UInt64? = nil)
-    State128.new(seed)
-  end
-
-  private def self.stream_digest128(input : Bytes, seed : UInt64?) : Hash128
-    state = LibXXH.XXH3_createState
-    begin
-      if seed
-        LibXXH.XXH3_128bits_reset_withSeed(state, seed)
-      else
-        LibXXH.XXH3_128bits_reset(state)
-      end
-      LibXXH.XXH3_128bits_update(state, input.to_unsafe, input.size)
-      result = LibXXH.XXH3_128bits_digest(state)
-      Hash128.new(result.low64, result.high64)
-    ensure
-      LibXXH.XXH3_freeState(state)
-    end
+    State128.new(seed || 0_u64)
   end
 end

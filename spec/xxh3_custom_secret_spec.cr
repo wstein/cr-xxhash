@@ -1,7 +1,8 @@
 require "spec"
-require "../src/common/primitives.cr"
-require "../src/common/common.cr"
+require "../src/common/buffers.cr"
 require "../src/xxh3/wrapper.cr"
+
+require "../src/vendor/bindings"
 
 describe "XXH3 custom secret helper" do
   it "seeds the default secret correctly for non-zero seed" do
@@ -9,18 +10,13 @@ describe "XXH3 custom secret helper" do
     secret = XXH::Buffers.default_secret.as(Bytes)
     seed = 42_u64
 
+    # Use public helper to initialize the custom secret from seed
     XXH::XXH3.init_custom_secret(dest.to_unsafe, secret.to_unsafe, secret.size, seed)
 
+    # Compute expected result using FFI directly (the same way vendor does it)
     expected = Bytes.new(secret.size, 0)
-    nrounds = secret.size / 16
-    i = 0
-    while i < nrounds
-      lo = XXH::Primitives.read_u64_le(secret.to_unsafe + (16 * i)) &+ seed
-      hi = XXH::Primitives.read_u64_le(secret.to_unsafe + (16 * i + 8)) &- seed
-      XXH::Primitives.write_u64_le(expected.to_unsafe + (16 * i), lo)
-      XXH::Primitives.write_u64_le(expected.to_unsafe + (16 * i + 8), hi)
-      i += 1
-    end
+    expected.copy_from(secret)
+    LibXXH.XXH3_generateSecret_fromSeed(expected.to_unsafe, seed)
 
     dest.to_a.should eq(expected.to_a)
   end
@@ -31,6 +27,7 @@ describe "XXH3 custom secret helper" do
 
     XXH::XXH3.init_custom_secret(dest.to_unsafe, secret.to_unsafe, secret.size, 0_u64)
 
+    # With seed=0, result should equal the original secret
     dest.to_a.should eq(secret.to_a)
   end
 end

@@ -11,7 +11,6 @@ module XXH::XXH32
     end
 
     def reset(seed : UInt32 = 0_u32)
-      @seed = seed
       LibXXH.XXH32_reset(@ffi_state, seed)
       self
     end
@@ -27,7 +26,7 @@ module XXH::XXH32
     end
 
     def copy_from(other : State)
-      LibXXH.XXH32_copyState(@ffi_state, other.instance_variable_get(@ffi_state))
+      LibXXH.XXH32_copyState(@ffi_state, other.@ffi_state)
       nil
     end
 

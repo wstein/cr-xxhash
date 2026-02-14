@@ -1,6 +1,6 @@
 require "spec"
-require "../src/common/primitives.cr"
-require "../src/common/common.cr"
+require "./support/primitives"
+require "../src/common/buffers.cr"
 require "../src/xxh32/wrapper.cr"
 
 describe "XXH32 Native Implementation" do

@@ -5,8 +5,7 @@
 require "./cli/options"
 require "./cli/hasher"
 require "./cli/formatter"
-require "./common/common"
-require "./common/primitives"
+require "./common/buffers"
 
 module XXH::CLI
   # Main CLI entry point
@@ -567,11 +566,9 @@ module XXH::CLI
 
   # Single secret hash with seed variation (for time-based loop)
   private def self.run_secret_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
-    # Generate a secret buffer (minimum required size for XXH3)
-    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
-
-    # Derive a seed from the secret for native fallback
-    seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)
+    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
+    LibXXH.XXH3_generateSecret_fromSeed(secret_buffer.to_unsafe, seed_u)
+    seed_from_secret = secret_buffer.to_unsafe.as(Pointer(UInt64)).value
 
     case algorithm
     when Algorithm::XXH32
@@ -592,11 +589,12 @@ module XXH::CLI
 
   # Old: Fixed iteration method (kept for compatibility)
   private def self.run_secret_benchmark(data : Bytes, algorithm : Algorithm, iterations : Int32)
-    # Generate a secret buffer (minimum required size for XXH3)
-    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| ((i * 17) % 256).to_u8 }
+    # Generate a secret buffer using FFI (same as vendor)
+    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_DEFAULT_SIZE, 0)
+    XXH::XXH3.init_custom_secret(secret_buffer.to_unsafe, XXH::Buffers.default_secret.to_unsafe, secret_buffer.size, 0_u64)
 
-    # Derive seed from secret for native fallback
-    seed_from_secret = XXH::Primitives.read_u64_le(secret_buffer.to_unsafe)
+    # Read first 8 bytes as seed
+    seed_from_secret = secret_buffer.to_unsafe.as(Pointer(UInt64)).value
 
     case algorithm
     when Algorithm::XXH32
