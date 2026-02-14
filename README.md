@@ -1,5 +1,7 @@
 # cr-xxhash
 
+[![Verify generated vendor vectors](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml)
+
 High-performance Crystal implementation and migration study of Yann Collet's xxHash (C → Crystal). This project explores achieving near-native throughput using LLVM intrinsics, pointer arithmetic, and SIMD unrolling within the Crystal Language ecosystem.
 
 ## Mission Highlights
