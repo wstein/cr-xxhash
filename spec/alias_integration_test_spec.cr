@@ -13,7 +13,7 @@ class AliasIntegrationTester
 
   def initialize
     # Default test files
-    @test_files = ["README.md", "LICENSE", "shard.yml"].select { |f| File.exists?(f) }
+    @test_files = ["README.md", "LICENSE", "shard.yml"].select { |file| File.exists?(file) }
   end
 
   def run
@@ -62,8 +62,8 @@ class AliasIntegrationTester
 
   private def run_command(bin : String, args : Array(String)) : String
     tmp = "/tmp/xxhash_alias_test_#{Process.pid}_#{Random.rand(1_000_000)}.out"
-    File.open(tmp, "w") do |f|
-      Process.run(bin, args, output: f)
+    File.open(tmp, "w") do |out_io|
+      Process.run(bin, args, output: out_io)
     end
     begin
       File.read(tmp)

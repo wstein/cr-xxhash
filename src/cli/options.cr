@@ -37,20 +37,21 @@ module XXH::CLI
     property convention : DisplayConvention = DisplayConvention::GNU
     property endianness : DisplayEndianness = DisplayEndianness::Big
     property simd_mode : SIMDMode = SIMDMode::Auto
-    property quiet : Bool = false
-    property status : Bool = false
-    property strict : Bool = false
-    property warn : Bool = false
-    property ignore_missing : Bool = false
-    property tag : Bool = false         # BSD style output
-    property binary_mode : Bool = false # Read in binary mode (for CRLF conversions)
-    property benchmark : Bool = false
-    property benchmark_all : Bool = false
+    property? quiet : Bool = false
+    property? status : Bool = false
+    property? strict : Bool = false
+    property? warn : Bool = false
+    property? ignore_missing : Bool = false
+    property? tag : Bool = false         # BSD style output
+    property? binary_mode : Bool = false # Read in binary mode (for CRLF conversions)
+    property? benchmark : Bool = false
+    property? benchmark_all : Bool = false
+
     property benchmark_id : Int32 = 0                        # Specific benchmark ID
     property benchmark_variants : Array(Int32) = [] of Int32 # Multiple variants from -b1,2,3
     property iterations : Int32 = 0                          # Benchmark iterations (0 = auto-calibrate)
     property sample_size : UInt64 = 100_u64 * 1024_u64       # 100 KB default sample
-    property explicit_stdin : Bool = false
+    property? explicit_stdin : Bool = false
     property files : Array(String) = [] of String
 
     # Mode of operation
@@ -82,51 +83,14 @@ module XXH::CLI
     end
 
     def parse : Bool
-      # Handle -bX and -bX,Y,Z benchmark options manually
-      filtered_argv = @argv.select do |arg|
-        if arg.starts_with?("-b") && arg.size > 2
-          bench_spec = arg[2..]
-          # Check if it's all digits or digits with commas
-          if bench_spec.gsub(",", "").chars.all?(&.ascii_number?)
-            @options.mode = Options::Mode::Benchmark
-            @options.benchmark = true
-
-            # Handle comma-separated variants like -b1,2,3
-            if bench_spec.includes?(',')
-              # Multiple variants
-              @options.benchmark_variants = bench_spec.split(',').map(&.to_i32)
-              @options.benchmark_all = false # Don't benchmark all, just the specified variants
-            else
-              # Single variant or "all"
-              bench_id = bench_spec.to_i32
-              if bench_id == 0 || bench_id >= 29
-                # IDs 0, and 29+ are treated as "benchmark all" (vendor behavior)
-                @options.benchmark_all = true
-              elsif bench_id >= 1 && bench_id <= 28
-                # Store the benchmark ID (1-28)
-                @options.benchmark_id = bench_id
-                @options.benchmark_all = false
-              else
-                # Invalid ID (negative or outside expected ranges)
-                error "Invalid benchmark ID: #{bench_spec}"
-                return false
-              end
-            end
-            false # Remove from argv
-          else
-            true # Keep in argv
-          end
-        else
-          true # Keep in argv
-        end
-      end
-      @argv = filtered_argv
+      # Handle embedded -b#/-bX,Y,Z variants (vendor-style shorthand)
+      handle_embedded_bench_specs!
 
       OptionParser.parse(@argv) do |parser|
         parser.banner = "Usage: xxhsum [options] [files]"
 
-        parser.on("-H#", "--algorithm=N", "Select algorithm (0=XXH32, 1=XXH64, 2=XXH128, 3=XXH3)") do |n|
-          case n
+        parser.on("-H#", "--algorithm=N", "Select algorithm (0=XXH32, 1=XXH64, 2=XXH128, 3=XXH3)") do |algo|
+          case algo
           when "0", "32"  then @options.algorithm = Algorithm::XXH32
           when "1", "64"  then @options.algorithm = Algorithm::XXH64
           when "2", "128" then @options.algorithm = Algorithm::XXH128
@@ -195,12 +159,12 @@ module XXH::CLI
           @options.benchmark_all = true
         end
 
-        parser.on("-i#", "--iterations=N", "Number of iterations per benchmark run (0=auto-calibrate for 1 second)") do |n|
-          @options.iterations = n.to_i32
+        parser.on("-i#", "--iterations=N", "Number of iterations per benchmark run (0=auto-calibrate for 1 second)") do |iter|
+          @options.iterations = iter.to_i32
         end
 
-        parser.on("-B#", "--block-size=N", "Benchmark block size (supports K, KB, KiB, M, MB, MiB suffixes)") do |n|
-          @options.sample_size = parse_size(n)
+        parser.on("-B#", "--block-size=N", "Benchmark block size (supports K, KB, KiB, M, MB, MiB suffixes)") do |size|
+          @options.sample_size = parse_size(size)
         end
 
         parser.on("--simd=MODE", "Force SIMD implementation: auto (default), scalar, sse2, avx2, neon") do |mode|
@@ -238,23 +202,7 @@ module XXH::CLI
       prog = File.basename(PROGRAM_NAME)
 
       # Compute default algorithm number based on parser options (alias-aware)
-      default_algo = if @options && @options.algorithm
-                       case @options.algorithm
-                       when Algorithm::XXH32  then 0
-                       when Algorithm::XXH64  then 1
-                       when Algorithm::XXH128 then 2
-                       when Algorithm::XXH3   then 3
-                       else                        1
-                       end
-                     else
-                       case prog.downcase
-                       when "xxh32sum"  then 0
-                       when "xxh64sum"  then 1
-                       when "xxh128sum" then 2
-                       when "xxh3sum"   then 3
-                       else                  1
-                       end
-                     end
+      default_algo = compute_default_algo(prog)
 
       puts <<-HELP
         Create or verify checksums using fast non-cryptographic algorithm xxHash
@@ -296,8 +244,22 @@ module XXH::CLI
       HELP
     end
 
+    private def compute_default_algo(prog : String) : Int32
+      case prog.downcase
+      when "xxh32sum"  then Algorithm::XXH32.value
+      when "xxh64sum"  then Algorithm::XXH64.value
+      when "xxh128sum" then Algorithm::XXH128.value
+      when "xxh3sum"   then Algorithm::XXH3.value
+      else                  Algorithm::XXH64.value
+      end
+    end
+
     private def print_version
       puts "Crystal port of xxhsum 0.8.3"
+    end
+
+    private def error(message : String)
+      STDERR.puts "Error: #{message}"
     end
 
     # Parse size with K, KB, KiB, M, MB, MiB suffixes
@@ -358,15 +320,49 @@ module XXH::CLI
       end
     end
 
-    # Map benchmark ID to algorithm
-    # Supports both C-style (1=XXH32, 2=XXH64, 3=XXH3, 4=XXH128)
-    # and vendor-style (1=XXH32, 3=XXH64, 5=XXH3, 11=XXH128)
     private def map_bench_id(id : Int32) : Algorithm?
       Parser.map_bench_id(id)
     end
 
-    private def error(message : String)
-      STDERR.puts "Error: #{message}"
+    private def handle_embedded_bench_specs!
+      filtered_argv = @argv.select do |arg|
+        if arg.starts_with?("-b") && arg.size > 2
+          bench_spec = arg[2..]
+          # Check if it's all digits or digits with commas
+          if bench_spec.gsub(",", "").chars.all?(&.ascii_number?)
+            @options.mode = Options::Mode::Benchmark
+            @options.benchmark = true
+
+            # Handle comma-separated variants like -b1,2,3
+            if bench_spec.includes?(',')
+              # Multiple variants
+              @options.benchmark_variants = bench_spec.split(',').map(&.to_i32)
+              @options.benchmark_all = false # Don't benchmark all, just the specified variants
+            else
+              # Single variant or "all"
+              bench_id = bench_spec.to_i32
+              if bench_id == 0 || bench_id >= 29
+                # IDs 0, and 29+ are treated as "benchmark all" (vendor behavior)
+                @options.benchmark_all = true
+              elsif bench_id >= 1 && bench_id <= 28
+                # Store the benchmark ID (1-28)
+                @options.benchmark_id = bench_id
+                @options.benchmark_all = false
+              else
+                # Invalid ID (negative or outside expected ranges)
+                error "Invalid benchmark ID: #{bench_spec}"
+                return false
+              end
+            end
+            false # Remove from argv
+          else
+            true # Keep in argv
+          end
+        else
+          true # Keep in argv
+        end
+      end
+      @argv = filtered_argv
     end
   end
 end

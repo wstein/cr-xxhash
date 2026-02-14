@@ -26,7 +26,7 @@ describe XXH::CLI::Parser do
       parser = XXH::CLI::Parser.new(["-H3", "--tag", "/tmp/test.txt", "/tmp/test2.txt"])
       parser.parse.should be_true
       parser.options.algorithm.should eq XXH::CLI::Algorithm::XXH3
-      parser.options.tag.should be_true
+      parser.options.tag?.should be_true
       parser.options.files.should eq ["/tmp/test.txt", "/tmp/test2.txt"]
     end
   end
@@ -113,7 +113,7 @@ describe XXH::CLI::Parser do
       parser = XXH::CLI::Parser.new(["--tag"])
       parser.parse.should be_true
       parser.options.convention.should eq XXH::CLI::DisplayConvention::BSD
-      parser.options.tag.should be_true
+      parser.options.tag?.should be_true
     end
 
     it "sets little-endian with --little-endian" do
@@ -145,7 +145,7 @@ describe XXH::CLI::Parser do
     it "sets benchmark_all with --bench-all" do
       parser = XXH::CLI::Parser.new(["--bench-all"])
       parser.parse.should be_true
-      parser.options.benchmark_all.should be_true
+      parser.options.benchmark_all?.should be_true
       parser.options.mode.should eq XXH::CLI::Options::Mode::Benchmark
     end
   end
@@ -154,13 +154,13 @@ describe XXH::CLI::Parser do
     it "sets quiet with -q" do
       parser = XXH::CLI::Parser.new(["-q"])
       parser.parse.should be_true
-      parser.options.quiet.should be_true
+      parser.options.quiet?.should be_true
     end
 
     it "sets status with --status" do
       parser = XXH::CLI::Parser.new(["--status"])
       parser.parse.should be_true
-      parser.options.status.should be_true
+      parser.options.status?.should be_true
     end
   end
 end

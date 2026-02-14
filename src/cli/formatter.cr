@@ -60,7 +60,7 @@ module XXH::CLI
     # Format a hash result in GNU style
     # GNU style: "XXH3  hashvalue  filename"
     def self.format_gnu(result : HashResult, algorithm : Algorithm, endianness : DisplayEndianness) : String?
-      return nil unless result.success
+      return nil unless result.success?
 
       filename = escape_filename(result.filename)
 
@@ -98,7 +98,7 @@ module XXH::CLI
     # Format a hash result in BSD style (with --tag)
     # BSD style: "XXH3 (filename) = hashvalue"
     def self.format_bsd(result : HashResult, algorithm : Algorithm, endianness : DisplayEndianness) : String?
-      return nil unless result.success
+      return nil unless result.success?
 
       filename = escape_filename(result.filename)
 
@@ -146,13 +146,13 @@ module XXH::CLI
 
     # Escape special characters in filename
     def self.escape_filename(filename : String) : String
-      escaped = filename.bytes.map do |b|
-        case b
+      escaped = filename.bytes.map do |byte|
+        case byte
         when '\\' then "\\\\"
         when '\n' then "\\n"
         when '\r' then "\\r"
         else
-          b.chr
+          byte.chr
         end
       end.join
       escaped
@@ -195,75 +195,74 @@ module XXH::CLI
       bytes
     end
 
-    # Parse a checksum file line
+    # Parse a checksum file line (delegates to smaller helpers)
     # Returns {filename, algorithm, hash_bytes, is_le} or nil
     def self.parse_checksum_line(line : String, algo_bitmask : Int32) : NamedTuple(filename: String, algorithm: Algorithm, hash: Bytes, is_le: Bool)?
       line = line.strip
 
       # Skip empty lines and comments
-      return nil if line.empty?
-      return nil if line.starts_with?('#')
+      return nil if line.empty? || line.starts_with?('#')
 
-      # Try BSD format: "XXH32 (filename) = hash"
-      if m = line.match(/^(\w+)\s*\(([^)]+)\)\s*=\s*(.+)$/)
-        algo_name = m[1]
-        filename = m[2]
-        hash_str = m[3].strip
-
-        algorithm = parse_algorithm_name(algo_name)
-        return nil unless algorithm
-        return nil unless algo_accepts(algo_bitmask, algorithm)
-
-        # Check for _LE suffix
-        is_le = algo_name.includes?("_LE")
-
-        # For XXH3, expect "XXH3_" prefix
-        if algorithm == Algorithm::XXH3 && !algo_name.starts_with?("XXH3")
-          return nil
-        end
-
-        hash = hex_to_bytes(hash_str)
-        return nil unless hash
-
-        {filename: filename, algorithm: algorithm, hash: hash, is_le: is_le}
+      if m = line.match(/^([A-Za-z0-9_]+)\s*\(([^)]+)\)\s*=\s*(.+)$/)
+        parse_bsd_checksum_line(m, algo_bitmask)
       else
-        # Try GNU format: "hash  filename" or "XXH3_hash  filename"
-        parts = line.split(2)
-        return nil unless parts.size == 2
-
-        hash_str = parts[0]
-        filename = parts[1]
-
-        # Detect algorithm from hash length
-        hash_len = hash_str.size
-        algorithm = case hash_len
-                    when  8 then Algorithm::XXH32
-                    when 16 then Algorithm::XXH64
-                    when 21 then Algorithm::XXH3
-                    when 32 then Algorithm::XXH128
-                    else         nil
-                    end
-        return nil unless algorithm
-
-        return nil unless algo_accepts(algo_bitmask, algorithm)
-
-        # Validate XXH3 format
-        if algorithm == Algorithm::XXH3 && !hash_str.starts_with?("XXH3_")
-          return nil
-        end
-
-        # Remove XXH3_ prefix if present
-        clean_hash = if algorithm == Algorithm::XXH3 && hash_str.starts_with?("XXH3_")
-                       hash_str[5..]
-                     else
-                       hash_str
-                     end
-
-        hash = hex_to_bytes(clean_hash)
-        return nil unless hash
-
-        {filename: filename, hash: hash, algorithm: algorithm, is_le: false}
+        parse_gnu_checksum_line(line, algo_bitmask)
       end
+    end
+
+    private def self.parse_bsd_checksum_line(m : Regex::MatchData, algo_bitmask : Int32) : NamedTuple(filename: String, algorithm: Algorithm, hash: Bytes, is_le: Bool)?
+      algo_name = m[1]
+      filename = m[2]
+      hash_str = m[3].strip
+
+      algorithm = parse_algorithm_name(algo_name)
+      return nil unless algorithm
+      return nil unless algo_accepts(algo_bitmask, algorithm)
+
+      is_le = algo_name.includes?("_LE")
+      if algorithm == Algorithm::XXH3 && !algo_name.starts_with?("XXH3")
+        return nil
+      end
+
+      hash = hex_to_bytes(hash_str)
+      return nil unless hash
+
+      {filename: filename, algorithm: algorithm, hash: hash, is_le: is_le}
+    end
+
+    private def self.parse_gnu_checksum_line(line : String, algo_bitmask : Int32) : NamedTuple(filename: String, algorithm: Algorithm, hash: Bytes, is_le: Bool)?
+      parts = line.split(2)
+      return nil unless parts.size == 2
+
+      hash_str = parts[0]
+      filename = parts[1]
+
+      # Detect algorithm from hash length
+      hash_len = hash_str.size
+      algorithm = case hash_len
+                  when  8 then Algorithm::XXH32
+                  when 16 then Algorithm::XXH64
+                  when 21 then Algorithm::XXH3
+                  when 32 then Algorithm::XXH128
+                  else         nil
+                  end
+      return nil unless algorithm
+      return nil unless algo_accepts(algo_bitmask, algorithm)
+
+      if algorithm == Algorithm::XXH3 && !hash_str.starts_with?("XXH3_")
+        return nil
+      end
+
+      clean_hash = if algorithm == Algorithm::XXH3 && hash_str.starts_with?("XXH3_")
+                     hash_str[5..]
+                   else
+                     hash_str
+                   end
+
+      hash = hex_to_bytes(clean_hash)
+      return nil unless hash
+
+      {filename: filename, algorithm: algorithm, hash: hash, is_le: false}
     end
 
     private def self.parse_algorithm_name(name : String) : Algorithm?

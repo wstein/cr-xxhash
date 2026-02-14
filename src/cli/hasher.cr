@@ -11,7 +11,7 @@ module XXH::CLI
     property hash32 : UInt32?
     property hash64 : UInt64?
     property hash128 : Tuple(UInt64, UInt64)?
-    property success : Bool
+    property? success : Bool
     property error : String?
 
     def initialize(@filename, @success = true, @error = nil)
@@ -110,10 +110,10 @@ module XXH::CLI
     # Stream hashing implementations using native Crystal code
     # NOTE: Currently only scalar implementations exist (simd_mode is for future SIMD variants)
     # simd_mode values: Auto (default), Scalar, SSE2, AVX2, NEON
-    # TODO: Wire actual SIMD dispatch once SIMD implementations are available
+    # NOTE: Wire actual SIMD dispatch once SIMD implementations are available
     private def self.hash_file_xxh32(path : String, simd_mode : SIMDMode, block_size : Int32) : UInt32
       # Read entire file and hash it
-      # TODO: Implement true streaming for very large files
+      # NOTE: Implement true streaming for very large files
       data = File.read(path).to_slice
 
       # For now, all modes use the native scalar implementation

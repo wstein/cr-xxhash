@@ -19,7 +19,7 @@ module XXH::CLI
 
     # Handle stdin case
     if files.empty? || (files.size == 1 && files[0] == "-")
-      if options.explicit_stdin || !STDIN.tty?
+      if options.explicit_stdin? || !STDIN.tty?
         files = ["-"]
       else
         STDERR.puts "No input provided"
@@ -45,7 +45,7 @@ module XXH::CLI
 
     # Output results in order
     files.each do |filename|
-      result = results.find { |r| r.filename == filename }
+      result = results.find { |res| res.filename == filename }
       next unless result
 
       output = Formatter.format(result, options.algorithm, options.convention, options.endianness)
@@ -70,13 +70,85 @@ module XXH::CLI
     algo_bitmask = (1 << Algorithm::XXH32.value) | (1 << Algorithm::XXH64.value) |
                    (1 << Algorithm::XXH128.value) | (1 << Algorithm::XXH3.value)
 
+    stats = collect_checksum_stats(filepath, algo_bitmask, options)
+
+    print_checksum_summary(filepath, stats, options)
+
+    ok = checksum_ok_from_stats?(stats, options)
+
+    if options.ignore_missing? && stats[:matched] == 0
+      unless options.status?
+        puts "#{filepath}: no file was verified"
+      end
+      return false
+    end
+
+    ok
+  end
+
+  private def self.compare_hashes(actual : HashResult, algorithm : Algorithm, expected_hash : Bytes, is_le : Bool) : Bool
+    case algorithm
+    when Algorithm::XXH32
+      if h = actual.hash32
+        hash_bytes = is_le ? h.to_le.bytes : h.to_be.bytes
+        return hash_bytes == expected_hash
+      end
+    when Algorithm::XXH64, Algorithm::XXH3
+      if h = actual.hash64
+        hash_bytes = is_le ? h.to_le.bytes : h.to_be.bytes
+        return hash_bytes == expected_hash
+      end
+    when Algorithm::XXH128
+      if h = actual.hash128
+        hash_bytes = if is_le
+                       h[0].to_le.bytes + h[1].to_le.bytes
+                     else
+                       h[0].to_be.bytes + h[1].to_be.bytes
+                     end
+        return hash_bytes == expected_hash
+      end
+    end
+    false
+  end
+
+  private def self.process_parsed_checksum_line(parsed, filepath : String, line_number : Int32, options : Options) : Symbol
+    filename = parsed[:filename]
+    algorithm = parsed[:algorithm]
+    expected_hash = parsed[:hash]
+    is_le = parsed[:is_le]
+
+    # Resolve actual hash (stdin or file)
+    actual = if filename == "stdin"
+               FileHasher.hash_stdin(algorithm, options.simd_mode)
+             else
+               unless File.exists?(filename)
+                 return :open_failure unless options.ignore_missing?
+                 return :none
+               end
+               FileHasher.hash_file(filename, algorithm, options.simd_mode)
+             end
+
+    return :none unless actual.success?
+
+    hash_ok = compare_hashes(actual, algorithm, expected_hash, is_le)
+    if hash_ok
+      unless options.quiet? || options.status?
+        puts "#{filename}: OK"
+      end
+      :matched
+    else
+      puts "#{filename}: FAILED"
+      :mismatched
+    end
+  end
+
+  private def self.collect_checksum_stats(filepath : String, algo_bitmask : Int32, options : Options)
     line_number = 0
     properly_formatted = 0
     improperly_formatted = 0
     matched = 0
     mismatched = 0
     open_failures = 0
-    quit = false
 
     File.each_line(filepath) do |line|
       line_number += 1
@@ -84,7 +156,7 @@ module XXH::CLI
       parsed = Formatter.parse_checksum_line(line, algo_bitmask)
       unless parsed
         improperly_formatted += 1
-        if options.warn
+        if options.warn?
           STDERR.puts "#{filepath}:#{line_number}: Error: Improperly formatted checksum line"
         end
         next
@@ -92,66 +164,26 @@ module XXH::CLI
 
       properly_formatted += 1
 
-      filename = parsed[:filename]
-      algorithm = parsed[:algorithm]
-      expected_hash = parsed[:hash]
-      is_le = parsed[:is_le]
-
-      # Handle stdin
-      if filename == "stdin"
-        actual = FileHasher.hash_stdin(algorithm, options.simd_mode)
-      else
-        # Check if file exists
-        unless File.exists?(filename)
-          if options.ignore_missing
-            next
-          else
-            open_failures += 1
-            unless options.status
-              STDERR.puts "#{filepath}:#{line_number}: Could not open or read '#{filename}': No such file or directory"
-            end
-            next
-          end
-        end
-
-        actual = FileHasher.hash_file(filename, algorithm, options.simd_mode)
-      end
-
-      next unless actual.success
-
-      # Compare hashes
-      hash_ok = false
-      case algorithm
-      when Algorithm::XXH32
-        if actual.hash32
-          hash_bytes = is_le ? actual.hash32.to_le.bytes : actual.hash32.to_be.bytes
-          hash_ok = hash_bytes == expected_hash
-        end
-      when Algorithm::XXH64, Algorithm::XXH3
-        if actual.hash64
-          hash_bytes = is_le ? actual.hash64.to_le.bytes : actual.hash64.to_be.bytes
-          hash_ok = hash_bytes == expected_hash
-        end
-      when Algorithm::XXH128
-        if actual.hash128
-          hash_bytes = is_le ? (actual.hash128[0].to_le.bytes + actual.hash128[1].to_le.bytes) : (actual.hash128[0].to_be.bytes + actual.hash128[1].to_be.bytes)
-          hash_ok = hash_bytes == expected_hash
-        end
-      end
-
-      if hash_ok
+      case process_parsed_checksum_line(parsed, filepath, line_number, options)
+      when :matched
         matched += 1
-        unless options.quiet || options.status
-          puts "#{filename}: OK"
-        end
-      else
+      when :mismatched
         mismatched += 1
-        puts "#{filename}: FAILED"
+      when :open_failure
+        open_failures += 1
       end
     end
 
-    # Summary
-    unless options.status
+    {properly_formatted: properly_formatted, improperly_formatted: improperly_formatted, matched: matched, mismatched: mismatched, open_failures: open_failures}
+  end
+
+  private def self.print_checksum_summary(filepath : String, stats, options : Options)
+    properly_formatted = stats[:properly_formatted]
+    improperly_formatted = stats[:improperly_formatted]
+    mismatched = stats[:mismatched]
+    open_failures = stats[:open_failures]
+
+    unless options.status?
       if properly_formatted == 0
         STDERR.puts "#{filepath}: no properly formatted xxHash checksum lines found"
       elsif improperly_formatted > 0
@@ -164,21 +196,15 @@ module XXH::CLI
         puts "#{mismatched} #{mismatched == 1 ? "checksum" : "checksums"} did NOT match"
       end
     end
+  end
 
-    # Check result
-    ok = properly_formatted > 0 &&
-         mismatched == 0 &&
-         open_failures == 0 &&
-         (!options.strict || improperly_formatted == 0)
+  private def self.checksum_ok_from_stats?(stats, options : Options) : Bool
+    properly_formatted = stats[:properly_formatted]
+    improperly_formatted = stats[:improperly_formatted]
+    mismatched = stats[:mismatched]
+    open_failures = stats[:open_failures]
 
-    if options.ignore_missing && matched == 0
-      unless options.status
-        puts "#{filepath}: no file was verified"
-      end
-      return false
-    end
-
-    ok
+    (properly_formatted > 0) && (mismatched == 0) && (open_failures == 0) && (!options.strict? || improperly_formatted == 0)
   end
 
   private def self.run_files_from_mode(files : Array(String), options : Options)
@@ -222,7 +248,7 @@ module XXH::CLI
     puts "Benchmark: #{sample_size} bytes, #{iterations} iterations"
 
     # Benchmark selected algorithms
-    algorithms = if options.benchmark_all
+    algorithms = if options.benchmark_all?
                    [Algorithm::XXH32, Algorithm::XXH64, Algorithm::XXH3, Algorithm::XXH128]
                  else
                    [options.algorithm]

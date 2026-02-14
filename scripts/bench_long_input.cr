@@ -36,7 +36,7 @@ end
 def stddev(arr : Array(Float64)) : Float64
   return 0.0 if arr.size <= 1
   m = mean(arr)
-  Math.sqrt(arr.map { |x| (x - m) * (x - m) }.sum / (arr.size - 1))
+  Math.sqrt(arr.sum { |x| (x - m) * (x - m) } / (arr.size - 1))
 end
 
 def median(arr : Array(Float64)) : Float64
@@ -75,7 +75,6 @@ def bench_streaming_for(size : Int32, bits : Int32, samples : Int32, target_sec 
     update_native = -> { native_state.update(input) }
     reset_ffi = -> { LibXXH.XXH3_64bits_reset(ffi_state_ptr) }
     update_ffi = -> { LibXXH.XXH3_64bits_update(ffi_state_ptr, input.to_unsafe, size) }
-    compare = ->(a : UInt64, b : UInt64) { a == b }
   else
     native_state = XXH::XXH3::State128.new
     ffi_state_ptr = LibXXH.XXH3_createState
@@ -83,7 +82,6 @@ def bench_streaming_for(size : Int32, bits : Int32, samples : Int32, target_sec 
     update_native = -> { native_state.update(input) }
     reset_ffi = -> { LibXXH.XXH3_128bits_reset(ffi_state_ptr) }
     update_ffi = -> { LibXXH.XXH3_128bits_update(ffi_state_ptr, input.to_unsafe, size) }
-    compare = ->(a : XXH::XXH3::Hash128, b : LibXXH::XXH128_hash_t) { a.to_tuple == {b.low64, b.high64} }
   end
 
   # Warmup (do a decent number to let caches / JIT-like effects stabilize)

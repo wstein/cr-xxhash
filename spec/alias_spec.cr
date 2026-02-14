@@ -13,7 +13,7 @@ describe "xxh*sum alias behavior" do
         next
       else
         tmp = "/tmp/xxh_alias_help_#{Process.pid}_#{Random.rand(1_000_000)}.out"
-        File.open(tmp, "w") { |f| Process.run(path, ["-h"], output: f) }
+        File.open(tmp, "w") { |out_io| Process.run(path, ["-h"], output: out_io) }
         begin
           help_text = File.read(tmp)
           help_text.includes?("Usage: #{name}").should be_true
@@ -33,8 +33,8 @@ describe "xxh*sum alias behavior" do
       else
         tmp1 = "/tmp/xxh_alias_hash_crystal_#{Process.pid}_#{Random.rand(1_000_000)}.out"
         tmp2 = "/tmp/xxh_alias_hash_expected_#{Process.pid}_#{Random.rand(1_000_000)}.out"
-        File.open(tmp1, "w") { |f| Process.run(path, [test_file], output: f) }
-        File.open(tmp2, "w") { |f| Process.run("./bin/xxhsum", ["-H#{default}", test_file], output: f) }
+        File.open(tmp1, "w") { |out1| Process.run(path, [test_file], output: out1) }
+        File.open(tmp2, "w") { |out2| Process.run("./bin/xxhsum", ["-H#{default}", test_file], output: out2) }
 
         begin
           File.read(tmp1).strip.should eq(File.read(tmp2).strip)

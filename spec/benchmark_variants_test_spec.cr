@@ -6,7 +6,7 @@ require "option_parser"
 
 class BenchmarkVariantTester
   property crystal_bin = "./bin/xxhsum"
-  property verbose = false
+  property? verbose = false
   property passed = 0
   property failed = 0
   property skipped = 0
@@ -17,7 +17,7 @@ class BenchmarkVariantTester
 
   def parse_args
     OptionParser.parse do |parser|
-      parser.on("-c", "--crystal=PATH", "Path to Crystal xxhsum") { |p| @crystal_bin = p }
+      parser.on("-c", "--crystal=PATH", "Path to Crystal xxhsum") { |path| @crystal_bin = path }
       parser.on("--verbose", "Verbose output") { @verbose = true }
       parser.on("-h", "--help", "Show help") do
         puts "Benchmark Variant Tester"
@@ -158,7 +158,7 @@ class BenchmarkVariantTester
     # Check that output includes the expected format with #, sample size, it/s, MB/s
     lines = result.lines.select(&.includes?("#"))
 
-    if lines.all? { |l| l.includes?("it/s") && l.includes?("MB/s") }
+    if lines.all? { |line| line.includes?("it/s") && line.includes?("MB/s") }
       status = "✓ PASS"
       @passed += 1
     else

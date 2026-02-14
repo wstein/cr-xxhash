@@ -10,6 +10,7 @@ require "./common/primitives"
 
 module XXH::CLI
   # Main CLI entry point
+  # ameba:disable Metrics/CyclomaticComplexity
   def self.run(argv = ARGV)
     parser = Parser.new(argv)
     unless parser.parse
@@ -30,7 +31,7 @@ module XXH::CLI
 
     # Handle stdin case for hash/check modes
     if files.empty? || (files.size == 1 && files[0] == "-")
-      if options.explicit_stdin || !STDIN.tty?
+      if options.explicit_stdin? || !STDIN.tty?
         files = ["-"]
       else
         STDERR.puts "No input provided"
@@ -56,7 +57,7 @@ module XXH::CLI
 
     # Output results in order
     files.each do |filename|
-      result = results.find { |r| r.filename == filename }
+      result = results.find { |result_item| result_item.filename == filename }
       next unless result
 
       output = Formatter.format(result, options.algorithm, options.convention, options.endianness)
@@ -75,6 +76,7 @@ module XXH::CLI
     exit all_ok ? 0 : 1
   end
 
+  # ameba:disable Metrics/CyclomaticComplexity
   private def self.verify_checksum_file(filepath : String, options : Options) : Bool
     return false unless File.exists?(filepath)
 
@@ -94,7 +96,7 @@ module XXH::CLI
       parsed = Formatter.parse_checksum_line(line, algo_bitmask)
       unless parsed
         improperly_formatted += 1
-        if options.warn
+        if options.warn?
           STDERR.puts "#{filepath}:#{line_number}: Error: Improperly formatted checksum line"
         end
         next
@@ -113,11 +115,11 @@ module XXH::CLI
       else
         # Check if file exists
         unless File.exists?(filename)
-          if options.ignore_missing
+          if options.ignore_missing?
             next
           else
             open_failures += 1
-            unless options.status
+            unless options.status?
               STDERR.puts "#{filepath}:#{line_number}: Could not open or read '#{filename}': No such file or directory"
             end
             next
@@ -127,7 +129,7 @@ module XXH::CLI
         actual = FileHasher.hash_file(filename, algorithm, options.simd_mode)
       end
 
-      next unless actual.success
+      next unless actual.success?
 
       # Compare hashes
       hash_ok = false
@@ -156,7 +158,7 @@ module XXH::CLI
 
       if hash_ok
         matched += 1
-        unless options.quiet || options.status
+        unless options.quiet? || options.status?
           puts "#{filename}: OK"
         end
       else
@@ -166,7 +168,7 @@ module XXH::CLI
     end
 
     # Summary
-    unless options.status
+    unless options.status?
       if properly_formatted == 0
         STDERR.puts "#{filepath}: no properly formatted xxHash checksum lines found"
       elsif improperly_formatted > 0
@@ -184,10 +186,10 @@ module XXH::CLI
     ok = properly_formatted > 0 &&
          mismatched == 0 &&
          open_failures == 0 &&
-         (!options.strict || improperly_formatted == 0)
+         (!options.strict? || improperly_formatted == 0)
 
-    if options.ignore_missing && matched == 0
-      unless options.status
+    if options.ignore_missing? && matched == 0
+      unless options.status?
         puts "#{filepath}: no file was verified"
       end
       return false
@@ -234,7 +236,7 @@ module XXH::CLI
 
     getter id : Int32
     getter name : String
-    getter aligned : Bool
+    getter? aligned : Bool
     getter variant_type : String
     getter algorithm : Algorithm
   end
@@ -253,7 +255,7 @@ module XXH::CLI
     unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
 
     # Print version header unless -q (quiet) flag is set
-    unless options.quiet
+    unless options.quiet?
       puts "Crystal port of xxhsum 0.8.3"
     end
 
@@ -263,15 +265,15 @@ module XXH::CLI
     all_variants = build_benchmark_variants
 
     # Filter variants to run based on options
-    variants_to_run = if options.benchmark_all
+    variants_to_run = if options.benchmark_all?
                         # User specified -b0, -b29+, --bench-all, or comma-separated list
                         # Run all 28 variants
                         all_variants
                       elsif !options.benchmark_variants.empty?
                         # User specified specific variants with -b1,3,5
-                        options.benchmark_variants.map do |id|
+                        options.benchmark_variants.compact_map do |id|
                           all_variants.find { |v| v.id == id }
-                        end.compact
+                        end
                       elsif options.benchmark_id > 0
                         # User specified a single benchmark ID with -b1
                         variant = all_variants.find { |v| v.id == options.benchmark_id }
@@ -283,8 +285,8 @@ module XXH::CLI
                       end
 
     # Run benchmarks
-    variants_to_run.each do |variant|
-      run_single_benchmark(aligned_data, unaligned_data, variant, options.iterations)
+    variants_to_run.each do |bench_variant|
+      run_single_benchmark(aligned_data, unaligned_data, bench_variant, options.iterations)
     end
   end
 
@@ -340,7 +342,7 @@ module XXH::CLI
 
   private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : BenchmarkVariant, user_iterations : Int32 = 0)
     # Select data based on alignment
-    data = variant.aligned ? aligned_data : unaligned_data
+    data = variant.aligned? ? aligned_data : unaligned_data
 
     # If user specified iterations, use that as max calibration rounds
     # Otherwise use default calibration
@@ -373,11 +375,10 @@ module XXH::CLI
       # The actual hashing loop - run hashes in blocks of nbh_per_iteration
       # until we hit the target duration
       actual_iterations = 0_u32
-      result = 0_u64
       iteration_number = 0_u32
 
       while (Time.instant - start_time).total_seconds < target_duration
-        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration)
+        run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration)
         actual_iterations += nbh_per_iteration
         iteration_number += 1
       end

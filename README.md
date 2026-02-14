@@ -118,14 +118,13 @@ Notes:
   * Expected gains: 20-30% for small inputs (0-16B), 15-25% for medium (17-240B), 10-15% for large (240B+)
   * See [SESSION_5_PERFORMANCE_OPTIMIZATIONS.md](SESSION_5_PERFORMANCE_OPTIMIZATIONS.md) for detailed breakdown
 
-
 ## Folder conventions (per-algorithm)
 
 Each algorithm implementation follows a small, consistent folder schema to keep code easy to navigate and extend. Create new algorithm folders using this layout:
 
-- `wrapper.cr` — Public API, one-shot helpers, and factory functions (always required)
-- `state.cr` — Streaming State implementation (FFI-backed for vendor/state where applicable)
-- `types.cr` — Optional small type definitions (e.g. `Hash128`) when needed
+* `wrapper.cr` — Public API, one-shot helpers, and factory functions (always required)
+* `state.cr` — Streaming State implementation (FFI-backed for vendor/state where applicable)
+* `types.cr` — Optional small type definitions (e.g. `Hash128`) when needed
 
 Example:
 

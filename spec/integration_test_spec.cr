@@ -11,12 +11,12 @@ class IntegrationTester
   property test_files = [] of String
   property algorithms = [0, 1, 2, 3]
   property test_options = ["basic", "bsd", "stdin", "check", "little-endian", "benchmark", "benchmark-variants", "iterations", "block-size", "quiet", "status", "strict", "warn", "ignore-missing", "version"] of String
-  property verbose = false
+  property? verbose = false
   property passed = 0
   property failed = 0
   property skipped = 0
   property expected_failures = 0
-  property binary_mode_unsupported = false # Track if --binary is unsupported in our version
+  property? binary_mode_unsupported = false # Track if --binary is unsupported in our version
 
   def initialize
     parse_args
@@ -24,21 +24,21 @@ class IntegrationTester
 
   def parse_args
     OptionParser.parse do |parser|
-      parser.on("-c", "--crystal=PATH", "Path to Crystal xxhsum") { |p| @crystal_bin = p }
-      parser.on("-v", "--vendor=PATH", "Path to vendor xxhsum") { |p| @vendor_bin = p }
-      parser.on("-f", "--file=FILE", "Test file (can specify multiple times)") { |f| @test_files << f }
-      parser.on("-a", "--algorithm=NUM", "Algorithm to test (0,1,2,3 or all)") do |a|
-        if a == "all"
+      parser.on("-c", "--crystal=PATH", "Path to Crystal xxhsum") { |path| @crystal_bin = path }
+      parser.on("-v", "--vendor=PATH", "Path to vendor xxhsum") { |path| @vendor_bin = path }
+      parser.on("-f", "--file=FILE", "Test file (can specify multiple times)") { |file| @test_files << file }
+      parser.on("-a", "--algorithm=NUM", "Algorithm to test (0,1,2,3 or all)") do |algo_str|
+        if algo_str == "all"
           @algorithms = [0, 1, 2, 3]
         else
-          @algorithms = [a.to_i32]
+          @algorithms = [algo_str.to_i32]
         end
       end
-      parser.on("-t", "--test=TYPE", "Test type (basic, bsd, stdin, check, little-endian, benchmark, benchmark-variants, iterations, block-size, quiet, status, strict, warn, ignore-missing, version, or all)") do |t|
-        if t == "all"
+      parser.on("-t", "--test=TYPE", "Test type (basic, bsd, stdin, check, little-endian, benchmark, benchmark-variants, iterations, block-size, quiet, status, strict, warn, ignore-missing, version, or all)") do |test_type|
+        if test_type == "all"
           @test_options = ["basic", "bsd", "stdin", "check", "little-endian", "benchmark", "benchmark-variants", "iterations", "block-size", "quiet", "status", "strict", "warn", "ignore-missing", "version"]
         else
-          @test_options = [t]
+          @test_options = [test_type]
         end
       end
       parser.on("--verbose", "Verbose output") { @verbose = true }
@@ -63,7 +63,7 @@ class IntegrationTester
         "README.md",
         "LICENSE",
         "shard.yml",
-      ].select { |f| File.exists?(f) }
+      ].select { |file| File.exists?(file) }
 
       if @test_files.empty?
         puts "ERROR: No test files found. Provide with -f option."
@@ -84,38 +84,7 @@ class IntegrationTester
     @test_files.each do |file|
       @algorithms.each do |algo|
         @test_options.each do |test_type|
-          case test_type
-          when "basic"
-            test_hash(file, algo)
-          when "bsd"
-            test_bsd_format(file, algo)
-          when "stdin"
-            test_stdin(file, algo)
-          when "check"
-            test_checksum_verification(file, algo)
-          when "little-endian"
-            test_little_endian(file, algo)
-          when "benchmark"
-            test_benchmark if algo == 0 # Only test once, not per algorithm
-          when "benchmark-variants"
-            test_benchmark_variants if algo == 0
-          when "iterations"
-            test_iterations if algo == 0
-          when "block-size"
-            test_block_size if algo == 0
-          when "quiet"
-            test_quiet_flag if algo == 0
-          when "status"
-            test_status_flag(file, algo)
-          when "strict"
-            test_strict_flag if algo == 0
-          when "warn"
-            test_warn_flag if algo == 0
-          when "ignore-missing"
-            test_ignore_missing_flag if algo == 0
-          when "version"
-            test_version if algo == 0
-          end
+          execute_test_type(test_type, file, algo)
         end
       end
     end
@@ -225,6 +194,42 @@ class IntegrationTester
     status = "⊘ SKIP"
     @skipped += 1
     puts "[#{status}] block-size - #{ex.message}"
+  end
+
+  # ameba:disable Metrics/CyclomaticComplexity
+  private def execute_test_type(test_type : String, file : String, algo : Int32)
+    case test_type
+    when "basic"
+      test_hash(file, algo)
+    when "bsd"
+      test_bsd_format(file, algo)
+    when "stdin"
+      test_stdin(file, algo)
+    when "check"
+      test_checksum_verification(file, algo)
+    when "little-endian"
+      test_little_endian(file, algo)
+    when "benchmark"
+      test_benchmark if algo == 0 # Only test once, not per algorithm
+    when "benchmark-variants"
+      test_benchmark_variants if algo == 0
+    when "iterations"
+      test_iterations if algo == 0
+    when "block-size"
+      test_block_size if algo == 0
+    when "quiet"
+      test_quiet_flag if algo == 0
+    when "status"
+      test_status_flag(file, algo)
+    when "strict"
+      test_strict_flag if algo == 0
+    when "warn"
+      test_warn_flag if algo == 0
+    when "ignore-missing"
+      test_ignore_missing_flag if algo == 0
+    when "version"
+      test_version if algo == 0
+    end
   end
 
   private def test_quiet_flag
@@ -419,8 +424,10 @@ class IntegrationTester
     crystal_result = IO::Memory.new
     vendor_result = IO::Memory.new
 
-    Process.run("cat", [file], output: Process.new(@crystal_bin, ["-H#{algo}"], input: Process::Redirect::Pipe, output: crystal_result).input.not_nil!)
-    Process.run("cat", [file], output: Process.new(@vendor_bin, ["-H#{algo}"], input: Process::Redirect::Pipe, output: vendor_result).input.not_nil!)
+    crystal_proc = Process.new(@crystal_bin, ["-H#{algo}"], input: Process::Redirect::Pipe, output: crystal_result)
+    Process.run("cat", [file], output: crystal_proc.input)
+    vendor_proc = Process.new(@vendor_bin, ["-H#{algo}"], input: Process::Redirect::Pipe, output: vendor_result)
+    Process.run("cat", [file], output: vendor_proc.input)
 
     crystal_hash = crystal_result.to_s.split(" ")[0]
     vendor_hash = vendor_result.to_s.split(" ")[0]
@@ -532,7 +539,7 @@ class IntegrationTester
 
     # Use shell timeout to limit execution
     cmd = ["timeout", timeout_secs.to_s, bin] + args
-    Process.run("timeout", [timeout_secs.to_s, bin] + args, output: result, error: error)
+    Process.run(cmd[0], cmd[1..], output: result, error: error)
     result.to_s.strip
   rescue ex
     "ERROR: #{ex.message}"
