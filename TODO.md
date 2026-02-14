@@ -11,7 +11,7 @@
 ```
 Phase 1: Foundation         [░░░░░░░░░░] 0/13 tasks
 Phase 2: Core API           [░░░░░░░░░░] 0/10 tasks
-Phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks
+phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks (See TODO_TESTS.md)
 Phase 4: CLI & Examples     [░░░░░░░░░░] 0/6 tasks
 Phase 5: CPU Optimization   [░░░░░░░░░░] 0/5 tasks
 Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
@@ -1312,6 +1312,8 @@ end
 ---
 
 ## ✅ PHASE 3: Tests & Quality Assurance (HIGH)
+
+> **Note**: A detailed test plan is available in [TODO_TESTS.md](TODO_TESTS.md). The tasks below are high-level summaries.
 
 ### 3.1 Write XXH32 Test Suite
 
@@ -2824,13 +2826,13 @@ BSD-2-Clause (same as xxHash)
 
 ### High Priority (Complete Next)
 
-4. Phase 4 (CLI) - All tasks ⭐⭐⭐⭐
+1. Phase 4 (CLI) - All tasks ⭐⭐⭐⭐
 2. Phase 3 (Tests) - Tasks 3.7-3.8 ⭐⭐⭐
 3. Phase 6 (Docs) - Tasks 6.1-6.2 ⭐⭐⭐⭐
 
 ### Medium Priority (Nice to Have)
 
-7. Phase 5 (CPU) - All tasks ⭐⭐⭐
+1. Phase 5 (CPU) - All tasks ⭐⭐⭐
 2. Phase 6 (Docs) - Tasks 6.3-6.4 ⭐⭐
 
 ### Optional Enhancements
