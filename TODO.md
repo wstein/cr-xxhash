@@ -1109,6 +1109,8 @@ end
 
 - [x] `spec/vendor_parity_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
   - Extended vendor-parity across many input sizes, alignment invariants, and seed-boundary checks (XXH32/XXH64/XXH3)
+- [x] `scripts/generate_vectors.cr` → per-algorithm fixtures + `spec/support/vector_loader.cr` — Priority: ⭐⭐⭐ — Effort: 30m
+  - Parses `vendor/xxHash/tests/sanity_test_vectors.h`, emits per-algorithm hex fixtures under `spec/fixtures/`, and exposes `XXH::VectorLoader` (lazy) for tests; consumed by `spec/vendor_generated_vectors_spec.cr`
 
 - [x] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
   - Canonical round-trip and invalid-length assertions

@@ -26,6 +26,12 @@ This project aims to bridge the gap between low-level C optimization and High-le
     * Run the benchmark and include results in your PR when performance changes are involved:
         **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
     * Use `scripts/tool_versions.cr` (run with `crystal run`) to document your environment in the PR description.
+
+    * Regenerating vendor test vectors:
+      - Run `crystal scripts/generate_vectors.cr` to regenerate per-algorithm fixtures under `spec/fixtures/` (files: `vendor_vectors_xxh32.json`, `vendor_vectors_xxh64.json`, `vendor_vectors_xxh3.json`, `vendor_vectors_xxh128.json`). Each fixture includes `vectors` and `sanity_buffer_max_len`.
+      - Verify the fixtures and loader: `crystal spec spec/generate_vectors_spec.cr`.
+      - Run the full test-suite: `crystal spec`.
+      - If fixtures changed, commit the updated files and include them in your PR so CI can validate vendor parity.
 == Aliases & Local Bin
 
 For developer convenience this project creates lightweight CLI aliases that default to algorithm-specific behavior (matching the vendor tool). The aliases are:
