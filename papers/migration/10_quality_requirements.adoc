@@ -15,7 +15,7 @@ Quality
 │   └── Parity (100% bit-parity with C reference)
 └── Maintainability
     ├── Clarity (Safe wrappers for unsafe code)
-    └── Reproducibility (tool_versions.rb support)
+    └── Reproducibility (tool_versions.cr support)
 ----
 
 === 10.2 Quality Scenarios

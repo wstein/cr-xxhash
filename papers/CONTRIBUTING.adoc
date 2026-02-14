@@ -25,7 +25,7 @@ This project aims to bridge the gap between low-level C optimization and High-le
     * Maintenance note: Keep `src/xxh/bindings.cr` synchronized with `vendor/xxHash`. When updating vendor C code, refreshing or adding specs that compare `XXH::*` results with the vendor helpers (e.g., `XXH::XXH3.hash128_stream`) ensures CI and local runs validate the change. Rebuild the vendor library after any C-side updates to keep the binding and tests aligned.
     * Run the benchmark and include results in your PR when performance changes are involved:
         **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
-    * Use `scripts/tool_versions.rb` to document your environment in the PR description.
+    * Use `scripts/tool_versions.cr` (run with `crystal run`) to document your environment in the PR description.
 == Aliases & Local Bin
 
 For developer convenience this project creates lightweight CLI aliases that default to algorithm-specific behavior (matching the vendor tool). The aliases are:

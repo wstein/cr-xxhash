@@ -15,7 +15,7 @@ The current migration study is executed on macOS 26.2 (ARM64) with Crystal 1.19.
 
 === Reference environment
 
-The reference environment (hardware and toolchain used for benchmarking) is recorded here and reproduced by `scripts/tool_versions.rb`.
+The reference environment (hardware and toolchain used for benchmarking) is recorded here and reproduced by `scripts/tool_versions.cr`.
 
 [cols="1,2" options="header"]
 |===
@@ -29,29 +29,29 @@ The reference environment (hardware and toolchain used for benchmarking) is reco
 
 === Local tooling script
 
-To reproduce the reference environment's detected tool versions and to collect tooling information for CI or provenance, run the included Ruby helper script located at `scripts/tool_versions.rb`.
+To reproduce the reference environment's detected tool versions and to collect tooling information for CI or provenance, run the included Crystal helper script located at `scripts/tool_versions.cr`.
 
 [source,shell]
 ----
 # Print human-friendly versions
-ruby scripts/tool_versions.rb
+crystal run scripts/tool_versions.cr
 
 # Print JSON for automation or CI consumption
-ruby scripts/tool_versions.rb --json
+crystal run scripts/tool_versions.cr -- --json
 ----
 
 Note: The script is executable (mode: `rwxr-xr-x`) in the repository. If needed, make it executable with:
 
 [source,shell]
 ----
-chmod +x scripts/tool_versions.rb
+chmod +x scripts/tool_versions.cr
 ----
 
 === Quality Requirements
 
-* Throughput target: {throughput_m4} 
+* Throughput target: {throughput_m4}
 * Correctness target: pass the upstream `vendor/xxHash/tests/*.c` vectors (match big-endian and little-endian results).
-* Tool stability: tool_versions.rb output must be recorded during each major benchmark so environments can be reproduced.
+* Tool stability: tool_versions.cr output must be recorded during each major benchmark so environments can be reproduced.
 
 === Decision Records
 
