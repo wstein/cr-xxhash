@@ -18,23 +18,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Install dependencies
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           shards install --ignore-crystal-version || true
 
       - name: Run generator
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           crystal scripts/generate_vectors.cr
 
       - name: Verify fixtures are up-to-date
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           git --no-pager status --porcelain
           git diff --exit-code -- spec/fixtures || (
             echo "::error ::Generated fixtures are out of date. Run 'crystal scripts/generate_vectors.cr' and commit the changes."
@@ -44,4 +45,3 @@ jobs:
 
       - name: Run generator spec
         run: crystal spec spec/generate_vectors_spec.cr
-
