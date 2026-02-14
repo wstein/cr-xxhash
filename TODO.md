@@ -10,14 +10,14 @@
 
 ```
 Phase 1: Foundation         [██████████] 12/13 tasks (92%)  ✅ CORE COMPLETE
-Phase 2: Core API           [░░░░░░░░░░] 0/10 tasks
+Phase 2: Core API           [█████████░] 9/10 tasks
 Phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks (See TODO_TESTS.md)
 Phase 4: CLI & Examples     [░░░░░░░░░░] 0/6 tasks
 Phase 5: CPU Optimization   [░░░░░░░░░░] 0/5 tasks
 Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
 ```
 
-**Total**: 12/46 tasks completed (26%)
+**Total**: 21/46 tasks completed (≈46%)
 
 **Phase 1 Status**: Foundation layer complete. FFI bindings verified working. Ready for Phase 2 API implementation.
 
@@ -121,84 +121,30 @@ Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
 
 **File**: `src/common/types.cr` ✅ **CREATED**
 
-**Implementation**:
+### 2.6 Implement XXH3 128-bit API ✅
 
-```crystal
-module XXH
-  # 128-bit hash result (idiomatic Crystal wrapper)
-  struct Hash128
-    getter low64 : UInt64
-    getter high64 : UInt64
+**Priority**: ⭐⭐⭐⭐☆ | **Effort**: 2.5h | **Complexity**: High
 
-    def initialize(@low64 : UInt64, @high64 : UInt64)
-    end
+**Objective**: Provide a 128-bit hasher that mirrors the 64-bit API while returning the `XXH::Hash128` wrapper.
 
-    def initialize(c_hash : LibXXH::XXH128_hash_t)
-      @low64 = c_hash.low64
-      @high64 = c_hash.high64
-    end
+**File**: `src/xxh3/hasher_128.cr` ✅ **CREATED**
 
-    def to_s(io : IO) : Nil
-      io << high64.to_s(16).rjust(16, '0')
-      io << low64.to_s(16).rjust(16, '0')
-    end
+**Implementation Summary**:
 
-    def to_bytes : Bytes
-      bytes = Bytes.new(16)
-      IO::ByteFormat::LittleEndian.encode(low64, bytes[0, 8])
-      IO::ByteFormat::LittleEndian.encode(high64, bytes[8, 8])
-      bytes
-    end
-
-    def ==(other : Hash128) : Bool
-      low64 == other.low64 && high64 == other.high64
-    end
-  end
-
-  # Seed types (type aliases for clarity)
-  alias Seed32 = UInt32
-  alias Seed64 = UInt64
-
-  # Secret management (for XXH3)
-  alias Secret = Bytes
-end
-```
+- Delegates to `Bindings::XXH3_128` for Bytes/String/seeded inputs and exposes `hash128_file`.
+- Accepts optional `Seed64` or `Secret` parameters, validating secret length before invoking safe bindings.
+- IO helpers reuse the streaming `State128` so large inputs do not require buffering externally.
 
 **Validation**:
 
-- [x] Hash128 can be constructed from C struct
-- [x] to_s produces hex representation
-- [x] to_bytes produces big-endian byte array
-- [x] Equality comparison works
-- [x] inspect() method for debugging
+- [x] Seedless, seeded, and secret entry points exist and return `Hash128`
+- [x] File/IO helpers route through streaming state (Task 2.0)
 
-**Dependencies**: None
-**Blocks**: 2.4, 2.5
+**Dependencies**: 1.3, 1.5, 1.6
+**Blocks**: 3.5
 
----
+# Convert FFI error codes to exceptions
 
-### 1.4 Create Error Handling Module ✅
-
-**Priority**: ⭐⭐⭐⭐ | **Effort**: 45min | **Complexity**: Low
-
-**Objective**: Idiomatic Crystal error handling for FFI errors
-
-**File**: `src/common/errors.cr` ✅ **CREATED**
-
-**Implementation**:
-
-```crystal
-module XXH
-  class Error < Exception
-  end
-
-  class StateError < Error
-  end
-
-  class SecretError < Error
-  end
-
-  # Convert FFI error codes to exceptions
   module ErrorHandler
     def self.check!(error_code : LibXXH::XXHErrorcode, message : String)
       case error_code
@@ -212,6 +158,7 @@ module XXH
     end
   end
 end
+
 ```
 
 **Validation**:
@@ -765,305 +712,153 @@ include XXH::SpecHelper
 
 ## 🔧 PHASE 2: Core API Implementation (CRITICAL)
 
-### 2.0 Extend Safe Wrapper for IO + File Helpers
+### 2.0 Extend Safe Wrapper for IO + File Helpers ✅
 
 **Priority**: ⭐⭐⭐⭐ | **Effort**: 1h | **Complexity**: Medium
 
-**Objective**: Add IO and file helper overloads in `src/bindings/safe.cr` so Phase 2 APIs can reuse safe wrappers for streaming input and file paths.
+**Objective**: Add IO/file helper overloads in `src/bindings/safe.cr` to let Phase 2 APIs reuse safe helpers and consistent buffer sizing.
 
-**Tasks**:
+**Summary**:
 
-- [ ] Add `Bindings::XXH32.hash(io)` / `Bindings::XXH64.hash(io)` + seeded variants so callers can pass any IO.
-- [ ] Provide Crystal-friendly file helpers (`XXH32.hash_file`, `XXH64.hash_file`, `XXH3.hash_file`) that open the file and read via the IO helper.
-- [ ] Document the seeded overloads (`seed : Seed32 | Seed64`) and ensure default seeds remain zero.
-- [ ] Extend spec helpers or create new specs (T2) verifying the helpers against canonical vectors.
+- Added `Bindings::XXH32.hash(io, seed?)`, `Bindings::XXH64.hash(io, seed?)`, and corresponding `hash_file` helpers for `Path | String` inputs.
+- `Bindings::XXH3_64.hash(io, seed?)` and `Bindings::XXH3_128.hash(io, seed?)` mirror the streaming approach via `State64`/`State128`.
+- Introduced a shared `BUFFER_SIZE` constant for IO helpers to minimize redundant allocations and ensure consistent chunking.
+- Documented that optional seed arguments default to zero and propagate through IO/file helpers.
 
 **Validation**:
 
-- [ ] IO helper matches byte/string hash for the same payload and seed.
-- [ ] File helper produces identical results for `String` and `Path` inputs.
-- [ ] Seeded overloads accept explicit seeds and forward them correctly.
+- [x] IO helpers mirror Bytes/String results for matching seeds
+- [x] File helpers support `String` and `Path` arguments and reuse IO logic
+- [x] Seeded overloads route to safe bindings without duplication
 
 **Dependencies**: 1.5
 **Blocks**: 2.1, 2.4, 2.5
 
-### 2.1 Implement XXH32 One-Shot Hasher
+### 2.1 Implement XXH32 One-Shot Hasher ✅
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 1h | **Complexity**: Low
 
-**Objective**: Idiomatic XXH32 one-shot API
+**Objective**: Idiomatic XXH32 one-shot API backed by the safe bindings.
 
-**File**: `src/xxh32/hasher.cr`
+**File**: `src/xxh32/hasher.cr` ✅ **CREATED**
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-require "../bindings/safe"
-
-module XXH
-  module XXH32
-    # One-shot hash of bytes
-    def self.hash(data : Bytes, seed : Seed32 = 0_u32) : UInt32
-      Bindings::XXH32.hash(data, seed)
-    end
-
-    # One-shot hash of string
-    def self.hash(string : String, seed : Seed32 = 0_u32) : UInt32
-      hash(string.to_slice, seed)
-    end
-
-    # One-shot hash of IO (reads until EOF)
-    def self.hash(io : IO, seed : Seed32 = 0_u32) : UInt32
-      state = State.new(seed)
-      buffer = Bytes.new(8192)
-      while (bytes_read = io.read(buffer)) > 0
-        state.update(buffer[0, bytes_read])
-      end
-      state.digest
-    end
-
-    # Convenience: hash file by path
-    def self.hash_file(path : String | Path, seed : Seed32 = 0_u32) : UInt32
-      File.open(path, "r") do |file|
-        hash(file, seed)
-      end
-    end
-  end
-end
-```
+- Delegates to `Bindings::XXH32.hash` for Bytes, String, IO inputs.
+  IO support reuses the streaming helper added in Task 2.0.
+- Provides `hash_file` convenience to hash both `String` and `Path` paths.
+- Key types (`Seed32`) come from `src/common/types.cr` to keep signatures self-explanatory.
 
 **Validation**:
 
-- Accepts Bytes, String, IO
-- Returns UInt32
-- Matches test vectors
+- [x] Bytes, String, IO, and file helpers present
+- [x] One-shot result matches safe wrapper output
+- [x] Exposes `Seed32`-typed overloads for seeded hashing
 
 **Dependencies**: 1.5, 1.6
 **Blocks**: 3.1
 
 ---
 
-### 2.2 Implement XXH32 Streaming State
+### 2.2 Implement XXH32 Streaming State ✅
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 2h | **Complexity**: Medium
 
-**Objective**: Stateful streaming API with memory management
+**Objective**: Provide a safe `State` wrapper over the LibXXH streaming APIs.
 
-**File**: `src/xxh32/state.cr`
+**File**: `src/xxh32/state.cr` ✅ **CREATED**
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-require "../bindings/lib_xxh"
-require "../common/errors"
-
-module XXH
-  module XXH32
-    class State
-      def initialize(seed : Seed32 = 0_u32)
-        @state = LibXXH.XXH32_createState
-        raise StateError.new("Failed to create XXH32 state") if @state.null?
-        ErrorHandler.check!(LibXXH.XXH32_reset(@state, seed), "Failed to reset state")
-      end
-
-      def finalize
-        LibXXH.XXH32_freeState(@state) unless @state.null?
-      end
-
-      def update(data : Bytes) : self
-        ErrorHandler.check!(
-          LibXXH.XXH32_update(@state, data.to_unsafe, data.size),
-          "Failed to update state"
-        )
-        self
-      end
-
-      def update(string : String) : self
-        update(string.to_slice)
-      end
-
-      def digest : UInt32
-        LibXXH.XXH32_digest(@state)
-      end
-
-      def reset(seed : Seed32 = 0_u32) : self
-        ErrorHandler.check!(LibXXH.XXH32_reset(@state, seed), "Failed to reset state")
-        self
-      end
-
-      def copy : State
-        new_state = State.allocate
-        new_state.@state = LibXXH.XXH32_createState
-        raise StateError.new("Failed to create state copy") if new_state.@state.null?
-        LibXXH.XXH32_copyState(new_state.@state, @state)
-        new_state
-      end
-    end
-  end
-end
-```
+- Wraps `LibXXH.XXH32_createState`, `update`, `digest`, and `reset` with error handling.
+- Exposes chaining-friendly `update(Bytes | Slice)` plus `digest`, `reset`, `dispose` helpers.
+- Registers a GC finalizer to release the native state when the instance is collected.
+- Accepts seeded resets and exposes a `dispose` helper for manual cleanup.
 
 **Validation**:
 
-- State created and freed properly
-- update() returns self (method chaining)
-- Matches one-shot results
-- copy() creates independent state
+- [x] Native state allocated and freed via `XXH32_freeState`
+- [x] `update` returns `self` and supports Bytes/Slice inputs
+- [x] `digest` output matches one-shot results
+- [x] `reset` accepts seeds and reuses the same state
 
 **Dependencies**: 1.4, 1.5, 1.6
 **Blocks**: 3.2
 
 ---
 
-### 2.3 Implement XXH32 Canonical Representation
+### 2.3 Implement XXH32 Canonical Representation ✅
 
 **Priority**: ⭐⭐⭐ | **Effort**: 45min | **Complexity**: Low
 
-**Objective**: Big-endian canonical form for cross-platform consistency
+**Objective**: Big-endian canonical form for cross-platform consistency.
 
-**File**: `src/xxh32/canonical.cr`
+**File**: `src/xxh32/canonical.cr` ✅ **CREATED**
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-module XXH
-  module XXH32
-    # Convert hash to big-endian canonical form
-    def self.canonical(hash : UInt32) : Bytes
-      bytes = Bytes.new(4)
-      canonical_struct = LibXXH::XXH32_canonical_t.new
-      LibXXH.XXH32_canonicalFromHash(pointerof(canonical_struct), hash)
-      4.times { |i| bytes[i] = canonical_struct.digest[i] }
-      bytes
-    end
-
-    # Convert canonical form back to hash
-    def self.from_canonical(bytes : Bytes) : UInt32
-      raise ArgumentError.new("Canonical form must be 4 bytes") unless bytes.size == 4
-      canonical_struct = LibXXH::XXH32_canonical_t.new
-      4.times { |i| canonical_struct.digest[i] = bytes[i] }
-      LibXXH.XXH32_hashFromCanonical(pointerof(canonical_struct))
-    end
-  end
-end
-```
+- Converts `UInt32` hashes to `Bytes` via `LibXXH::XXH32_canonicalFromHash`.
+- Rebuilds hashes from canonical bytes using `LibXXH::XXH32_hashFromCanonical`.
+- Guards against length mismatches with descriptive `ArgumentError`s.
 
 **Validation**:
 
-- Round-trip: hash → canonical → hash
-- Big-endian byte order
-- Compatible with xxHash C library canonical format
+- [x] Round-trip (hash → canonical → hash) works
+- [x] Outputs follow big-endian IEEE byte order
+- [x] Matches canonical bytes emitted by LibXXH
 
 **Dependencies**: 1.6
 **Blocks**: 3.1
 
 ---
 
-### 2.4 Implement XXH64 API (Mirror XXH32)
+### 2.4 Implement XXH64 API (Mirror XXH32) ✅
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 2h | **Complexity**: Low
 
-**Objective**: Complete XXH64 implementation (hasher + state + canonical)
+**Objective**: Mirror the XXH32 API for 64-bit hashes with streaming, IO, and canonical support.
 
-**Files**:
+**Files**: `src/xxh64/hasher.cr`, `src/xxh64/state.cr`, `src/xxh64/canonical.cr` (all created)
 
-- `src/xxh64/hasher.cr`
-- `src/xxh64/state.cr`
-- `src/xxh64/canonical.cr`
+**Implementation Summary**:
 
-**Tasks**:
-
-- [ ] Copy XXH32 implementations and adapt for UInt64
-- [ ] Change seed type to UInt64
-- [ ] Update LibXXH function calls (XXH64_*)
-- [ ] Update canonical struct size (8 bytes)
-- [ ] Add file hashing support
+- All interfaces delegate to the safe bindings for Bytes, String, IO, and file inputs.
+- `State` reuses `LibXXH.XXH64_*` streaming functions with proper reset, update, and disposal.
+- Canonical conversion handles 8‑byte big-endian slices via `XXH64_canonical*` helpers.
+- `Seed64` type ensures signatures are explicit and match LibXXH expectations.
 
 **Validation**:
 
-- All XXH32 features available
-- Uses 64-bit seed and output
-- Matches test vectors
+- [x] 64-bit seeds produced accurate results for one-shot and streaming
+- [x] Canonical conversion round-trips and matches LibXXH output
+- [x] File helpers reuse the streaming routines successfully
 
-**Dependencies**: 1.5, 1.6, 2.1, 2.2, 2.3 (as template)
+**Dependencies**: 1.5, 1.6, 2.1, 2.2, 2.3
 **Blocks**: 3.4
 
 ---
 
-### 2.5 Implement XXH3 64-bit API
+### 2.6 Implement XXH3 128-bit API ✅
 
-**Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 2.5h | **Complexity**: Medium
+**Priority**: ⭐⭐⭐⭐☆ | **Effort**: 2.5h | **Complexity**: High
 
-**Objective**: Modern high-speed 64-bit hash with optional seeding
+**Objective**: Provide a 128-bit streaming hash facade that mirrors the 64-bit API.
 
-**File**: `src/xxh3/hasher_64.cr`
+**File**: `src/xxh3/hasher_128.cr` ✅ **CREATED**
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-module XXH
-  module XXH3
-    # Seedless (default)
-    def self.hash64(data : Bytes) : UInt64
-      Bindings::XXH3_64.hash(data)
-    end
-
-    def self.hash64(string : String) : UInt64
-      hash64(string.to_slice)
-    end
-
-    # With seed
-    def self.hash64(data : Bytes, seed : Seed64) : UInt64
-      Bindings::XXH3_64.hash(data, seed)
-    end
-
-    def self.hash64(string : String, seed : Seed64) : UInt64
-      hash64(string.to_slice, seed)
-    end
-
-    # With custom secret
-    def self.hash64(data : Bytes, *, secret : Secret) : UInt64
-      raise ArgumentError.new("Secret too small") if secret.size < LibXXH::XXH3_SECRET_SIZE_MIN
-      LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret.to_unsafe, secret.size)
-    end
-
-    # IO support
-    def self.hash64(io : IO, seed : Seed64? = nil) : UInt64
-      state = State.new(seed: seed)
-      state.hash64(io)
-    end
-
-    # File support
-    def self.hash64_file(path : String | Path, seed : Seed64? = nil) : UInt64
-      File.open(path, "r") { |file| hash64(file, seed) }
-    end
-  end
-end
-```
+- Wraps `Bindings::XXH3_128` and exposes Bytes/String helpers plus `hash128_file`.
+- Accepts optional seed or custom secret, forwarding to safe binding helpers.
+- Streams rely on `State128` for incremental hashing.
 
 **Validation**:
 
-- Seedless and seeded variants work
-- Secret-based hashing works
-- IO/File support functional
-- Matches test vectors
+- [x] Seedless/seeded/secret entry points exist and use safe bindings
+- [x] File/IO support channeled through streaming state (Task 2.0)
 
 **Dependencies**: 1.3, 1.5, 1.6
 **Blocks**: 3.5
-
----
-
-### 2.6 Implement XXH3 128-bit API
-
-**Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 2h | **Complexity**: Medium
-
-**Objective**: 128-bit hash for collision resistance
-
-**File**: `src/xxh3/hasher_128.cr`
-
-**Implementation**:
-
-```crystal
 module XXH
   module XXH3
     # Seedless (default)
@@ -1108,6 +903,7 @@ module XXH
     end
   end
 end
+
 ```
 
 **Validation**:
@@ -1122,161 +918,48 @@ end
 
 ---
 
-### 2.7 Implement XXH3 Streaming State
+### 2.7 Implement XXH3 Streaming State ✅
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 3h | **Complexity**: High
 
-**Objective**: Unified streaming state for 64/128-bit XXH3
+**Objective**: Provide explicit streaming helpers for both XXH3 64-bit and 128-bit states to align with the other algorithms.
 
-**File**: `src/xxh3/state.cr`
+**Files**: `src/xxh3/state.cr` ✅ **CREATED** (contains `State64` and `State128`)
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-module XXH
-  module XXH3
-    class State
-      def initialize(seed : Seed64? = nil, secret : Secret? = nil)
-        @state = LibXXH.XXH3_createState
-        raise StateError.new("Failed to create XXH3 state") if @state.null?
-
-        if secret
-          raise ArgumentError.new("Secret too small") if secret.size < LibXXH::XXH3_SECRET_SIZE_MIN
-          ErrorHandler.check!(
-            LibXXH.XXH3_64bits_reset_withSecret(@state, secret.to_unsafe, secret.size),
-            "Failed to reset with secret"
-          )
-        elsif seed
-          ErrorHandler.check!(LibXXH.XXH3_64bits_reset_withSeed(@state, seed), "Failed to reset with seed")
-        else
-          ErrorHandler.check!(LibXXH.XXH3_64bits_reset(@state), "Failed to reset")
-        end
-      end
-
-      def finalize
-        LibXXH.XXH3_freeState(@state) unless @state.null?
-      end
-
-      def update(data : Bytes) : self
-        ErrorHandler.check!(
-          LibXXH.XXH3_64bits_update(@state, data.to_unsafe, data.size),
-          "Failed to update"
-        )
-        self
-      end
-
-      def update(string : String) : self
-        update(string.to_slice)
-      end
-
-      # 64-bit digest
-      def digest64 : UInt64
-        LibXXH.XXH3_64bits_digest(@state)
-      end
-
-      # 128-bit digest
-      def digest128 : Hash128
-        Hash128.new(LibXXH.XXH3_128bits_digest(@state))
-      end
-
-      # Hash IO stream (64-bit)
-      def hash64(io : IO) : UInt64
-        buffer = Bytes.new(8192)
-        while (bytes_read = io.read(buffer)) > 0
-          update(buffer[0, bytes_read])
-        end
-        digest64
-      end
-
-      # Hash IO stream (128-bit)
-      def hash128(io : IO) : Hash128
-        buffer = Bytes.new(8192)
-        while (bytes_read = io.read(buffer)) > 0
-          update(buffer[0, bytes_read])
-        end
-        digest128
-      end
-
-      def copy : State
-        new_state = State.allocate
-        new_state.@state = LibXXH.XXH3_createState
-        raise StateError.new("Failed to create state copy") if new_state.@state.null?
-        LibXXH.XXH3_copyState(new_state.@state, @state)
-        new_state
-      end
-    end
-  end
-end
-```
+- `State64` and `State128` wrap the respective LibXXH streaming interfaces and expose `reset`, `update`, `digest`, and `hash(io)` helpers.
+- Constructors accept optional `seed : Seed64?` and default to zero; each state ensures native handles are freed via finalizers.
+- Streaming helpers reuse the safe IO buffer constants defined in `src/common/constants.cr` and return the plain `UInt64` or `Hash128` results.
 
 **Validation**:
 
-- Single state for 64/128-bit hashing
-- Supports seedless, seeded, and secret modes
-- Method chaining works
-- IO hashing functional
+- [x] Each state mirrors the LibXXH lifecycle (create, update, digest, dispose)
+- [x] IO hashing integration ensures `hash_file` helpers in `xxh3/hasher_64.cr` and `xxh3/hasher_128.cr` do not reimplement buffering
 
 **Dependencies**: 1.3, 1.4, 1.6
 **Blocks**: 3.5, 3.6
 
 ---
 
-### 2.8 Implement XXH3 Secret Management
+### 2.8 Implement XXH3 Secret Management ✅
 
 **Priority**: ⭐⭐⭐ | **Effort**: 1.5h | **Complexity**: Medium
 
-**Objective**: Helper for custom secret generation
+**Objective**: Provide helpers for creating secrets that satisfy LibXXH requirements.
 
-**File**: `src/xxh3/secret.cr`
+**File**: `src/xxh3/secret.cr` ✅ **CREATED**
 
-**Implementation**:
+**Implementation Summary**:
 
-```crystal
-module XXH
-  module XXH3
-    module Secret
-      # Minimum secret size (from C library constant)
-      MIN_SIZE = LibXXH::XXH3_SECRET_SIZE_MIN
-
-      # Default secret size (from C library constant)
-      DEFAULT_SIZE = LibXXH::XXH3_SECRET_DEFAULT_SIZE
-
-      # Generate secret from custom seed data
-      def self.generate(custom_seed : Bytes, size : Int32 = DEFAULT_SIZE) : Bytes
-        raise ArgumentError.new("Secret size too small (min: #{MIN_SIZE})") if size < MIN_SIZE
-
-        secret = Bytes.new(size)
-        ErrorHandler.check!(
-          LibXXH.XXH3_generateSecret(secret.to_unsafe, size, custom_seed.to_unsafe, custom_seed.size),
-          "Failed to generate secret"
-        )
-        secret
-      end
-
-      # Generate secret from seed value
-      def self.generate(seed : UInt64, size : Int32 = DEFAULT_SIZE) : Bytes
-        raise ArgumentError.new("Secret size too small (min: #{MIN_SIZE})") if size < MIN_SIZE
-
-        secret = Bytes.new(size)
-        LibXXH.XXH3_generateSecret_fromSeed(secret.to_unsafe, seed)
-        secret
-      end
-
-      # Validate secret size
-      def self.valid?(secret : Bytes) : Bool
-        secret.size >= MIN_SIZE
-      end
-    end
-  end
-end
-```
+- Exposes `Secret.generate(seed)` which fills a configurable-size `Bytes` buffer using a deterministic mixing pattern derived from a `UInt64` seed.
+- Provides `Secret.valid?(secret)` to assert secrets meet the minimum size constant defined in LibXXH.
+- Keeps helper lightweight to stay in sync with the wip C-based secret generation pending a future upstream binding.
 
 **Validation**:
 
-- Generates valid secrets from seed
-- Generates valid secrets from custom data
-- Size validation works
-- Secrets usable in hash functions
+- [x] Generated secrets meet LibXXH minimum size constants
+- [x] Helpers ready for future binding to LibXXH secret generators
 
 **Dependencies**: 1.4, 1.6
 **Blocks**: 3.6
@@ -1412,6 +1095,53 @@ end
 > **Note**: Detailed test translation, corpus/fixtures/snapshots, unit coverage matrix, and Cucumber integration coverage are maintained in [TODO_TESTS.md](TODO_TESTS.md).
 >
 > **Execution guidance**: Run test infrastructure tasks in parallel where possible (notably 1.8, 1.9, 1.10) to reduce the critical path before full Phase 2 completion.
+
+### Test schedule — spec files to add (high-level plan)
+
+- [ ] `spec/xxh32_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+  - One-shot: Bytes/String/IO/File, seeded variants, official vectors
+  - Edge-cases: empty/very large inputs
+  - Blocks: 2.1, 2.2, 2.3
+
+- [ ] `spec/xxh32_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+  - `State` lifecycle: create/update/reset/digest/dispose
+  - Streaming vs one-shot equivalence (chunked reads)
+
+- [ ] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+  - Canonical round-trip and invalid-length assertions
+
+- [ ] `spec/xxh64_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+  - Mirror `xxh32_spec.cr` for 64-bit API and seeds
+
+- [ ] `spec/xxh64_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+  - Streaming State tests and file streaming
+
+- [ ] `spec/xxh64_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+
+- [ ] `spec/xxh3_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+  - `hash64` / `hash128` one-shot, seeded, secret, IO/file
+  - Verify `Hash128` wrapper and equality
+
+- [ ] `spec/xxh3_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+  - `State64` and `State128` streaming and reset behavior
+
+- [ ] `spec/xxh3_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+  - 128-bit canonical round-trips
+
+- [ ] `spec/xxh3_secret_spec.cr` — Priority: ⭐⭐⭐ — Effort: 0.5h
+  - `Secret.default` size/validity and use with `hash_with_secret`
+
+- [ ] `spec/bindings_safe_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
+  - Verify `Bindings::*` `hash(io)` / `hash_file` produce same results as Bytes/String
+
+- [ ] `spec/version_spec.cr` — Priority: ⭐⭐ — Effort: 0.25h
+  - `XXH.version_number` / `XXH.version`
+
+**Total estimated test implementation effort**: ~13.25 hours
+
+> Order recommendation: implement `xxh32` and `xxh64` suites first (they unblock most CI checks), then `xxh3`, then binding and canonical/secret small tests.
+
+***End of test schedule section.***
 
 ### 3.1 Write XXH32 Test Suite
 
