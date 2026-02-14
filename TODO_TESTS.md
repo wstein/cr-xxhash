@@ -1,162 +1,314 @@
-# xxHash Crystal Implementation - Test Plan & TODO
+# xxHash Crystal - Testing Plan (Unit + Integration + Cross-Platform)
 
-**Parent Project**: [TODO.md](TODO.md)
-**Goal**: Comprehensive test suite matching official xxHash test vectors and CLI behavior.
-
-This plan details the translation of vendor C tests (`vendor/xxHash/tests/`) into idiomatic Crystal specs and Cucumber integration tests.
+**Parent Plan**: [TODO.md](TODO.md)
+**Scope**: Translate vendored xxHash tests into Crystal specs and Cucumber integration tests, then close coverage gaps.
 
 ---
 
-## 📊 Test Coverage Overview
+## Executive Summary
 
-| Component | Type | Status | Source |
-|-----------|------|--------|--------|
-| **Vectors** | Fixtures | 🔴 Todo | `sanity_test_vectors.h` |
-| **XXH32** | Unit | 🔴 Todo | `sanity_test.c` |
-| **XXH64** | Unit | 🔴 Todo | `sanity_test.c` |
-| **XXH3** | Unit | 🔴 Todo | `sanity_test.c` |
-| **Streaming**| Unit | 🔴 Todo | `sanity_test.c` (Random Update) |
-| **CLI** | Integration | 🔴 Todo | `cli-test.sh`, `xxhsum` |
-| **Edge Cases**| Unit | 🔴 Todo | Collisions, Zero-length, Seeds |
+This plan is the detailed testing companion for `TODO.md` (Phase 3).
+It incorporates review feedback by adding:
 
----
-
-## 🛠 Phase T1: Test Infrastructure (Critical)
-
-### T1.1 Test Vector Extraction
-
-**Priority**: ⭐⭐⭐⭐⭐ | **Source**: `vendor/xxHash/tests/sanity_test_vectors.h`
-
-- [ ] Create script `scripts/generate_vectors.cr` to parse C header
-- [ ] Generate `spec/fixtures/vectors.json` containing:
-  - XXH32 vectors (input, seed, result)
-  - XXH64 vectors
-  - XXH3/128 vectors
-  - Secret samples
-
-### T1.2 Spec Helper Setup
-
-**Priority**: ⭐⭐⭐⭐⭐
-
-- [ ] Update `spec/spec_helper.cr`:
-  - Load `vectors.json`
-  - Helpers for deterministic random data (`fillTestBuffer` equivalent)
-  - Byte-by-byte streaming helpers
+- explicit **vendor test translation matrix**,
+- explicit **missing tests matrix**,
+- **corpus + fixtures + snapshots** strategy,
+- clear **Spec vs Cucumber split**,
+- memory safety, endianness, alignment, and seed-boundary coverage.
 
 ---
 
-## 🧪 Phase T2: Unit Specifications (Core)
+## Ratings Summary
 
-### T2.1 XXH32 Specs (`spec/xxh32_spec.cr`)
+| Area | Rating | Notes |
+|---|---|---|
+| Test architecture | ⭐⭐⭐⭐⭐ | Phased, dependency-aware, CI-ready |
+| Vendor parity | ⭐⭐⭐⭐⭐ | Direct mapping from `vendor/xxHash/tests/*` |
+| Unit depth | ⭐⭐⭐⭐⭐ | Vectors + streaming + canonical + errors |
+| Integration depth | ⭐⭐⭐⭐ | Cucumber for CLI workflows + snapshots |
+| Cross-platform rigor | ⭐⭐⭐⭐ | Endianness, SIMD path checks, arch notes |
+| Performance test usefulness | ⭐⭐ | Keep as non-blocking/optional |
+
+---
+
+## Test Strategy (Spec + Cucumber, no conflict)
+
+- **Crystal Spec**: unit tests, algorithm correctness, FFI safety, deterministic behavior.
+- **Cucumber**: high-level CLI and user workflows (`xxhsum` behavior, files, stdin, checksums).
+- **Snapshots**: stable output verification for CLI text and known hash outputs.
+
+This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
+
+---
+
+## Existing Vendor Tests → Crystal Mapping (Comprehensive)
+
+| Vendor source | What it validates | Crystal target | Priority | Status |
+|---|---|---|---|---|
+| `tests/sanity_test_vectors.h` | Official vectors for XXH32/64/3/128 + secrets | `spec/fixtures/vectors.json` + generated `spec/support/generated_vectors.cr` | ⭐⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/sanity_test.c` | one-shot vs streaming vs byte-by-byte; random-update behavior | `spec/unit/*_spec.cr`, `spec/unit/streaming_spec.cr` | ⭐⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/cli-comment-line.sh` | checksum comment handling | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/cli-ignore-missing.sh` | missing-file behavior in check mode | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/filename-escape.sh` | filename escaping edge cases | `features/cli/filename.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/generate_unicode_test.c` + `unicode_lint.sh` | Unicode paths/content handling | `spec/integration/unicode_spec.cr` + cucumber scenario | ⭐⭐⭐ | 🔴 Todo |
+| `tests/collisions/*` | collision behavior datasets | `spec/advanced/collisions_spec.cr` (`@slow`) | ⭐⭐⭐ | 🔴 Todo |
+| `tests/test_alias.c` | alias/API compatibility semantics | `spec/unit/api_alias_spec.cr` | ⭐⭐⭐ | 🔴 Todo |
+| `tests/ppc_define.c` | platform macro behavior | docs + CI arch notes | ⭐⭐ | 🔴 Todo |
+| `tests/multiInclude.c` | C header include safety | not directly applicable (FFI binding stability test instead) | ⭐⭐ | 🟡 Adapt |
+| `tests/bench/*` | benchmark behavior | `scripts/bench_*` (non-gating CI) | ⭐⭐ | 🟡 Optional |
+
+---
+
+## Missing Tests Matrix (Must Add)
+
+| Missing test | Why it matters | Proposed file | Priority |
+|---|---|---|---|
+| Alignment tests (aligned/unaligned pointer boundaries) | catches SIMD/ABI edge bugs | `spec/unit/alignment_spec.cr` | ⭐⭐⭐⭐ |
+| Seed boundary tests (`0`, max UInt32/UInt64, random seeds) | seed handling correctness | `spec/unit/seed_boundaries_spec.cr` | ⭐⭐⭐⭐ |
+| Endianness canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ |
+| FFI memory safety loop (create/free states) | leak/regression guard | `spec/integration/ffi_memory_spec.cr` | ⭐⭐⭐⭐⭐ |
+| Error-path tests (invalid secret size, invalid files) | robust APIs | `spec/unit/error_paths_spec.cr` + cucumber errors | ⭐⭐⭐⭐ |
+| State reuse/reset lifecycle tests | streaming correctness over reuse | `spec/unit/state_lifecycle_spec.cr` | ⭐⭐⭐⭐ |
+| Thread-safety (multi-thread one-shot + independent states) | production robustness | `spec/advanced/thread_safety_spec.cr` | ⭐⭐⭐ |
+| Fuzz/property tests | bug discovery for odd inputs | `spec/advanced/fuzz_spec.cr` | ⭐⭐ |
+| SIMD-path confidence tests (size classes) | XXH3 path transitions | `spec/unit/xxh3_size_class_spec.cr` | ⭐⭐⭐ |
+| Zero-copy IO behavior tests | efficient streaming semantics | `spec/integration/io_streaming_spec.cr` | ⭐⭐⭐ |
+
+---
+
+## Directory Layout (Recommended)
+
+```text
+spec/
+  spec_helper.cr
+  fixtures/
+    corpus/
+      empty.bin
+      short.bin
+      midsize.bin
+      long.bin
+      huge.bin
+    vectors.json
+  support/
+    generated_vectors.cr
+    fixture_loader.cr
+    snapshot_helper.cr
+    cli_helpers.cr
+  unit/
+    xxh32_spec.cr
+    xxh64_spec.cr
+    xxh3_64_spec.cr
+    xxh3_128_spec.cr
+    streaming_spec.cr
+    canonical_spec.cr
+    alignment_spec.cr
+    seed_boundaries_spec.cr
+    endianness_spec.cr
+    error_paths_spec.cr
+    state_lifecycle_spec.cr
+  integration/
+    ffi_smoke_spec.cr
+    ffi_memory_spec.cr
+    io_streaming_spec.cr
+    unicode_spec.cr
+  advanced/
+    collisions_spec.cr
+    thread_safety_spec.cr
+    fuzz_spec.cr
+features/
+  cli/
+    hashing.feature
+    check_mode.feature
+    filename.feature
+    unicode.feature
+  step_definitions/
+    cli_steps.rb
+  support/
+    env.rb
+  snapshots/
+    *.snap
+```
+
+---
+
+## Phased TODO (Detailed)
+
+## T1 - Infrastructure & Data (Parallel with TODO Phase 1)
+
+### T1.1 Vector translation generator
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] **Sanity Checks**: Verify all vectors from `vectors.json`
-- [ ] **One-shot**: Verify `hash(data, seed)`
-- [ ] **Streaming**:
-  - Verify `update()` chunks matches one-shot
-  - Verify byte-by-byte update matches
-- [ ] **Edge Cases**: Empty string, null pointer (handled by Crystal), large inputs
+- [ ] Create `scripts/generate_vectors.cr` to parse `sanity_test_vectors.h`.
+- [ ] Emit `spec/fixtures/vectors.json`.
+- [ ] Emit typed constants file `spec/support/generated_vectors.cr`.
 
-### T2.2 XXH64 Specs (`spec/xxh64_spec.cr`)
+### T1.2 Spec helper foundation
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] **Sanity Checks**: Verify all vectors
-- [ ] **Streaming Tests**: Chunked vs Byte-by-byte vs One-shot
+- [ ] Add deterministic buffer helper equivalent to C `fillTestBuffer`.
+- [ ] Add `random_update_chunks` helper mimicking `SANITY_TEST_XXH3_randomUpdate`.
+- [ ] Add fixture loader + vector accessor APIs.
 
-### T2.3 XXH3 Specs (`spec/xxh3_spec.cr`)
-
-**Priority**: ⭐⭐⭐⭐⭐
-
-- [ ] **64-bit Vectors**: Verify standard test vectors
-- [ ] **128-bit Vectors**: Verify high/low 64-bit split
-- [ ] **Secret Management**:
-  - Verify `withSecret` matches standard output
-  - Verify `generateSecret` creates valid entropy
-  - Verify `generateSecret_fromSeed` reproducibility
-- [ ] **Streaming**:
-  - `reset_withSecret`, `reset_withSeed`
-  - Randomized update lengths (mimic `SANITY_TEST_XXH3_randomUpdate`)
-
-### T2.4 Canonical & Interop (`spec/canonical_spec.cr`)
+### T1.3 Corpus management
 
 **Priority**: ⭐⭐⭐⭐
 
-- [ ] Validate Big-Endian canonical output format
-- [ ] Round-trip tests (Hash -> Canonical -> Hash)
+- [ ] Add script `scripts/generate_test_corpus.cr`.
+- [ ] Generate canonical corpus sizes (0B, 1B, 16B, 240B, 4KB, 1MB+).
+- [ ] Add update/refresh docs in `spec/fixtures/corpus/README.md`.
 
----
-
-## 🥒 Phase T3: Integration Tests (Cucumber)
-
-### T3.1 CLI Feature Definitions
-
-**Priority**: ⭐⭐⭐⭐
-
-- [ ] Create `features/cli.feature`:
-  - **Basic Hashing**: `xxhsum file`
-  - **Algorithms**: `-H0`, `-H1`, `-H2`, `-H3`
-  - **Check Mode**: `-c` with valid/invalid checksum files
-  - **Benchmark**: `-b` (smoke test only)
-  - **Input Sources**: Stdin vs File arguments
-
-### T3.2 Step Definitions
-
-**Priority**: ⭐⭐⭐⭐
-
-- [ ] Create `features/step_definitions/cli_steps.rb` (or Crystal equivalent):
-  - Steps to run `bin/xxhsum`
-  - Output strict matching
-  - Exit code verification
-
-### T3.3 Snapshots
+### T1.4 Snapshot harness
 
 **Priority**: ⭐⭐⭐
 
-- [ ] Create `features/snapshots/`:
-  - Expected output for help text
-  - Expected output for specific file hashes
+- [ ] Add helper with strict compare + optional update mode.
+- [ ] Store stable CLI outputs in `features/snapshots/`.
 
 ---
 
-## 🔍 Phase T4: Advanced & Edge Cases
+## T2 - Unit Specs (Core Correctness)
 
-### T4.1 Collision Tests (`spec/collisions_spec.cr`)
+### T2.1 XXH32 correctness suite
 
-**Priority**: ⭐⭐⭐
+**Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] Port logic from `vendor/xxHash/tests/collisions/`
-- [ ] Verify known collision resistance for small inputs
+- [ ] Vector parity (all rows)
+- [ ] one-shot vs streaming vs byte-by-byte
+- [ ] alignment and seed-boundary coverage
 
-### T4.2 Unicode & Filenames
+### T2.2 XXH64 correctness suite
 
-**Priority**: ⭐⭐⭐
+**Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] Verify handling of Emoji/Unicode filenames
-- [ ] Verify handling of special chars in paths (spaces, newlines)
+- [ ] Vector parity
+- [ ] streaming variants and reset lifecycle
+- [ ] canonical conversion round-trip
 
-### T4.3 FFI Smoke Tests
+### T2.3 XXH3 64/128 suite
+
+**Priority**: ⭐⭐⭐⭐⭐
+
+- [ ] vectors for 64 and 128 outputs
+- [ ] secret generation and secret+seed equivalence
+- [ ] random-update ingestion parity
+- [ ] size-class checks (small/midsize/large transitions)
+
+### T2.4 Interop, canonical, endianness
 
 **Priority**: ⭐⭐⭐⭐
 
-- [ ] Direct `LibXXH` calls (verify no segfaults on raw pointer usage)
-- [ ] Memory leak checks (looping create/free state)
+- [ ] canonical output format verification
+- [ ] big/little-endian robust assertions
+- [ ] Crystal wrapper equals direct `LibXXH` for representative vectors
+
+### T2.5 Error and lifecycle tests
+
+**Priority**: ⭐⭐⭐⭐
+
+- [ ] invalid secret sizes raise expected errors
+- [ ] invalid file/path and permission failures mapped correctly
+- [ ] state reuse/reset/copy invariants
 
 ---
 
-## 📉 Phase T5: Performance & Benchmarks
+## T3 - Integration (Cucumber-first for CLI workflows)
 
-### T5.1 Comparison Benchmarks
+### T3.1 Feature coverage
+
+**Priority**: ⭐⭐⭐⭐
+
+- [ ] `hashing.feature`: algorithm flags + stdin/file modes
+- [ ] `check_mode.feature`: valid/invalid checksum files, comments, ignore missing
+- [ ] `filename.feature`: escaped chars, spaces, special paths
+- [ ] `unicode.feature`: unicode filenames/content and normalization cases
+
+### T3.2 Step definitions and helpers
+
+**Priority**: ⭐⭐⭐⭐
+
+- [ ] run compiled `xxhsum` and capture stdout/stderr/exit code
+- [ ] fixture creation and cleanup helpers
+- [ ] snapshot assertions for stable output text
+
+### T3.3 Spec-level integration complements
+
+**Priority**: ⭐⭐⭐
+
+- [ ] `spec/integration/*` tests for FFI smoke/memory and IO streaming not ideal for Gherkin
+
+---
+
+## T4 - Advanced & Reliability
+
+### T4.1 Memory safety and leak regression
+
+**Priority**: ⭐⭐⭐⭐⭐
+
+- [ ] create/free state tight loops for XXH32/64/3
+- [ ] optional ASAN/valgrind run instructions
+
+### T4.2 Concurrency and thread safety
+
+**Priority**: ⭐⭐⭐
+
+- [ ] one-shot parallel hashing invariants
+- [ ] independent streaming states in parallel
+
+### T4.3 Collision and fuzz/property tests
 
 **Priority**: ⭐⭐
 
-- [ ] `bench/compare.cr`: Compare pure Crystal vs Bindings (if applicable)
-- [ ] Compare XXH32 vs XXH64 vs XXH3
+- [ ] collision dataset replay (`@slow`)
+- [ ] randomized property checks with deterministic seeds (`@slow`)
+
+### T4.4 Cross-platform checks
+
+**Priority**: ⭐⭐⭐⭐
+
+- [ ] endianness assertions in CI matrix
+- [ ] architecture notes (x86_64, arm64, s390x, ppc) and expected coverage
 
 ---
 
-## 🔗 Cross-References
+## T5 - Benchmark & Performance (Non-gating)
 
-- **Implementation Plan**: See [TODO.md](TODO.md) Phase 3
-- **Test Data Source**: [sanity_test_vectors.h](vendor/xxHash/tests/sanity_test_vectors.h)
+### T5.1 Keep benchmarks separate from correctness gates
+
+**Priority**: ⭐⭐
+
+- [ ] benchmark scripts remain in `scripts/`.
+- [ ] CI runs benchmarks only in scheduled/manual jobs.
+
+---
+
+## Dependency & Scheduling Notes
+
+Recommended execution order aligned to `TODO.md`:
+
+1. **Parallel early**: T1.1, T1.2, T1.3 with TODO 1.8/1.9/1.10.
+2. **After core API exists**: T2.x unit correctness.
+3. **After CLI is available**: T3 Cucumber workflows.
+4. **Then**: T4 advanced reliability and T5 non-gating benchmarks.
+
+This keeps calendar time down while maintaining high verification depth.
+
+---
+
+## Definition of Done (Testing)
+
+- [ ] Vendor vector parity achieved for XXH32/64/3/128.
+- [ ] Streaming parity achieved (one-shot == chunked == byte-by-byte).
+- [ ] Cucumber CLI scenarios pass with approved snapshots.
+- [ ] Memory safety regression suite passes.
+- [ ] Endianness/canonical tests pass.
+- [ ] Slow tests are isolated and documented (`@slow`).
+
+---
+
+## Cross-References
+
+- Parent roadmap: [TODO.md](TODO.md)
+- Vendor vectors: [vendor/xxHash/tests/sanity_test_vectors.h](vendor/xxHash/tests/sanity_test_vectors.h)
+- Vendor sanity logic: [vendor/xxHash/tests/sanity_test.c](vendor/xxHash/tests/sanity_test.c)

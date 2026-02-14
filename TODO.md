@@ -11,7 +11,7 @@
 ```
 Phase 1: Foundation         [░░░░░░░░░░] 0/13 tasks
 Phase 2: Core API           [░░░░░░░░░░] 0/10 tasks
-phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks (See TODO_TESTS.md)
+Phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks (See TODO_TESTS.md)
 Phase 4: CLI & Examples     [░░░░░░░░░░] 0/6 tasks
 Phase 5: CPU Optimization   [░░░░░░░░░░] 0/5 tasks
 Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
@@ -1313,7 +1313,9 @@ end
 
 ## ✅ PHASE 3: Tests & Quality Assurance (HIGH)
 
-> **Note**: A detailed test plan is available in [TODO_TESTS.md](TODO_TESTS.md). The tasks below are high-level summaries.
+> **Note**: Detailed test translation, corpus/fixtures/snapshots, unit coverage matrix, and Cucumber integration coverage are maintained in [TODO_TESTS.md](TODO_TESTS.md).
+>
+> **Execution guidance**: Run test infrastructure tasks in parallel where possible (notably 1.8, 1.9, 1.10) to reduce the critical path before full Phase 2 completion.
 
 ### 3.1 Write XXH32 Test Suite
 
@@ -2818,11 +2820,21 @@ BSD-2-Clause (same as xxHash)
 
 ## 📋 Summary & Priority Matrix
 
+> **Delta from review**: Test vector translation from vendored C tests and richer integration coverage are tracked as first-class deliverables in [TODO_TESTS.md](TODO_TESTS.md).
+
 ### Critical Path (Must Complete First)
 
 1. Phase 1 (Foundation) - All tasks ⭐⭐⭐⭐⭐
 2. Phase 2 (Core API) - All tasks ⭐⭐⭐⭐⭐
 3. Phase 3 (Tests) - Tasks 3.1-3.6 ⭐⭐⭐⭐⭐
+
+### Parallel Track (Start Early)
+
+1. Task 1.8 (FFI smoke/integration smoke)
+2. Task 1.9 (spec helper and reusable assertions)
+3. Task 1.10 (fixtures/corpus bootstrap)
+
+These can run in parallel with the latter half of Phase 1 and reduce schedule risk for Phase 3.
 
 ### High Priority (Complete Next)
 
@@ -2844,6 +2856,8 @@ BSD-2-Clause (same as xxHash)
 ---
 
 ## 🎯 Estimated Total Effort
+
+> **Scheduling note**: With parallelization of 1.8/1.9/1.10 and template-driven implementation reuse across 2.x APIs, calendar duration can be reduced even if engineering effort remains similar.
 
 | Phase | Tasks | Estimated Time | Complexity |
 |-------|-------|---------------|------------|
