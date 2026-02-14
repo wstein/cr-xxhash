@@ -2,15 +2,11 @@ name: cr-xxhash
 version: 0.1.0
 
 description: |
-  High-performance Crystal implementation of Yann Collet's xxHash algorithm.
-  Optimized for LLVM and SIMD.
+  Crystal bindings to xxHash: fast non-cryptographic hash algorithm
+  Supports XXH32, XXH64, XXH3 (64/128-bit) with SIMD optimizations
 
 authors:
   - Werner Stein <werner.stein@gmail.com>
-
-targets:
-  xxhsum:
-    main: src/xxhsum.cr
 
 crystal: ">= 1.19.0"
 

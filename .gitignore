@@ -6,5 +6,27 @@
 -/tmp/*.md
 -/tmp/*.adoc
 
-.DS_Store
+# Build artifacts
 *.dwarf
+*.o
+*.a
+
+# Vendor compiled artifacts
+vendor/xxHash/xxhash.o
+vendor/xxHash/libxxhash.a
+vendor/xxHash/xxhsum
+
+# Crystal cache
+.crystal/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# Test data (if generated locally; commit fixtures to repo)
+# spec/fixtures/*.bin
