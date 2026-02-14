@@ -9,11 +9,10 @@ module XXH
         @state = LibXXH.XXH3_createState
         raise StateError.new("Failed to allocate XXH3 state") if @state.null?
         reset(seed)
-        GC.register_finalizer(self) { finalize }
       end
 
-      def update(data : Bytes)
-        update(data.to_slice)
+      def update(str : String)
+        update(str.to_slice)
       end
 
       def update(slice : Slice(UInt8))
@@ -41,7 +40,7 @@ module XXH
         @state = Pointer(LibXXH::XXH3_state_t).null
       end
 
-      private def finalize
+      def finalize
         dispose
       end
     end
@@ -51,11 +50,10 @@ module XXH
         @state = LibXXH.XXH3_createState
         raise StateError.new("Failed to allocate XXH3 state") if @state.null?
         reset(seed)
-        GC.register_finalizer(self) { finalize }
       end
 
       def update(data : Bytes)
-        update(data.to_slice)
+        update(str.to_slice)
       end
 
       def update(slice : Slice(UInt8))
@@ -83,7 +81,7 @@ module XXH
         @state = Pointer(LibXXH::XXH3_state_t).null
       end
 
-      private def finalize
+      def finalize
         dispose
       end
     end

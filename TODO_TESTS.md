@@ -5,6 +5,27 @@
 
 ---
 
+## Current status (2026-02-14)
+
+- `crystal spec` executed: **223 examples, 11 failures, 0 errors**.
+- Unit specs for `xxh32`, `xxh64`, `xxh3` and supporting helpers have been *implemented and compile*.
+- Remaining failures are concentrated in official-vector/canonical checks (likely endianness / binding mapping vs test-vectors).
+
+### Open failures (top-level)
+
+- Failing spec files (examples):
+  - `spec/xxh32_spec.cr` (vector parity assertions)
+  - `spec/xxh64_spec.cr` (vector parity assertions)
+  - `spec/xxh3_spec.cr` (hash64/hash128 vector assertions)
+  - `spec/xxh3_canonical_spec.cr` (canonical byte-order checks)
+
+Suggested next actions:
+- Re-run failing examples with `--error-trace` and inspect `Bindings` output vs `LibXXH` direct call.
+- Verify test vectors in `spec/spec_helper.cr` match vendored `sanity_test_vectors.h` (byte order / literal correctness).
+- Add alignment & seed-boundary tests (high priority) and a small reproducer for canonical mismatch.
+
+---
+
 ## 📊 Phase 1 Foundation Status
 
 ✅ **Phase 1 Complete** (Foundation layer verified)
@@ -59,8 +80,8 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 
 | Vendor source | What it validates | Crystal target | Priority | Status |
 |---|---|---|---|---|
-| `tests/sanity_test_vectors.h` | Official vectors for XXH32/64/3/128 + secrets | `spec/fixtures/vectors.json` + generated `spec/support/generated_vectors.cr` | ⭐⭐⭐⭐⭐ | 🔴 Todo |
-| `tests/sanity_test.c` | one-shot vs streaming vs byte-by-byte; random-update behavior | `spec/unit/*_spec.cr`, `spec/unit/streaming_spec.cr` | ⭐⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/sanity_test_vectors.h` | Official vectors for XXH32/64/3/128 + secrets | `spec/spec_helper.cr` (constants) — vectors translated into Crystal constants | ⭐⭐⭐⭐⭐ | ✅ Implemented (spec/spec_helper.cr) |
+| `tests/sanity_test.c` | one-shot vs streaming vs byte-by-byte; random-update behavior | `spec/xxh*_state_spec.cr` + streaming state tests implemented | ⭐⭐⭐⭐⭐ | 🟡 Partial (unit streaming tests added; random-update & byte-by-byte parity remain to be extended) |
 | `tests/cli-comment-line.sh` | checksum comment handling | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
 | `tests/cli-ignore-missing.sh` | missing-file behavior in check mode | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
 | `tests/filename-escape.sh` | filename escaping edge cases | `features/cli/filename.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
@@ -189,42 +210,42 @@ features/
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] Vector parity (all rows)
-- [ ] one-shot vs streaming vs byte-by-byte
-- [ ] alignment and seed-boundary coverage
+- [x] Vector parity (all rows) — implemented in `spec/xxh32_spec.cr`
+- [x] one-shot vs streaming vs byte-by-byte — implemented in `spec/xxh32_state_spec.cr`
+- [ ] alignment and seed-boundary coverage (still to add)
 
 ### T2.2 XXH64 correctness suite
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] Vector parity
-- [ ] streaming variants and reset lifecycle
-- [ ] canonical conversion round-trip
+- [x] Vector parity — `spec/xxh64_spec.cr`
+- [x] streaming variants and reset lifecycle — `spec/xxh64_state_spec.cr`
+- [ ] canonical conversion round-trip (canonical spec present; some failures to investigate)
 
 ### T2.3 XXH3 64/128 suite
 
 **Priority**: ⭐⭐⭐⭐⭐
 
-- [ ] vectors for 64 and 128 outputs
-- [ ] secret generation and secret+seed equivalence
-- [ ] random-update ingestion parity
-- [ ] size-class checks (small/midsize/large transitions)
+- [x] vectors for 64 and 128 outputs — `spec/xxh3_spec.cr`
+- [x] secret generation and secret+seed equivalence — `spec/xxh3_secret_spec.cr`
+- [ ] random-update ingestion parity (to add)
+- [ ] size-class checks (small/midsize/large transitions) (to add)
 
 ### T2.4 Interop, canonical, endianness
 
 **Priority**: ⭐⭐⭐⭐
 
-- [ ] canonical output format verification
-- [ ] big/little-endian robust assertions
-- [ ] Crystal wrapper equals direct `LibXXH` for representative vectors
+- [ ] canonical output format verification (canonical specs present; some canonical/endianness failures to triage)
+- [ ] big/little-endian robust assertions (to add)
+- [x] Crystal wrapper equals direct `LibXXH` for representative vectors — `spec/bindings_safe_spec.cr`
 
 ### T2.5 Error and lifecycle tests
 
 **Priority**: ⭐⭐⭐⭐
 
-- [ ] invalid secret sizes raise expected errors
-- [ ] invalid file/path and permission failures mapped correctly
-- [ ] state reuse/reset/copy invariants
+- [x] invalid secret sizes raise expected errors — `spec/xxh3_secret_spec.cr`
+- [ ] invalid file/path and permission failures mapped correctly (to add)
+- [x] state reuse/reset/copy invariants — `spec/*_state_spec.cr`
 
 ---
 

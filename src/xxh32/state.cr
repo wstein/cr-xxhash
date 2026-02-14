@@ -9,16 +9,15 @@ module XXH
         @state = LibXXH.XXH32_createState
         raise StateError.new("Failed to allocate XXH32 state") if @state.null?
         reset(seed)
-        GC.register_finalizer(self) { finalize }
-      end
-
-      def update(data : Bytes)
-        update(data.to_slice)
       end
 
       def update(slice : Slice(UInt8))
         ErrorHandler.check!(LibXXH.XXH32_update(@state, slice.to_unsafe, slice.size), "XXH32 update")
         self
+      end
+
+      def update(str : String)
+        update(str.to_slice)
       end
 
       def digest : UInt32
@@ -37,7 +36,7 @@ module XXH
         @state = Pointer(LibXXH::XXH32_state_t).null
       end
 
-      private def finalize
+      def finalize
         dispose
       end
     end

@@ -5,7 +5,7 @@ module XXH
   module XXH32
     def self.canonical_from_hash(hash : UInt32) : Bytes
       canonical = LibXXH::XXH32_canonical_t.new
-      LibXXH.XXH32_canonicalFromHash(canonical.to_unsafe, hash)
+      LibXXH.XXH32_canonicalFromHash(pointerof(canonical), hash)
       Bytes.new(4) { |i| canonical.digest[i] }
     end
 
@@ -13,7 +13,7 @@ module XXH
       raise ArgumentError.new("Canonical XXH32 requires 4 bytes") unless bytes.size == 4
       canonical = LibXXH::XXH32_canonical_t.new
       4.times { |i| canonical.digest[i] = bytes[i] }
-      LibXXH.XXH32_hashFromCanonical(canonical.to_unsafe)
+      LibXXH.XXH32_hashFromCanonical(pointerof(canonical))
     end
   end
 end

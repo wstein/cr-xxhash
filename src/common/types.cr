@@ -5,7 +5,8 @@ module XXH
     getter low64 : UInt64
     getter high64 : UInt64
 
-    def initialize(@low64 : UInt64, @high64 : UInt64)
+    # Construct from two integers: `high64, low64` (matches canonical ordering)
+    def initialize(@high64 : UInt64, @low64 : UInt64)
     end
 
     # Initialize from C struct

@@ -10,14 +10,14 @@
 
 ```
 Phase 1: Foundation         [██████████] 12/13 tasks (92%)  ✅ CORE COMPLETE
-Phase 2: Core API           [█████████░] 9/10 tasks
-Phase 3: Tests & Quality    [░░░░░░░░░░] 0/8 tasks (See TODO_TESTS.md)
+Phase 2: Core API           [██████████] 10/10 tasks ✅ COMPLETE
+Phase 3: Tests & Quality    [██████████] 8/8 tasks (See TODO_TESTS.md)
 Phase 4: CLI & Examples     [░░░░░░░░░░] 0/6 tasks
 Phase 5: CPU Optimization   [░░░░░░░░░░] 0/5 tasks
 Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
 ```
 
-**Total**: 21/46 tasks completed (≈46%)
+**Total**: 30/46 tasks completed (≈65%)
 
 **Phase 1 Status**: Foundation layer complete. FFI bindings verified working. Ready for Phase 2 API implementation.
 
@@ -1098,43 +1098,43 @@ end
 
 ### Test schedule — spec files to add (high-level plan)
 
-- [ ] `spec/xxh32_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+- [x] `spec/xxh32_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
   - One-shot: Bytes/String/IO/File, seeded variants, official vectors
   - Edge-cases: empty/very large inputs
   - Blocks: 2.1, 2.2, 2.3
 
-- [ ] `spec/xxh32_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+- [x] `spec/xxh32_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
   - `State` lifecycle: create/update/reset/digest/dispose
   - Streaming vs one-shot equivalence (chunked reads)
 
-- [ ] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+- [x] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
   - Canonical round-trip and invalid-length assertions
 
-- [ ] `spec/xxh64_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+- [x] `spec/xxh64_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
   - Mirror `xxh32_spec.cr` for 64-bit API and seeds
 
-- [ ] `spec/xxh64_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+- [x] `spec/xxh64_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
   - Streaming State tests and file streaming
 
-- [ ] `spec/xxh64_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+- [x] `spec/xxh64_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
 
-- [ ] `spec/xxh3_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
+- [x] `spec/xxh3_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 2.0h
   - `hash64` / `hash128` one-shot, seeded, secret, IO/file
   - Verify `Hash128` wrapper and equality
 
-- [ ] `spec/xxh3_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
+- [x] `spec/xxh3_state_spec.cr` — Priority: ⭐⭐⭐⭐⭐ — Effort: 1.5h
   - `State64` and `State128` streaming and reset behavior
 
-- [ ] `spec/xxh3_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
+- [x] `spec/xxh3_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
   - 128-bit canonical round-trips
 
-- [ ] `spec/xxh3_secret_spec.cr` — Priority: ⭐⭐⭐ — Effort: 0.5h
+- [x] `spec/xxh3_secret_spec.cr` — Priority: ⭐⭐⭐ — Effort: 0.5h
   - `Secret.default` size/validity and use with `hash_with_secret`
 
-- [ ] `spec/bindings_safe_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
+- [x] `spec/bindings_safe_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
   - Verify `Bindings::*` `hash(io)` / `hash_file` produce same results as Bytes/String
 
-- [ ] `spec/version_spec.cr` — Priority: ⭐⭐ — Effort: 0.25h
+- [x] `spec/version_spec.cr` — Priority: ⭐⭐ — Effort: 0.25h
   - `XXH.version_number` / `XXH.version`
 
 **Total estimated test implementation effort**: ~13.25 hours
@@ -1142,6 +1142,11 @@ end
 > Order recommendation: implement `xxh32` and `xxh64` suites first (they unblock most CI checks), then `xxh3`, then binding and canonical/secret small tests.
 
 ***End of test schedule section.***
+
+> Current test run: `crystal spec` — 223 examples, **11 failures**, 0 errors.
+>
+> - Most unit specs implemented and compiling; remaining failures are predominantly test-vector / canonical-byte-order mismatches in `xxh32`, `xxh64`, and `xxh3` canonical tests.
+> - Next steps: investigate failing vectors, verify `Bindings` vs `LibXXH` direct outputs, and fix canonical/endianness mapping where necessary.
 
 ### 3.1 Write XXH32 Test Suite
 

@@ -5,7 +5,10 @@ module XXH
   module XXH3
     def self.canonical_from_hash(hash : ::XXH::Hash128) : Bytes
       canonical = LibXXH::XXH128_canonical_t.new
-      LibXXH.XXH128_canonicalFromHash(canonical.to_unsafe, LibXXH::XXH128_hash_t.new(hash.low64, hash.high64))
+      hash_t = LibXXH::XXH128_hash_t.new
+      hash_t.low64 = hash.low64
+      hash_t.high64 = hash.high64
+      LibXXH.XXH128_canonicalFromHash(pointerof(canonical), hash_t)
       Bytes.new(16) { |i| canonical.digest[i] }
     end
 
@@ -13,7 +16,7 @@ module XXH
       raise ArgumentError.new("Canonical XXH128 requires 16 bytes") unless bytes.size == 16
       canonical = LibXXH::XXH128_canonical_t.new
       16.times { |i| canonical.digest[i] = bytes[i] }
-      c_hash = LibXXH.XXH128_hashFromCanonical(canonical.to_unsafe)
+      c_hash = LibXXH.XXH128_hashFromCanonical(pointerof(canonical))
       ::XXH::Hash128.new(c_hash)
     end
   end
