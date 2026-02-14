@@ -6,7 +6,7 @@ require "regex"
 require "file"
 
 HEADER_PATH = "vendor/xxHash/xxhash.h"
-OUTPUT_PATH = "src/vendor/constants.cr"
+OUTPUT_PATH = "src/common/constants.cr"
 
 # Patterns to extract (name => crystal_type)
 CONSTANTS = {
