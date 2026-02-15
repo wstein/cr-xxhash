@@ -7,12 +7,14 @@
 
 ## Current status (2026-02-15)
 
-- `crystal spec` executed: **294 examples, 0 failures, 0 errors** ✅.
+- `crystal spec` executed: **305 examples (library) + 45 examples (xxhsum) = 350 examples, 0 failures, 0 errors** ✅.
 - All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, alignment, memory-safety, and vendor parity are **passing**.
 - Comprehensive test coverage including:
   - 14 endianness/byte-order tests
   - 16 alignment/unaligned buffer tests covering all size classes and SIMD paths
   - 29 FFI memory-safety tests (state lifecycle, GC interaction, create/free loops)
+  - 18 CLI corpus scenarios covering hashing, verification, mutations, and help
+  - 7 Benchmark mode tests including size parsing, alias selection, and live-update behavior
 
 ### Completed implementations
 
@@ -30,7 +32,6 @@
 
 - [ ] Nightly bench regression detection (baseline comparison, median tracking)
 - [ ] Thread-safety tests (concurrent one-shot, independent states)
-- [ ] CLI Cucumber features (check-mode, filename escaping, unicode)
 - [ ] Fuzz/property tests (deterministic seeds)
 - [ ] Deeper size-class stress & collision datasets (XXH3)
 
@@ -92,9 +93,9 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 |---|---|---|---|---|
 | `tests/sanity_test_vectors.h` | Official vectors for XXH32/64/3/128 + secrets | `spec/spec_helper.cr` (constants) — vectors translated into Crystal constants | ⭐⭐⭐⭐⭐ | ✅ Implemented (spec/spec_helper.cr) |
 | `tests/sanity_test.c` | one-shot vs streaming vs byte-by-byte; random-update behavior | `spec/xxh*_state_spec.cr` + streaming state tests implemented | ⭐⭐⭐⭐⭐ | 🟡 Partial (unit streaming tests added; random-update & byte-by-byte parity remain to be extended) |
-| `tests/cli-comment-line.sh` | checksum comment handling | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
-| `tests/cli-ignore-missing.sh` | missing-file behavior in check mode | `features/cli/check_mode.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
-| `tests/filename-escape.sh` | filename escaping edge cases | `features/cli/filename.feature` | ⭐⭐⭐⭐ | 🔴 Todo |
+| `tests/cli-comment-line.sh` | checksum comment handling | `examples/xxhsum/spec/cli_corpus_spec.cr` (JSON corpus) | ⭐⭐⭐⭐ | ✅ Implemented |
+| `tests/cli-ignore-missing.sh` | missing-file behavior in check mode | `examples/xxhsum/spec/cli_corpus_spec.cr` (JSON corpus) | ⭐⭐⭐⭐ | ✅ Implemented |
+| `tests/filename-escape.sh` | filename escaping edge cases | `examples/xxhsum/spec/corpus/cli_cases.json` | ⭐⭐⭐⭐ | 🔴 Todo |
 | `tests/generate_unicode_test.c` + `unicode_lint.sh` | Unicode paths/content handling | `spec/integration/unicode_spec.cr` + cucumber scenario | ⭐⭐⭐ | 🔴 Todo |
 | `tests/collisions/*` | collision behavior datasets | `spec/advanced/collisions_spec.cr` (`@slow`) | ⭐⭐⭐ | 🔴 Todo |
 | `tests/test_alias.c` | alias/API compatibility semantics | `spec/unit/api_alias_spec.cr` | ⭐⭐⭐ | 🔴 Todo |

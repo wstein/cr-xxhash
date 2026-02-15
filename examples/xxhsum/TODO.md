@@ -19,6 +19,8 @@
 - [x] Live-progress updates during calibration (live-update)
 - [x] Calibration target increased to ~1s per variant (more stable timings)
 - [x] Size-suffix policy: all common suffixes (K/KB/M/MB/G/GB and IEC forms) are 1024-based
+- [x] Added `--bench-all` alias (runs all 28 variants, equivalent to -b0)
+- [x] Added spec to verify live-update carriage-return behavior
 
 ### Check Mode (Phase 2)
 
@@ -72,14 +74,14 @@
 
 ### P1 — Quality & Completeness
 
-- [ ] Add quiet/ignore-missing flag matrix scenarios
+- [x] Add quiet/ignore-missing flag matrix scenarios
 - [ ] Add multi-file mutation edge cases
 - [ ] Vendor parity corpus lane (test against official xxhsum outputs)
 - [x] Golden snapshot normalization helper (optional CRLF + trailing-space toggle via `NORMALIZE_EOL`)
 
 ### P2 — Features (Optional)
 
-- [x] Benchmark mode (-b / -b# / -i# / -B#)
+- [x] Benchmark mode & --bench-all alias
 - [ ] Secret support for XXH3 (--secret flag)
 - [ ] Filename escaping for special characters
 - [ ] Multiple checksum file support in --check mode
@@ -94,7 +96,6 @@
 
 ## 🐛 Known Issues / Gaps
 
-- Mutation tests pollute fixtures during run (FIXED: added teardown cleanup)
 - No automated vendor binary comparison (P1 candidate)
 - Snapshot maintenance requires manual UPDATE_SNAPSHOTS=1 (acceptable for now)
 

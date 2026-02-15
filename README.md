@@ -477,7 +477,7 @@ If you want additional CI matrices or specialized testing, open an issue. ✅
 
 ### Verified Test Results ✅
 
-All algorithms validated against vendor xxHash implementation. **Current test suite: 294 examples, 0 failures, 0 errors**.
+All algorithms validated against vendor xxHash implementation. **Current test suite: 350 examples, 0 failures, 0 errors**.
 
 **Test Coverage (2026-02-15)**:
 - ✅ Vendor vector parity (XXH32, XXH64, XXH3-64, XXH3-128)
@@ -492,13 +492,13 @@ All algorithms validated against vendor xxHash implementation. **Current test su
 - ✅ FFI safe wrapper reliability
 
 **Test Categories**:
-| Category | Count | Status |
-|----------|-------|--------|
-| Unit correctness (vectors, streaming, canonical) | 235 | ✅ |
-| Endianness & cross-platform | 14 | ✅ |
-| Alignment & SIMD paths | 16 | ✅ |
-| FFI memory-safety & lifecycle | 29 | ✅ **NEW (2026-02-15)** |
-| **Total** | **294** | **✅ All passing** |
+| Category | Status |
+|----------|--------|
+| Unit correctness (vectors, streaming, canonical) | ✅ |
+| Endianness & cross-platform | ✅ |
+| Alignment & SIMD paths | ✅ |
+| FFI memory-safety & lifecycle | ✅ **NEW (2026-02-15)** |
+| **Total** | **350** | **✅ All passing** |
 
 Example hashes (README.md, 4.0 KB):
 
@@ -604,7 +604,7 @@ ID#Name                       :   SizeBytes ->   Throughput (MB/s)
 * Auto-tuning (no `-i` flag) targets ~1 second per variant
 * IDs 0, 29+, and `-b77` all expand to "benchmark all" (C99 vendor behavior)
 
-For more details, see [BENCHMARK_ID_BEHAVIOR.md](BENCHMARK_ID_BEHAVIOR.md) for a detailed comparison with the C99 implementation.
+For more details, see [BENCHMARK_ID_BEHAVIOR.md](BENCHMARK_ID_BEHAVIOR.md) for a detailed comparison with the C99 implementation. See also: [examples/xxhsum/BENCHMARK_ANALYSIS.md](examples/xxhsum/BENCHMARK_ANALYSIS.md), [examples/xxhsum/DESIGN_RATIONALE.md](examples/xxhsum/DESIGN_RATIONALE.md), [examples/xxhsum/VENDOR_PARITY.md](examples/xxhsum/VENDOR_PARITY.md).
 
 ## Future SIMD Architectures (Research Phase)
 

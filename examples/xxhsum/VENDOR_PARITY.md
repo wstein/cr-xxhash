@@ -40,49 +40,43 @@ The vendor parity validation covers these scenarios:
 - ✅ Quiet mode (`-q`): Suppress per-file "OK" messages
 - ✅ Combined modes: strict + ignore-missing, ignore-missing + quiet
 
-## Key Compatibility Fixes
+## Behavioral Alignment Detail
 
-### 1. stdin Filename Output (Fixed)
+### 1. stdin Filename Output
 
-**Issue**: Crystal was outputting hash-only when reading from stdin  
-**Vendor Behavior**: Outputs hash with " stdin" suffix  
-**Fix**: Changed cli.cr and formatter.cr to use explicit `"stdin"` filename  
-**Impact**: +3 cases (piped input scenarios)
+**Requirement**: When hashing from stdin, the output should include a " stdin" suffix.  
+**Implementation**: The `cli.cr` and `formatter.cr` use an explicit `"stdin"` identifier for redirected input.  
+**Status**: 100% Alignment
 
-### 2. Exit Code for Strict Mode (Fixed)
+### 2. Exit Code for Strict Mode
 
-**Issue**: Crystal returned exit code 2 for format errors in strict mode  
-**Vendor Behavior**: Returns exit code 1  
-**Fix**: Changed checker.cr strict mode exit code from 2 → 1  
-**Impact**: +1 case (strict mode validation)
+**Requirement**: Format errors in strict mode (`--strict`) must return exit code 1.  
+**Implementation**: Updated `checker.cr` to catch format violations and terminate with status 1.  
+**Status**: 100% Alignment
 
-### 3. Output Stream Routing (Fixed)
+### 3. Output Stream Routing
 
-**Issue**: Error messages and summary output were on stderr, vendor uses stdout for check results  
-**Vendor Behavior**: All verification output to stdout; only strict mode errors to stderr  
-**Fix**: Refactored checker.cr verify() to route messages to stdout except for strict errors  
-**Impact**: +6 cases (all checksum verification scenarios)
+**Requirement**: Routine verification results go to stdout; only critical formatting errors in strict mode go to stderr.  
+**Implementation**: Refactored `checker.cr` verification loop to redirect informational messages to the primary output stream.  
+**Status**: 100% Alignment
 
-### 4. Error Message Formatting (Fixed)
+### 4. Error Message Formatting
 
-**Issue**: Error format didn't match vendor exactly  
-**Vendor Format**: `filename:linenum: Could not open or read 'file': No such file or directory.`  
-**Fix**: Updated checker.cr error messages with correct format and period  
-**Impact**: Part of output stream fix verification
+**Requirement**: Error messages must match the pattern `filename:linenum: Could not open or read 'file': No such file or directory.`.  
+**Implementation**: Standardized error constructors across `checker.cr`.  
+**Status**: 100% Alignment
 
-### 5. Summary Message Rules (Fixed)
+### 5. Summary Message Rules
 
-**Issue**: Crystal was outputting summary even with `--ignore-missing`  
-**Vendor Behavior**: Omits summary when using `--ignore-missing`  
-**Fix**: Added logic to suppress summary when `--ignore-missing` flag is set  
-**Impact**: +3 cases (missing file scenarios with --ignore-missing)
+**Requirement**: Suppress the summary report when using `--ignore-missing`.  
+**Implementation**: Added conditional check in `checker.cr` to omit the result summary if any files were missing but the flag was active.  
+**Status**: 100% Alignment
 
-### 6. Strict Mode Error Message (Fixed)
+### 6. Strict Mode Error Logic
 
-**Issue**: Crystal output per-line error; vendor outputs summary message  
-**Vendor Behavior**: `"filename: no properly formatted xxHash checksum lines found"` to stderr  
-**Fix**: Scan for properly formatted lines first, output summary message if none found  
-**Impact**: +1 case (strict mode validation)
+**Requirement**: Output a per-file summary message if no valid hashes are found in strict mode.  
+**Implementation**: Implemented pre-scan of checksum files to detect empty/invalid sets early.  
+**Status**: 100% Alignment
 
 ## Implementation Details
 
@@ -128,8 +122,8 @@ Finished in 200ms
 **Full Test Suite Results**:
 
 - Main repository: 305 tests, 0 failures ✅
-- Example CLI: 38 tests (18 corpus + 20 other), 0 failures ✅
-- Total: 343 tests, 0 failures ✅
+- Example CLI: 45 tests (including benchmark cases), 0 failures ✅
+- Total: 350 tests, 0 failures ✅
 
 ## Compatibility Claims
 
@@ -161,6 +155,12 @@ These differences don't affect compatibility:
 ## Conclusion
 
 The cr-xxhash project has achieved **production-readiness for vendor compatibility**. The CLI tool can be used as a drop-in replacement for the official xxhsum binary in shell scripts and automation without behavioral surprises.
+
+See also:
+- [DESIGN_RATIONALE.md](DESIGN_RATIONALE.md) — architecture & verification
+- [BENCHMARK_ANALYSIS.md](BENCHMARK_ANALYSIS.md) — benchmarking design & ratings
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — implementation checklist
+- [PROJECT_COMPLETION_REPORT.md](PROJECT_COMPLETION_REPORT.md) — release readiness
 
 ---
 

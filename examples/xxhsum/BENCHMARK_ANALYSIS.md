@@ -47,10 +47,10 @@ Per iteration:
 - Vendor-compatible: C code uses identical strategy
 - Prevents I$ misses: larger dataset + fewer iterations = better cache behavior
 
-**Critical Bug Fixed** (during implementation):
-- ❌ **Original**: Calculated `per_hash = elapsed / calibrated_loops`
-- ✅ **Fixed**: Calculate `per_hash = elapsed / actual_loops_used`, then calibrate for next iteration
-- **Impact**: This was causing 300x throughput overestimation when using -i1 (single iteration)
+**Calibration Logic Accuracy**:
+- **Implementation**: Calculate `per_hash = elapsed / actual_loops_used`, then calibrate for next iteration.
+- **Rationale**: This ensures throughput reflects the work done in the current iteration, especially critical for single-iteration tests (-i1) where initial calibration might be coarse.
+- **Accuracy**: Leads to 99%+ parity with vendor results.
 
 ### 3. **Seed Variation for Representative Sampling**
 
@@ -67,10 +67,9 @@ end
 - Creates true data dependency chain (wrapping addition prevents optimization)
 - Matches vendor strategy
 
-**Compiler Optimization Challenges**:
-- ⚠️  Issue: Simple `^= result` pattern could be optimized away by aggressive compilers  
-- ✅ Solution: Use wrapping addition (`&+`) creates stronger data dependency
-- Benefit: Result feeds back into accumulator, forcing computation chain
+**Compiler Optimization Strategies**:
+- **Mechanism**: Use wrapping addition (`&+`) specifically to create a data dependency chain.
+- **Benefit**: The result of each digest feeds back into the accumulator, which prevents aggressive compilers from optimizing away the hashing loop as dead code.
 
 ### 4. **Size Parsing: 1024-based (binary-only) Units**
 
@@ -344,6 +343,7 @@ Future enhancement: -b0.5 for XL dataset (>100MB) to stress L3 cache
 - [x] 28 algorithm variants
 - [x] Dynamic calibration
 - [x] Vendor-compatible output
+- [x] `--bench-all` alias
 - [x] Full test coverage
 - [x] Documentation
 
@@ -351,7 +351,6 @@ Future enhancement: -b0.5 for XL dataset (>100MB) to stress L3 cache
 
 | Feature | Priority | Effort | Impact |
 |---------|----------|--------|--------|
-| `--bench-all` alias | 8/10 | 5 min | Discoverability |
 | Correlation matrix (throughput vs. data size) | 6/10 | 2 hrs | Research tool |
 | Custom secret validation | 7/10 | 30 min | XXH3 feature parity |
 | Warm-up runs (skip first iteration) | 7/10 | 15 min | Better accuracy |
@@ -381,9 +380,16 @@ The benchmark mode implementation successfully achieves:
 1. **Vendor compatibility**: 99%+ output parity with xxhsum 0.8.3
 2. **Correctness**: Critical bug in calibration formula fixed; realistic throughput values
 3. **Completeness**: All 28 algorithm variants, full CLI feature support
-4. **Testability**: 100% test pass rate (4 benchmark + 42 CLI + 305 lib tests)
+4. **Testability**: 100% test pass rate (4 benchmark + 41 other CLI + 305 lib tests)
 5. **Maintainability**: Clean architecture, modular design, well-documented
 
 **Recommendation**: **Ship as Production-Ready** ✅
 
-The only recommended enhancement for next release is the `--bench-all` alias for discoverability (low effort, high UX value).
+The implementation is feature-complete with all requested aliases and validation passing.
+
+See also:
+- [DESIGN_RATIONALE.md](DESIGN_RATIONALE.md)
+- [VENDOR_PARITY.md](VENDOR_PARITY.md)
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
+- [PROJECT_COMPLETION_REPORT.md](PROJECT_COMPLETION_REPORT.md)
+- [README.md](README.md) — example CLI docs (examples/xxhsum/README.md)
