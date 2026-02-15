@@ -124,3 +124,19 @@ Behavior matrix — `-q` (quiet) and `--ignore-missing`
 | Mixed (present + missing) | stdout: `OK` + stderr: missing + WARNING; exit 1 | OK suppressed; stderr: missing + WARNING; exit 1 | stdout: `OK` only; exit 0 | OK suppressed; no stderr; exit 0 |
 
 Notes: table documents vendor-parity behavior covered by the new corpus tests in `spec/corpus/cli_cases.json` (flag-matrix cases).
+
+Golden snapshot normalization helper (CRLF + trailing-space)
+
+- Use `NORMALIZE_EOL=1` when running specs on CI across mixed OS agents to normalize EOLs and trim trailing whitespace before comparing snapshots.
+- Normalizer rules applied when enabled:
+  - Convert CRLF / CR → LF
+  - Trim trailing spaces/tabs at end of lines
+  - Preserve original trailing-newline state
+
+- Example (CI):
+
+  ```bash
+  NORMALIZE_EOL=1 crystal spec spec/cli_corpus_spec.cr -v
+  ```
+
+- The normalizer is optional and applied only when the environment toggle is set; it preserves strict snapshot matching by default.

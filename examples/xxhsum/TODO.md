@@ -52,7 +52,7 @@
 - [ ] Add quiet/ignore-missing flag matrix scenarios
 - [ ] Add multi-file mutation edge cases
 - [ ] Vendor parity corpus lane (test against official xxhsum outputs)
-- [ ] Golden snapshot normalization (optional CRLF toggle for CI)
+- [x] Golden snapshot normalization helper (optional CRLF + trailing-space toggle via `NORMALIZE_EOL`)
 
 ### P2 — Features (Optional)
 

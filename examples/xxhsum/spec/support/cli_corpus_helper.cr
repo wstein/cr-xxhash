@@ -89,6 +89,20 @@ module CLICorpusHelper
     CLICorpusResult.new(exit_code, stdout_io.to_s, stderr_io.to_s)
   end
 
+  def self.normalize_eol(s : String) : String
+    # Normalize CRLF and lone CR to LF for cross-OS snapshot comparisons
+    had_trailing_newline = s.ends_with?("\n") || s.ends_with?("\r")
+    normalized = s.gsub("\r\n", "\n").gsub("\r", "\n")
+
+    # Trim trailing spaces/tabs at the end of each line (helpful for mixed-OS editors)
+    lines = normalized.split("\n").map { |ln| ln.rstrip }
+    result = lines.join("\n")
+
+    # Preserve original trailing-newline state
+    result += "\n" if had_trailing_newline && !result.ends_with?("\n")
+    result
+  end
+
   def self.assert_snapshot(snapshot_name : String, actual : String)
     snapshot_path = File.join(SNAPSHOTS_DIR, snapshot_name)
 
@@ -101,6 +115,13 @@ module CLICorpusHelper
     end
 
     expected = File.read(snapshot_path)
+
+    # Optional normalization toggle for CRLF/line-ending differences on mixed-OS CI
+    if ENV["NORMALIZE_EOL"]? == "1"
+      expected = normalize_eol(expected)
+      actual = normalize_eol(actual)
+    end
+
     actual.should eq(expected)
   end
 end

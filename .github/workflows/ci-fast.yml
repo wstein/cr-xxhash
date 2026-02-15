@@ -80,17 +80,53 @@ jobs:
           echo "Running generator spec..."
           crystal spec spec/generate_vectors_spec.cr
 
-      - name: Test summary
+  example-xxhsum:
+    name: "Example: xxhsum corpus [${{ matrix.os }}]"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Setup Crystal
+        if: ${{ runner.os != 'Linux' }}
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Mark repository safe for Git (Linux only)
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd examples/xxhsum
+          shards install --ignore-crystal-version || true
+
+      - name: Run xxhsum example corpus (NORMALIZE_EOL=1)
+        shell: bash
+        env:
+          NORMALIZE_EOL: 1
+        run: |
+          set -euo pipefail
+          cd examples/xxhsum
+          echo "Running xxhsum corpus with NORMALIZE_EOL=1"
+          NORMALIZE_EOL=1 crystal spec spec/cli_corpus_spec.cr -v
+
+      - name: Example summary
         if: always()
         shell: bash
         run: |
-          echo ""
           echo "════════════════════════════════════════════════════════════"
-          echo "  PR Smoke Test Summary"
-          echo "════════════════════════════════════════════════════════════"
-          echo "  ✅ Unit tests: PASSED"
-          echo "  ✅ Generator check: PASSED"
-          echo "  ✅ Generator spec: PASSED"
-          echo ""
-          echo "  Ready for merge! 🚀"
+          echo "  Example: xxhsum corpus [${{ runner.os }}]"
           echo "════════════════════════════════════════════════════════════"
