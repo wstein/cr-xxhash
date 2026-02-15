@@ -867,6 +867,7 @@ include XXH::SpecHelper
 **Implementation Summary**:
 
 - Wraps `Bindings::XXH3_128` and exposes Bytes/String helpers plus `hash128_file`.
+- Overloaded APIs: seeded and unseeded variants split into separate overloads for clearer semantics (no internal seed==0 branching).
 - Accepts optional seed or custom secret, forwarding to safe binding helpers.
 - Streams rely on `State128` for incremental hashing.
 
