@@ -72,11 +72,16 @@ module XXHSum
           end
         end
 
-        # Summary (unless quiet mode)
-        unless options.quiet
-          if total_failed > 0
-            err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
-          end
+        # Summary (quiet only suppresses per-file OK lines)
+        if total_failed > 0
+          err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
+        end
+
+        # Vendor parity: when --ignore-missing is used and no files were verified
+        # from stdin, print a short message and fail.
+        if options.ignore_missing && total_checked == 0
+          out_io.puts "stdin: no file was verified"
+          exit_code = 1
         end
 
         exit_code
@@ -92,6 +97,8 @@ module XXHSum
 
         checksum_files.each do |checksum_file|
           begin
+            matched_in_file = 0
+
             File.each_line(checksum_file) do |line|
               # Skip empty lines and comments
               line = line.strip
@@ -133,6 +140,7 @@ module XXHSum
                     out_io.puts "#{filename}: OK"
                   end
                   total_checked += 1
+                  matched_in_file += 1
                 else
                   err_io.puts "#{filename}: FAILED"
                   total_failed += 1
@@ -146,17 +154,23 @@ module XXHSum
                 total_checked += 1
               end
             end
+
+            # If --ignore-missing is enabled but no file from this checksum file was verified,
+            # mirror vendor behavior and treat it as an error.
+            if options.ignore_missing && matched_in_file == 0
+              out_io.puts "#{checksum_file}: no file was verified"
+              exit_code = 1
+            end
+
           rescue ex : Exception
             err_io.puts "xxhsum: #{checksum_file}: #{ex.message}"
             exit_code = 1
           end
         end
 
-        # Summary (unless quiet mode)
-        unless options.quiet
-          if total_failed > 0
-            err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
-          end
+        # Summary (quiet only suppresses per-file OK lines)
+        if total_failed > 0
+          err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
         end
 
         exit_code

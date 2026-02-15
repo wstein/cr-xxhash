@@ -44,6 +44,8 @@ module CLICorpusHelper
       "checksums_gnu.txt",
       "checksums_h3_stdin.txt",
       "checksums_bad.txt",
+      "checksums_missing.txt",
+      "checksums_mixed_missing.txt",
       "mutable_checksum.txt",
       "stdin_payload.txt",
     ]

@@ -43,7 +43,7 @@
   - [x] Algorithm auto-detection with mutations
   - [x] H3 stdin verification with partial corruption
 - [x] Fixture teardown (auto-restore after test suite)
-- [x] 11 passing test scenarios
+- [x] 19 passing test scenarios (added quiet/--ignore-missing matrix cases)
 
 ## 📋 Future Work (Prioritized)
 

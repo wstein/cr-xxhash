@@ -58,13 +58,14 @@ Test infrastructure:
 - `spec/snapshots/` — Expected stdout/stderr outputs for each scenario
 - `spec/support/cli_corpus_helper.cr` — Fixture restoration, corpus loader, snapshot assertions
 
-**Test Scenarios (11 total):**
+**Test Scenarios (19 total):**
 
 - **Hashing**: Default algorithm, XXH3, piped stdin
 - **Help/UX**: No-args with TTY, version flag
 - **Verification**: File checksums, piped checksums, both GNU and BSD formats
 - **Errors**: Malformed checksum lines (default skip, --strict fail)
 - **Mutations** (4 scenarios): Single file modification, batch corruption, algorithm auto-detection via stdin
+- **Flag matrix**: `-q` (quiet) and `--ignore-missing` combinations for missing/mixed checksum entries (added to catch UX regressions)
 
 Each test runs via `XXHSum::CLI.run(args, stdin, stdout, stderr, stdin_tty)` — no shell subprocess wrapper.
 
@@ -94,3 +95,32 @@ Contributing — updating fixtures & snapshots
   ```
 
 - Commit the canonical originals and the updated `spec/snapshots/` files. Do NOT commit runtime backup files (`.*.orig`) — they are ignored by `.gitignore`.
+
+Contributing (short)
+
+- Open an issue describing the change or bug you plan to fix.
+- Add/modify a corpus case in `spec/corpus/cli_cases.json` and the corresponding `spec/snapshots/*` entries.
+- If test data changes, update committed canonical fixtures in `spec/fixtures/originals/`.
+- Regenerate snapshots for the example and verify locally:
+
+  ```bash
+  cd examples/xxhsum
+  UPDATE_SNAPSHOTS=1 crystal spec spec/cli_corpus_spec.cr -v
+  ```
+
+- Run the full repository test suite and include the failing-to-passing diff in your PR description:
+
+  ```bash
+  crystal spec -v
+  ```
+
+- PR checklist: tests added/updated, `spec/fixtures/originals/` updated when needed, snapshots regenerated, no runtime `.*.orig` files committed.
+
+Behavior matrix — `-q` (quiet) and `--ignore-missing`
+
+| Scenario | no flags | `-q` | `--ignore-missing` | `--ignore-missing -q` |
+|---|---:|---:|---:|---:|
+| Missing-only (checksums_missing.txt) | stderr: missing + WARNING; exit 1 | same | stdout: `no file was verified`; exit 1 | same |
+| Mixed (present + missing) | stdout: `OK` + stderr: missing + WARNING; exit 1 | OK suppressed; stderr: missing + WARNING; exit 1 | stdout: `OK` only; exit 0 | OK suppressed; no stderr; exit 0 |
+
+Notes: table documents vendor-parity behavior covered by the new corpus tests in `spec/corpus/cli_cases.json` (flag-matrix cases).

@@ -132,5 +132,109 @@
         "expected_exit": 1,
         "stdout_snapshot": "check_mutation_h3_stdin.stdout.snap",
         "stderr_snapshot": "check_mutation_h3_stdin.stderr.snap"
+    },
+    {
+        "name": "check: missing file without --ignore-missing",
+        "args": [
+            "-c",
+            "checksums_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_missing.stdout.snap",
+        "stderr_snapshot": "check_missing.stderr.snap"
+    },
+    {
+        "name": "check: missing file with --ignore-missing",
+        "args": [
+            "-c",
+            "--ignore-missing",
+            "checksums_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_missing_ignore.stdout.snap",
+        "stderr_snapshot": "check_missing_ignore.stderr.snap"
+    },
+    {
+        "name": "check: missing file with -q (quiet)",
+        "args": [
+            "-c",
+            "-q",
+            "checksums_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_missing_quiet.stdout.snap",
+        "stderr_snapshot": "check_missing_quiet.stderr.snap"
+    },
+    {
+        "name": "check: missing file with --ignore-missing + -q",
+        "args": [
+            "-c",
+            "--ignore-missing",
+            "-q",
+            "checksums_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_missing_ignore_quiet.stdout.snap",
+        "stderr_snapshot": "check_missing_ignore_quiet.stderr.snap"
+    },
+    {
+        "name": "check: mixed present + missing without flags",
+        "args": [
+            "-c",
+            "checksums_mixed_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_mixed_missing.stdout.snap",
+        "stderr_snapshot": "check_mixed_missing.stderr.snap"
+    },
+    {
+        "name": "check: mixed present + missing with --ignore-missing",
+        "args": [
+            "-c",
+            "--ignore-missing",
+            "checksums_mixed_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 0,
+        "stdout_snapshot": "check_mixed_missing_ignore.stdout.snap",
+        "stderr_snapshot": "check_mixed_missing_ignore.stderr.snap"
+    },
+    {
+        "name": "check: mixed present + missing with -q",
+        "args": [
+            "-c",
+            "-q",
+            "checksums_mixed_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_mixed_missing_quiet.stdout.snap",
+        "stderr_snapshot": "check_mixed_missing_quiet.stderr.snap"
+    },
+    {
+        "name": "check: mixed present + missing with --ignore-missing + -q",
+        "args": [
+            "-c",
+            "--ignore-missing",
+            "-q",
+            "checksums_mixed_missing.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 0,
+        "stdout_snapshot": "check_mixed_missing_ignore_quiet.stdout.snap",
+        "stderr_snapshot": "check_mixed_missing_ignore_quiet.stderr.snap"
     }
 ]
