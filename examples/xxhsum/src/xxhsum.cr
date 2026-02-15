@@ -9,6 +9,12 @@ module XXHSum
     def self.run(argv : Array(String))
       options = Options.parse(argv)
 
+      # If the user provided no arguments and nothing is piped, show help
+      if argv.empty? && STDIN.tty?
+        # Options.parse(["--help"]) will print the full help and exit(0)
+        Options.parse(["--help"])
+      end
+
       # Handle check mode
       if options.check_mode
         # If no files given, read checksums from stdin

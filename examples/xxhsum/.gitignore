@@ -1,1 +1,5 @@
-/bin/xxhsum
+/docs/
+/lib/
+/bin/
+/.shards/
+*.dwarf

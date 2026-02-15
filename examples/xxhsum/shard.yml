@@ -1,12 +1,12 @@
-name: xxhsum-example
+name: xxhsum
 version: 0.1.0
 
-description: "Example xxhsum CLI using cr-xxhash (minimal, demonstration only)"
+description: "Example xxhsum CLI using cr-xxhash bindings"
 
 authors:
-  - "cr-xxhash team"
+  - Werner Stein <werner.stein@gmail.com>
 
-crystal: ">= 1.8.0"
+crystal: ">= 1.19.0"
 
 targets:
   xxhsum:
@@ -15,3 +15,5 @@ targets:
 dependencies:
   cr-xxhash:
     path: ../..
+
+license: MIT
