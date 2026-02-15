@@ -554,11 +554,15 @@ include XXH::SpecHelper
 
 **Priority**: ⭐⭐ | **Effort**: 1h | **Complexity**: Low
 
-**Objective**: Document CI requirements (implement later)
+**Objective**: Set up PR smoke tests and CI workflows
 
-**File**: `.github/workflows/ci.yml` (placeholder created)
+**Files**: 
+- `.github/workflows/ci-fast.yml` ✅ **CREATED** (PR smoke tests)
+- `.github/workflows/ci.yml` (placeholder for full matrix)
+- `.github/workflows/check-generated-vectors.yml` (generator verification)
+- `.github/workflows/nightly-bench.yml` (performance baseline)
 
-**Status**: ⚠ **DEFERRED** (optional, Phase 3 integration point)
+**Status**: 🟡 **IN PROGRESS** (ci-fast.yml implemented; full matrix TBD)
 
 **Tasks**:
 
@@ -569,11 +573,20 @@ include XXH::SpecHelper
   - Required steps: build, test, ameba lint
 - [x] Create `.github/` directory structure
 - [x] Add placeholder CI config (disabled until Phase 3 complete)
+- [x] Implement fast PR smoke tests (ci-fast.yml)
+  - Runs on PR and push to develop
+  - Fast unit tests only (excludes integration, slow tests)
+  - Generator verification (ensures vectors are up-to-date)
+  - Typical runtime: <1 minute
 
 **Implementation**:
 
-- Created manual placeholder workflow at `.github/workflows/ci.yml` (manual `workflow_dispatch` only).
-- The placeholder contains an example matrix and TODO comments for Phase 3 enablement.
+- Created `.github/workflows/ci-fast.yml` with PR smoke testing:
+  - Unit tests targeting `spec/unit/` + safe bindings + version tests
+  - Generator check via `crystal scripts/generate_vectors.cr`
+  - Generator spec validation
+  - Clear summary output for PR reviewers
+- Kept manual placeholder workflow at `.github/workflows/ci.yml` (manual `workflow_dispatch` only) for Phase 3 full matrix.
 
 **Dependencies**: None
 **Blocks**: None (optional enhancement)

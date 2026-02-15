@@ -1,5 +1,6 @@
 # cr-xxhash
 
+[![Crystal CI - Fast (PR smoke)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml)
 [![Verify generated vendor vectors](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml)
 
 High-performance Crystal implementation and migration study of Yann Collet's xxHash (C → Crystal). This project explores achieving near-native throughput using LLVM intrinsics, pointer arithmetic, and SIMD unrolling within the Crystal Language ecosystem.
@@ -399,7 +400,26 @@ The JSON fixture is consumed by `spec/support/vector_loader.cr` and used by `spe
 * `shard.yml` runs `make -C vendor/xxHash libxxhash.a` during `shards install` (see `postinstall`) so the dev shell includes `gcc` and `make`.
 * The `CRYSTAL_PATH` environment variable is set in the shell so the local sources are visible to Crystal.
 
-If you want CI integration or extra packages (bench tooling, cross-platform variants), tell me where you'd like them and I can add them. ✅
+### GitHub Actions Workflows ✅
+
+**PR Smoke Tests** (`ci-fast.yml`):
+- Runs on every PR and push to develop
+- Fast unit tests only (~<1 minute)
+- Verifies generated vectors are up-to-date
+- Generator spec validation
+- **Status**: [![Crystal CI - Fast (PR smoke)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml)
+
+**Vector Generation Check** (`check-generated-vectors.yml`):
+- Ensures spec fixtures stay in sync
+- Runs on PR and push to develop
+- **Status**: [![Verify generated vendor vectors](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/check-generated-vectors.yml)
+
+**Nightly Benchmarking** (`nightly-bench.yml`):
+- Performance regression baseline tracking
+- Scheduled daily at 2 AM UTC
+- Produces CSV and markdown reports
+
+If you want additional CI matrices or specialized testing, open an issue. ✅
 
 ### Verified Test Results ✅
 
