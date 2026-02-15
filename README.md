@@ -403,7 +403,7 @@ If you want CI integration or extra packages (bench tooling, cross-platform vari
 
 ### Verified Test Results ✅
 
-All algorithms validated against vendor xxHash implementation. **Current test suite: 265 examples, 0 failures, 0 errors**.
+All algorithms validated against vendor xxHash implementation. **Current test suite: 294 examples, 0 failures, 0 errors**.
 
 **Test Coverage (2026-02-15)**:
 - ✅ Vendor vector parity (XXH32, XXH64, XXH3-64, XXH3-128)
@@ -411,6 +411,7 @@ All algorithms validated against vendor xxHash implementation. **Current test su
 - ✅ Endianness/byte-order determinism (big-endian validation, cross-platform)
 - ✅ Alignment invariants (unaligned buffer handling, all size classes)
 - ✅ SIMD path coverage (size-class transitions: 0-16B, 17-240B, 240B+)
+- ✅ FFI memory-safety & state lifecycle (create/free cycles, GC interaction, stress testing)
 - ✅ Seed-boundary edge cases (0, max values)
 - ✅ Streaming vs one-shot parity
 - ✅ FFI safe wrapper reliability
@@ -420,8 +421,9 @@ All algorithms validated against vendor xxHash implementation. **Current test su
 |----------|-------|--------|
 | Unit correctness (vectors, streaming, canonical) | 235 | ✅ |
 | Endianness & cross-platform | 14 | ✅ |
-| Alignment & SIMD paths | 16 | ✅ **NEW (2026-02-15)** |
-| **Total** | **265** | **✅ All passing** |
+| Alignment & SIMD paths | 16 | ✅ |
+| FFI memory-safety & lifecycle | 29 | ✅ **NEW (2026-02-15)** |
+| **Total** | **294** | **✅ All passing** |
 
 Example hashes (README.md, 4.0 KB):
 

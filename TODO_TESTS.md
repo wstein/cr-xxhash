@@ -7,11 +7,12 @@
 
 ## Current status (2026-02-15)
 
-- `crystal spec` executed: **265 examples, 0 failures, 0 errors** ✅.
-- All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, alignment, and vendor parity are **passing**.
+- `crystal spec` executed: **294 examples, 0 failures, 0 errors** ✅.
+- All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, alignment, memory-safety, and vendor parity are **passing**.
 - Comprehensive test coverage including:
   - 14 endianness/byte-order tests
   - 16 alignment/unaligned buffer tests covering all size classes and SIMD paths
+  - 29 FFI memory-safety tests (state lifecycle, GC interaction, create/free loops)
 
 ### Completed implementations
 
@@ -20,12 +21,13 @@
 - ✅ Endianness/byte-order verification (big-endian canonical form validation)
 - ✅ Alignment invariants (unaligned buffers, 4-byte and 8-byte boundary testing)
 - ✅ SIMD path coverage (size-class transitions: 0-16B, 17-240B, 240B+)
+- ✅ FFI memory-safety & state lifecycle (create/free cycles, GC interaction, stress testing)
 - ✅ Seed-boundary edge cases
 - ✅ Streaming vs one-shot alignment parity
 
 ### Remaining TODO items (lower priority)
 
-- [ ] FFI memory-safety regression tests (create/free loops, GC/ASAN checks)
+- [ ] Nightly bench regression detection (baseline comparison, median tracking)
 - [ ] Thread-safety tests (concurrent one-shot, independent states)
 - [ ] CLI Cucumber features (check-mode, filename escaping, unicode)
 - [ ] Fuzz/property tests (deterministic seeds)
@@ -108,7 +110,7 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 | ~~Alignment tests~~ (unaligned buffers, SIMD paths) | catches SIMD/ABI edge bugs | `spec/unit/alignment_spec.cr` | ⭐⭐⭐⭐ | ✅ **NEW — 16 tests added (2026-02-15)** |
 | ~~Seed boundary tests~~ (`0`, max UInt32/UInt64) | seed handling correctness | Covered in alignment tests | ⭐⭐⭐⭐ | ✅ Implemented |
 | ~~Endianness~~ canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ | ✅ **14 tests added (2026-02-15)** |
-| FFI memory safety loop (create/free states) | leak/regression guard | `spec/integration/ffi_memory_spec.cr` | ⭐⭐⭐⭐⭐ |
+| ~~FFI memory safety~~ loop (create/free states) | leak/regression guard | `spec/integration/ffi_memory_spec.cr` | ⭐⭐⭐⭐⭐ | ✅ **29 tests added (2026-02-15)** |
 | Error-path tests (invalid secret size, invalid files) | robust APIs | `spec/unit/error_paths_spec.cr` + cucumber errors | ⭐⭐⭐⭐ |
 | State reuse/reset lifecycle tests | streaming correctness over reuse | `spec/unit/state_lifecycle_spec.cr` | ⭐⭐⭐⭐ |
 | Thread-safety (multi-thread one-shot + independent states) | production robustness | `spec/advanced/thread_safety_spec.cr` | ⭐⭐⭐ |
