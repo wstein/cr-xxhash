@@ -6,7 +6,7 @@
 
 require "../src/common/buffers.cr"
 require "../src/xxh3/wrapper.cr"
-require "../src/vendor/bindings"
+require "../src/bindings/lib_xxh"
 
 sizes = [17, 20, 32, 48, 64, 96, 128, 129, 160, 200, 240]
 

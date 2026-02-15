@@ -43,7 +43,7 @@ Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
   │   ├── types.cr              # Shared types
   │   └── errors.cr             # Error handling
   ├── bindings/
-  │   ├── lib_xxh.cr            # Low-level FFI (rename from vendor/bindings.cr)
+  │   ├── lib_xxh.cr            # Low-level FFI bindings (canonical location)
   │   └── safe.cr               # Safe wrapper layer
   ├── xxh32/
   │   ├── hasher.cr             # One-shot API
@@ -595,32 +595,24 @@ include XXH::SpecHelper
 
 ---
 
-### 1.12 Move Existing Bindings to New Location ✅
+### 1.12 Consolidate FFI Bindings (Remove Duplicate) ✅
 
-**Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 15min | **Complexity**: Low
+**Priority**: ⭐⭐ | **Effort**: 15min | **Complexity**: Low
 
-**Objective**: Relocate vendor/bindings.cr to bindings/lib_xxh.cr
+**Objective**: Eliminate duplicate FFI bindings (`src/vendor/bindings.cr` was copy of `src/bindings/lib_xxh.cr`)
 
 **Tasks**:
 
-- [x] Copy `src/vendor/bindings.cr` → `src/bindings/lib_xxh.cr` ✅ DONE
-- [x] Update require paths in lib_xxh.cr: ✅ VERIFIED
+- [x] Identified duplicate: `src/vendor/bindings.cr` (only used in 1 script)
+- [x] Canonical location: `src/bindings/lib_xxh.cr` (used everywhere)
+- [x] Updated 1 reference: `scripts/bench_midsize.cr` requires `../src/bindings/lib_xxh`
+- [x] Deleted `src/vendor/bindings.cr` ✅ **CONSOLIDATED**
+- [x] Verified all tests still pass (305 tests, 0 failures)
 
-  ```crystal
-  @[Link(ldflags: "#{__DIR__}/../../vendor/xxHash/xxhash.o")]
-  ```
-
-- [x] src/vendor/ directory will be cleaned up post-Phase1 ✅ NOTED
-- [x] Verify compilation still works ✅ VERIFIED (smoke tests pass)
-
-**Validation**:
-
-- [x] Bindings file in new location (`src/bindings/lib_xxh.cr`)
-- [x] No broken require paths (imports updated in lib_xxh.cr)
-- [x] C library linking works (smoke tests confirm)
+**Single source of truth**: `src/bindings/lib_xxh.cr` is now the canonical FFI location.
 
 **Dependencies**: 1.1
-**Blocks**: 1.5, 1.6
+**Blocks**: None (cleanup complete)
 
 ---
 
