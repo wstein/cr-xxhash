@@ -41,7 +41,7 @@ module XXH
       end
 
       def self.hash_file(path : String | Path, seed : UInt32 = 0_u32) : UInt32
-        File.open(path, "r") do |file|
+        File.open(path, "rb") do |file|
           hash(file, seed)
         end
       end
@@ -76,7 +76,7 @@ module XXH
       end
 
       def self.hash_file(path : String | Path, seed : UInt64 = 0_u64) : UInt64
-        File.open(path, "r") { |file| hash(file, seed) }
+        File.open(path, "rb") { |file| hash(file, seed) }
       end
     end
 
@@ -129,11 +129,11 @@ module XXH
       end
 
       def self.hash_file(path : String | Path) : UInt64
-        File.open(path, "r") { |file| hash(file) }
+        File.open(path, "rb") { |file| hash(file) }
       end
 
       def self.hash_file(path : String | Path, seed : UInt64) : UInt64
-        File.open(path, "r") { |file| hash(file, seed) }
+        File.open(path, "rb") { |file| hash(file, seed) }
       end
     end
 
@@ -191,11 +191,11 @@ module XXH
       end
 
       def self.hash_file(path : String | Path) : UInt128
-        File.open(path, "r") { |file| hash(file) }
+        File.open(path, "rb") { |file| hash(file) }
       end
 
       def self.hash_file(path : String | Path, seed : UInt64) : UInt128
-        File.open(path, "r") { |file| hash(file, seed) }
+        File.open(path, "rb") { |file| hash(file, seed) }
       end
     end
 
