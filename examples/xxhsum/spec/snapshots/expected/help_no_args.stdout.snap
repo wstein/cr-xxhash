@@ -19,7 +19,7 @@ Advanced:
     -V, --version                    Display version information
     --tag                            Produce BSD-style checksum lines
     --little-endian                  (NOT YET IMPLEMENTED) Checksum values use little endian convention (default: big endian)
-    --binary                         (NOT YET IMPLEMENTED) Read in binary mode
+    --binary                         Read in binary mode (compat: no-op — files are binary by default)
     -b                               Run benchmark
     -b#                              Bench only algorithm variant #
     -i#                              Number of times to run the benchmark (default: 3)

@@ -49,7 +49,7 @@ module XXHSum
           p.on("-V", "--version", "Display version information") { }
           p.on("--tag", "Produce BSD-style checksum lines") { }
           p.on("--little-endian", "(NOT YET IMPLEMENTED) Checksum values use little endian convention (default: big endian)") { }
-          p.on("--binary", "(NOT YET IMPLEMENTED) Read in binary mode") { }
+          p.on("--binary", "Read in binary mode (compat: no-op — files are binary by default)") { }
           p.on("-b", "Run benchmark") { }
           p.on("-b#", "Bench only algorithm variant #") { }
           p.on("-i#", "Number of times to run the benchmark (default: 3)") { }
@@ -175,8 +175,8 @@ module XXHSum
             exit 1
           end
           p.on("--binary", "Read in binary mode") do
-            STDERR.puts "Error: --binary is not yet implemented"
-            exit 1
+            # Compatibility with the original vendor `xxhsum`: files are opened/read
+            # in binary mode by default. Accept `--binary` as a no-op for parity.
           end
           p.on("-b#", "Bench only algorithm variant #") do |v|
             spec = v
