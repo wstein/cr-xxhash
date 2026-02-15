@@ -1,0 +1,17 @@
+name: xxhsum-example
+version: 0.1.0
+
+description: "Example xxhsum CLI using cr-xxhash (minimal, demonstration only)"
+
+authors:
+  - "cr-xxhash team"
+
+crystal: ">= 1.8.0"
+
+targets:
+  xxhsum:
+    main: src/xxhsum.cr
+
+dependencies:
+  cr-xxhash:
+    path: ../..
