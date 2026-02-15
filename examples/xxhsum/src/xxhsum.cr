@@ -2,12 +2,23 @@ require "cr-xxhash/src/xxh"
 require "./options"
 require "./hasher"
 require "./formatter"
+require "./checker"
 
 module XXHSum
   module CLI
     def self.run(argv : Array(String))
       options = Options.parse(argv)
 
+      # Handle check mode
+      if options.check_mode
+        # If no files given, read checksums from stdin
+        if options.files.empty?
+          return Checker.verify_stdin(options)
+        end
+        return Checker.verify(options.files, options)
+      end
+
+      # Regular hashing mode
       # If no files given -> read from stdin
       if options.files.empty?
         hex = Hasher.hash_stdin(options.algorithm, options.seed)

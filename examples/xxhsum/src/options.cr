@@ -15,6 +15,9 @@ module XXHSum
       property quiet : Bool = false
       property seed : UInt64? = nil
       property files : Array(String) = [] of String
+      property check_mode : Bool = false
+      property ignore_missing : Bool = false
+      property strict : Bool = false
 
       def self.parse(argv : Array(String)) : Options
         opts = Options.new
@@ -33,8 +36,11 @@ module XXHSum
             end
           end
 
+          p.on("-c", "--check", "Verify checksums from file") { opts.check_mode = true }
           p.on("--tag", "BSD-style output") { opts.bsd = true }
           p.on("-q", "--quiet", "Suppress extra output (bench/status) (not used in MVP)") { opts.quiet = true }
+          p.on("--ignore-missing", "Don't fail for missing files") { opts.ignore_missing = true }
+          p.on("--strict", "Exit non-zero for improperly formatted lines") { opts.strict = true }
 
           p.on("-s SEED", "--seed SEED", "Seed (decimal or 0xHEX)") do |v|
             seed_val = if v.starts_with?("0x") || v.starts_with?("0X")
