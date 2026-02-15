@@ -14,15 +14,13 @@ module XXH
   module Bindings
     # XXH32 safe one-shot hasher
     module XXH32
-      def self.hash(data : Bytes, seed : UInt32 = 0_u32) : UInt32
-        LibXXH.XXH32(data.to_unsafe, data.size, seed)
+      # Unseeded overloads
+      def self.hash(data : Bytes | String) : UInt32
+        LibXXH.XXH32(data.to_unsafe, data.size, 0_u32)
       end
 
-      def self.hash(string : String, seed : UInt32 = 0_u32) : UInt32
-        hash(string.to_slice, seed)
-      end
-
-      def self.hash(data : Bytes, seed : UInt32 = 0_u32) : UInt32
+      # Seeded overloads
+      def self.hash(data : Bytes | String, seed : UInt32) : UInt32
         LibXXH.XXH32(data.to_unsafe, data.size, seed)
       end
 
@@ -51,15 +49,13 @@ module XXH
 
     # XXH64 safe one-shot hasher
     module XXH64
-      def self.hash(data : Bytes, seed : UInt64 = 0_u64) : UInt64
-        LibXXH.XXH64(data.to_unsafe, data.size, seed)
+      # Unseeded overloads
+      def self.hash(data : Bytes | String) : UInt64
+        LibXXH.XXH64(data.to_unsafe, data.size, 0_u64)
       end
 
-      def self.hash(string : String, seed : UInt64 = 0_u64) : UInt64
-        hash(string.to_slice, seed)
-      end
-
-      def self.hash(data : Bytes, seed : UInt64 = 0_u64) : UInt64
+      # Seeded overloads
+      def self.hash(data : Bytes | String, seed : UInt64) : UInt64
         LibXXH.XXH64(data.to_unsafe, data.size, seed)
       end
 
@@ -86,31 +82,17 @@ module XXH
 
     # XXH3 64-bit safe one-shot hasher
     module XXH3_64
-      def self.hash(data : Bytes) : UInt64
+      # Unseeded overloads
+      def self.hash(data : Bytes | String) : UInt64
         LibXXH.XXH3_64bits(data.to_unsafe, data.size)
       end
 
-      def self.hash(data : Bytes, seed : UInt64) : UInt64
+      # Seeded overloads
+      def self.hash(data : Bytes | String, seed : UInt64) : UInt64
         LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
       end
 
-      def self.hash(string : String) : UInt64
-        hash(string.to_slice)
-      end
-
-      def self.hash(string : String, seed : UInt64) : UInt64
-        hash(string.to_slice, seed)
-      end
-
-      def self.hash(data : Bytes) : UInt64
-        LibXXH.XXH3_64bits(data.to_unsafe, data.size)
-      end
-
-      def self.hash(data : Bytes, seed : UInt64) : UInt64
-        LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
-      end
-
-      def self.hash_with_secret(data : Bytes, secret : ::XXH::Secret) : UInt64
+      def self.hash_with_secret(data : Bytes | String, secret : ::XXH::Secret) : UInt64
         LibXXH.XXH3_64bits_withSecret(data.to_unsafe, data.size, secret.to_unsafe, secret.size)
       end
 
@@ -157,35 +139,19 @@ module XXH
 
     # XXH3 128-bit safe one-shot hasher
     module XXH3_128
-      def self.hash(data : Bytes) : UInt128
+      # Unseeded overloads
+      def self.hash(data : Bytes | String) : UInt128
         c_hash = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
         UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash(data : Bytes, seed : UInt64) : UInt128
+      # Seeded overloads
+      def self.hash(data : Bytes | String, seed : UInt64) : UInt128
         c_hash = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
         UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash(string : String) : UInt128
-        hash(string.to_slice)
-      end
-
-      def self.hash(string : String, seed : UInt64) : UInt128
-        hash(string.to_slice, seed)
-      end
-
-      def self.hash(data : Bytes) : UInt128
-        c_hash = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
-        UInt128.from_c_hash(c_hash)
-      end
-
-      def self.hash(data : Bytes, seed : UInt64) : UInt128
-        c_hash = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
-        UInt128.from_c_hash(c_hash)
-      end
-
-      def self.hash_with_secret(data : Bytes, secret : ::XXH::Secret) : UInt128
+      def self.hash_with_secret(data : Bytes | String, secret : ::XXH::Secret) : UInt128
         c_hash = LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret.to_unsafe, secret.size)
         UInt128.from_c_hash(c_hash)
       end

@@ -557,6 +557,7 @@ include XXH::SpecHelper
 **Objective**: Set up PR smoke tests and CI workflows
 
 **Files**:
+
 - `.github/workflows/ci-fast.yml` ✅ **CREATED** (PR smoke tests)
 - `.github/workflows/ci.yml` (placeholder for full matrix)
 - `.github/workflows/check-generated-vectors.yml` (generator verification)
@@ -612,6 +613,39 @@ include XXH::SpecHelper
 **Single source of truth**: `src/bindings/lib_xxh.cr` is now the canonical FFI location.
 
 **Dependencies**: 1.1
+**Blocks**: None (cleanup complete)
+
+---
+
+### 1.12b Remove Duplicate Method Definitions in Safe Bindings ✅
+
+**Priority**: ⭐⭐⭐ | **Effort**: 30min | **Complexity**: Medium
+
+**Objective**: Eliminate 6 duplicate method pairs in `src/bindings/safe.cr` and refactor to explicit unseeded/seeded overloads
+
+**Issues identified**:
+- XXH32: `hash(data : Bytes, seed)` defined at lines 17 and 25 (duplicate)
+- XXH64: `hash(data : Bytes, seed)` defined at lines 54 and 62 (duplicate)
+- XXH3_64: `hash(data : Bytes)` defined at lines 89 and 105 (duplicate)
+- XXH3_64: `hash(data : Bytes, seed)` defined at lines 93 and 109 (duplicate)
+- XXH3_128: `hash(data : Bytes)` defined at lines 160 and 178 (duplicate)
+- XXH3_128: `hash(data : Bytes, seed)` defined at lines 165 and 183 (duplicate)
+
+**Refactoring applied**:
+- [x] Removed all duplicate one-shot method definitions
+- [x] Refactored to explicit unseeded/seeded overloads (no defaulted seed parameters)
+  - Unseeded: `hash(data : Bytes)` / `hash(string : String)`
+  - Seeded: `hash(data : Bytes, seed : UInt64)` / `hash(string : String, seed : UInt64)`
+- [x] Maintains explicit IO overloads (already correct pattern)
+- [x] Verified all 305 tests pass
+
+**Benefits**:
+- Eliminates maintenance burden from duplicate code
+- Improves clarity: seeded/unseeded behavior explicit, no runtime branching
+- Matches public hasher API pattern (consistency)
+- Reduces file size by ~50 lines
+
+**Dependencies**: 1.1, 1.5
 **Blocks**: None (cleanup complete)
 
 ---

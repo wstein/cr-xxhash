@@ -133,6 +133,15 @@ Each algorithm folder (`src/xxh32/`, `src/xxh64/`, `src/xxh3/`) then implements:
 * `hasher.cr` — Public one-shot API (delegates to safe bindings, accepts `Bytes`/`String`)
 * `canonical.cr` — Canonical form conversions (optional)
 
+### Bindings API Pattern
+
+The safe bindings layer uses **explicit unseeded/seeded overloads** (no defaulted parameters):
+  - `Bindings::XXH32.hash(data : Bytes)` — unseeded
+  - `Bindings::XXH32.hash(data : Bytes, seed : UInt32)` — seeded
+  - Similar pattern for XXH64, XXH3_64, XXH3_128
+
+This avoids runtime branching and improves call-site clarity.
+
 ### Single-responsibility principle:
 - **lib_xxh.cr**: "Map C to Crystal types"
 - **safe.cr**: "Wrap unsafe pointers in safe APIs"

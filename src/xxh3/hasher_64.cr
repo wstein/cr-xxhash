@@ -4,20 +4,12 @@ require "../xxh3/state64"
 
 module XXH
   module XXH3
-    def self.hash64(data : Bytes) : UInt64
+    def self.hash64(data : Bytes | String) : UInt64
       Bindings::XXH3_64.hash(data)
     end
 
-    def self.hash64(data : Bytes, seed : Seed64) : UInt64
+    def self.hash64(data : Bytes | String, seed : Seed64) : UInt64
       Bindings::XXH3_64.hash(data, seed)
-    end
-
-    def self.hash64(string : String) : UInt64
-      Bindings::XXH3_64.hash(string)
-    end
-
-    def self.hash64(string : String, seed : Seed64) : UInt64
-      Bindings::XXH3_64.hash(string, seed)
     end
 
     def self.hash64(io : IO) : UInt64

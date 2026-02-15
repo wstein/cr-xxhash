@@ -5,12 +5,8 @@ require "../xxh64/state"
 module XXH
   module XXH64
     # Unseeded (default) overloads
-    def self.hash(data : Bytes) : UInt64
+    def self.hash(data : Bytes | String) : UInt64
       Bindings::XXH64.hash(data)
-    end
-
-    def self.hash(string : String) : UInt64
-      Bindings::XXH64.hash(string)
     end
 
     def self.hash(io : IO) : UInt64
