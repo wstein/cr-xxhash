@@ -10,9 +10,11 @@ module XXHSum
                             hex
                           end
 
-        if filename == nil || filename == "-"
+        if filename == nil
+          # When no filename provided, show only the hash
           hex_with_prefix
         else
+          # Show hash with filename (including "stdin" for piped input)
           "#{hex_with_prefix}  #{filename}"
         end
       end

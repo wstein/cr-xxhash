@@ -34,7 +34,7 @@ module XXHSum
       # If no files given -> read from stdin
       if options.files.empty?
         hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
-        output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "-") : Formatter.format_gnu(hex, nil, options.algorithm)
+        output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin") : Formatter.format_gnu(hex, "stdin", options.algorithm)
         stdout.puts output
         return 0
       end
@@ -42,7 +42,7 @@ module XXHSum
       options.files.each do |f|
         if f == "-"
           hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
-          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "-") : Formatter.format_gnu(hex, "-", options.algorithm)
+          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin") : Formatter.format_gnu(hex, "stdin", options.algorithm)
           next
         end
 

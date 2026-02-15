@@ -1,1 +1,1 @@
-xxhsum: checksums_bad.txt: improperly formatted line: not-a-checksum-line
+checksums_bad.txt: no properly formatted xxHash checksum lines found

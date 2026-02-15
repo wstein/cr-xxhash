@@ -1,0 +1,8 @@
+Vendor Parity Report
+====================
+
+Summary: 17/17 cases match vendor xxhsum
+Pass rate: 100.0%
+
+✅ All cases match vendor xxhsum perfectly!
+

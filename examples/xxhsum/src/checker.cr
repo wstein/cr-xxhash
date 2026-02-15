@@ -21,8 +21,8 @@ module XXHSum
           unless parsed
             total_bad_format += 1
             if options.strict
-              err_io.puts "xxhsum: stdin: improperly formatted line: #{line}"
-              exit_code = 2
+              out_io.puts "stdin: improperly formatted line: #{line}"
+              exit_code = 1
             end
             next
           end
@@ -33,8 +33,7 @@ module XXHSum
           unless File.exists?(filename)
             total_missing += 1
             unless options.ignore_missing
-              err_io.puts "xxhsum: #{filename}: No such file or directory"
-              total_failed += 1
+              out_io.puts "stdin:1: Could not open or read '#{filename}': No such file or directory."
               exit_code = 1
             end
             next
@@ -59,22 +58,32 @@ module XXHSum
               end
               total_checked += 1
             else
-              err_io.puts "#{filename}: FAILED"
+              out_io.puts "#{filename}: FAILED"
               total_failed += 1
               exit_code = 1
               total_checked += 1
             end
           rescue ex : Exception
-            err_io.puts "xxhsum: #{filename}: #{ex.message}"
+            out_io.puts "#{filename}: FAILED"
             total_failed += 1
             exit_code = 1
             total_checked += 1
           end
         end
 
-        # Summary (quiet only suppresses per-file OK lines)
-        if total_failed > 0
-          err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
+        # Summary - output to stdout (vendor parity)
+        if total_missing > 0 && total_failed > 0
+          # Mixed missing and mismatched
+          verb = total_failed == 1 ? "checksum" : "checksums"
+          out_io.puts "#{total_failed} computed #{verb} did NOT match"
+        elsif total_missing > 0
+          # Only missing files
+          count_str = total_missing == 1 ? "file" : "files"
+          out_io.puts "#{total_missing} listed #{count_str} could not be read"
+        elsif total_failed > 0
+          # Only mismatched hashes
+          verb = total_failed == 1 ? "checksum" : "checksums"
+          out_io.puts "#{total_failed} computed #{verb} did NOT match"
         end
 
         # Vendor parity: when --ignore-missing is used and no files were verified
@@ -91,15 +100,19 @@ module XXHSum
       def self.verify(checksum_files : Array(String), options : Options, out_io : IO = STDOUT, err_io : IO = STDERR) : Int32
         exit_code = 0
         total_checked = 0
-        total_failed = 0
+        total_failed = 0 # Count of hash mismatches
         total_missing = 0
         total_bad_format = 0
+        total_properly_formatted = 0
 
         checksum_files.each do |checksum_file|
           begin
             matched_in_file = 0
+            line_index = 0
+            had_bad_format = false
 
             File.each_line(checksum_file) do |line|
+              line_index += 1
               # Skip empty lines and comments
               line = line.strip
               next if line.empty? || line.starts_with?("#")
@@ -108,12 +121,11 @@ module XXHSum
 
               unless parsed
                 total_bad_format += 1
-                if options.strict
-                  err_io.puts "xxhsum: #{checksum_file}: improperly formatted line: #{line}"
-                  exit_code = 2
-                end
+                had_bad_format = true
                 next
               end
+
+              total_properly_formatted += 1
 
               hash_str, filename, algo_str = parsed
 
@@ -121,8 +133,7 @@ module XXHSum
               unless File.exists?(filename)
                 total_missing += 1
                 unless options.ignore_missing
-                  err_io.puts "xxhsum: #{filename}: No such file or directory"
-                  total_failed += 1
+                  out_io.puts "#{checksum_file}:#{line_index}: Could not open or read '#{filename}': No such file or directory."
                   exit_code = 1
                 end
                 next
@@ -142,17 +153,23 @@ module XXHSum
                   total_checked += 1
                   matched_in_file += 1
                 else
-                  err_io.puts "#{filename}: FAILED"
+                  out_io.puts "#{filename}: FAILED"
                   total_failed += 1
                   exit_code = 1
                   total_checked += 1
                 end
               rescue ex : Exception
-                err_io.puts "xxhsum: #{filename}: #{ex.message}"
+                out_io.puts "#{filename}: FAILED"
                 total_failed += 1
                 exit_code = 1
                 total_checked += 1
               end
+            end
+
+            # In strict mode with no properly formatted lines, output error to stderr
+            if options.strict && had_bad_format && total_properly_formatted == 0
+              err_io.puts "#{checksum_file}: no properly formatted xxHash checksum lines found"
+              exit_code = 1
             end
 
             # If --ignore-missing is enabled but no file from this checksum file was verified,
@@ -161,16 +178,22 @@ module XXHSum
               out_io.puts "#{checksum_file}: no file was verified"
               exit_code = 1
             end
-
           rescue ex : Exception
-            err_io.puts "xxhsum: #{checksum_file}: #{ex.message}"
+            out_io.puts "xxhsum: #{checksum_file}: #{ex.message}"
             exit_code = 1
           end
         end
 
-        # Summary (quiet only suppresses per-file OK lines)
-        if total_failed > 0
-          err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
+        # Summary - output to stdout (vendor parity)
+        # Don't output summary when using --ignore-missing (vendor behavior)
+        unless options.ignore_missing
+          if total_missing > 0
+            count_str = total_missing == 1 ? "file" : "files"
+            out_io.puts "#{total_missing} listed #{count_str} could not be read"
+          elsif total_failed > 0
+            verb = total_failed == 1 ? "checksum" : "checksums"
+            out_io.puts "#{total_failed} computed #{verb} did NOT match"
+          end
         end
 
         exit_code
