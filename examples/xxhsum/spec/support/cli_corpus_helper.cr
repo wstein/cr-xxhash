@@ -24,9 +24,9 @@ end
 record CLICorpusResult, exit_code : Int32, stdout : String, stderr : String
 
 module CLICorpusHelper
-  FIXTURES_DIR  = File.expand_path("../fixtures", __DIR__)
-  SNAPSHOTS_DIR = File.expand_path("../snapshots", __DIR__)
-  CORPUS_PATH   = File.expand_path("../corpus/cli_cases.json", __DIR__)
+  FIXTURES_DIR       = File.expand_path("../fixtures", __DIR__)
+  EXPECTED_SNAPSHOTS = File.expand_path("../snapshots/expected", __DIR__)
+  CORPUS_PATH        = File.expand_path("../corpus/cli_cases.json", __DIR__)
 
   def self.load_cases : Array(CLICorpusCase)
     Array(CLICorpusCase).from_json(File.read(CORPUS_PATH))
@@ -104,14 +104,25 @@ module CLICorpusHelper
   end
 
   def self.assert_snapshot(snapshot_name : String, actual : String)
-    snapshot_path = File.join(SNAPSHOTS_DIR, snapshot_name)
+    snapshot_path = File.join(EXPECTED_SNAPSHOTS, snapshot_name)
 
     if ENV["UPDATE_SNAPSHOTS"]? == "1"
+      # Read old snapshot for diff (if it exists)
+      old_content = File.exists?(snapshot_path) ? File.read(snapshot_path) : ""
+
+      # Show diff before updating
+      if old_content != actual
+        puts "\n  📝 Snapshot updated: #{snapshot_name}"
+        show_diff(old_content, actual, snapshot_name)
+      end
+
+      # Write updated snapshot to expected/ directory
       File.write(snapshot_path, actual)
+      return
     end
 
     unless File.exists?(snapshot_path)
-      raise "Missing snapshot: #{snapshot_name}. Re-run with UPDATE_SNAPSHOTS=1"
+      raise "Missing snapshot: #{snapshot_name}. Re-run with UPDATE_SNAPSHOTS=1 to auto-review and create"
     end
 
     expected = File.read(snapshot_path)
@@ -123,5 +134,39 @@ module CLICorpusHelper
     end
 
     actual.should eq(expected)
+  end
+
+  private def self.show_diff(expected : String, actual : String, snapshot_name : String)
+    # Simple unified diff-style output
+    exp_lines = expected.lines
+    act_lines = actual.lines
+    max_lines = {exp_lines.size, act_lines.size}.max
+
+    diff_lines = [] of String
+    diff_lines << "  --- expected"
+    diff_lines << "  +++ actual"
+
+    (0...max_lines).each do |i|
+      exp = exp_lines[i]?
+      act = act_lines[i]?
+
+      if exp.nil? && act.nil?
+        break
+      elsif exp.nil?
+        diff_lines << "  + #{act.inspect}"
+      elsif act.nil?
+        diff_lines << "  - #{exp.inspect}"
+      elsif exp != act
+        diff_lines << "  - #{exp.inspect}"
+        diff_lines << "  + #{act.inspect}"
+      end
+    end
+
+    # Limit diff output to first 20 differences
+    if diff_lines.size > 20
+      diff_lines = diff_lines[0..19] + ["  ... (diff truncated)"]
+    end
+
+    puts diff_lines.join("\n") unless diff_lines.empty?
   end
 end

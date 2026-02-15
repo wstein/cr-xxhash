@@ -44,6 +44,23 @@
   - [x] H3 stdin verification with partial corruption
 - [x] Fixture teardown (auto-restore after test suite)
 - [x] 19 passing test scenarios (added quiet/--ignore-missing matrix cases)
+- [x] Golden snapshot normalization helper (CRLF + trailing-space toggle via NORMALIZE_EOL=1)
+- [x] **Snapshot auto-review system** (UPDATE_SNAPSHOTS=1 with diff output)
+  - [x] Move snapshots to `spec/snapshots/expected/` (golden/canonical directory)
+  - [x] Show unified diffs before updating (first 20 lines of changes)
+  - [x] Two-phase update workflow (review → commit → verify)
+  - [x] Documentation of snapshot maintenance strategy
+  - [x] **Vendor CLI analysis & architectural comparison**
+    - [x] Analyzed vendor xxhsum C implementation (1676 LOC, monolithic)
+    - [x] Analyzed cr-xxhash Crystal example (380 LOC, modular)
+    - [x] Created detailed architectural comparison table
+    - [x] Documented behavioral parity for quiet, ignore-missing, strict modes
+    - [x] Identified design advantages: testability, type safety, modularity
+    - [x] Documented design patterns: dependency injection, separation of concerns
+    - [x] Added recommendations for when to use C vs. Crystal for CLI tools
+  - [x] Two-phase update workflow (review → commit → verify)
+  - [x] Documentation of snapshot maintenance strategy
+  - [x] Vendor CLI analysis & architectural comparison document
 
 ## 📋 Future Work (Prioritized)
 
