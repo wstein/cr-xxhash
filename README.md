@@ -242,26 +242,28 @@ puts "XXH3_128: #{hash128.to_s(16)}"
 
 # Streaming example (128-bit)
 state = XXH::XXH3.new_state128
-state.update("hello".to_slice)
-state.update(" world".to_slice)
+state.update("hello")
+state.update(" world")
 h = state.digest
 puts "XXH3_128 streaming: low=0x#{h.low64.to_s(16)}, high=0x#{h.high64.to_s(16)}"
 
 # Reset with a seed (streaming with seed)
 # You can initialize with a seed or call `reset(seed)` to reuse the state for a new seeded hash.
 state = XXH::XXH3.new_state128(0_u64)
-state.update("test".to_slice)
+state.update("test")
 puts "seeded (0) => #{XXH::XXH3.hash128_with_seed("test".to_slice, 0_u64).low64.to_s(16)}"
 state.reset(42_u64)
-state.update("test".to_slice)
+state.update("test")
 puts "seeded (42) => #{XXH::XXH3.hash128_with_seed("test".to_slice, 42_u64).low64.to_s(16)}"
 
 # 64-bit equivalent reset usage
 state64 = XXH::XXH3.new_state(0_u64)
-state64.update("foo".to_slice)
+state64.update("foo")
 state64.reset(123_u64)
-state64.update("bar".to_slice)
+state64.update("bar")
 puts "XXH3_64 streaming with seed: #{state64.digest.to_s(16)}"
+
+> Tip: `State#update` accepts both `String` and `Bytes` directly (`update(data : Bytes | String)`), so you can pass `String` values without calling `to_slice`.
 ```
 
 ### CLI Tool

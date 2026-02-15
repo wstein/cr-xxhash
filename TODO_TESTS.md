@@ -24,6 +24,7 @@
 - ✅ FFI memory-safety & state lifecycle (create/free cycles, GC interaction, stress testing)
 - ✅ Seed-boundary edge cases
 - ✅ Streaming vs one-shot alignment parity
+- ✅ Unified `State#update(data : Bytes | String)` API across `XXH32`, `XXH64`, and `XXH3` (convenience + consistency)
 
 ### Remaining TODO items (lower priority)
 

@@ -20,10 +20,32 @@ describe XXH::XXH64::State do
       result.should be(state)
     end
 
+    it "accepts both String and Bytes inputs and produces identical digests" do
+      data = "interchange"
+      bytes = Bytes.new(data.bytesize) { |i| data.to_slice[i] }
+
+      s_str = XXH::XXH64::State.new
+      s_str.update(data)
+      d_str = s_str.digest
+
+      s_bytes = XXH::XXH64::State.new
+      s_bytes.update(bytes)
+      d_bytes = s_bytes.digest
+
+      d_str.should eq(d_bytes)
+      d_str.should eq(XXH::XXH64.hash(data))
+    end
+
     it "returns self for method chaining" do
       state = XXH::XXH64::State.new
       result = state.update("hello".to_slice).update("world".to_slice)
       result.should be(state)
+    end
+
+    it "update returns self for both String and Bytes" do
+      state = XXH::XXH64::State.new
+      state.update("foo").should be(state)
+      state.update(Bytes[0x66, 0x6F, 0x6F]).should be(state)
     end
 
     it "can be called multiple times" do

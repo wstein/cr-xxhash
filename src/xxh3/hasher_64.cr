@@ -1,6 +1,6 @@
 require "../bindings/safe"
 require "../common/types"
-require "../xxh3/state"
+require "../xxh3/state64"
 
 module XXH
   module XXH3

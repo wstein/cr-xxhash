@@ -11,12 +11,8 @@ module XXH
         reset(seed)
       end
 
-      def update(str : String)
-        update(str.to_slice)
-      end
-
-      def update(slice : Slice(UInt8))
-        ErrorHandler.check!(LibXXH.XXH3_64bits_update(@state, slice.to_unsafe, slice.size), "XXH3_64 update")
+      def update(data : Bytes | String)
+        ErrorHandler.check!(LibXXH.XXH3_64bits_update(@state, data.to_unsafe, data.size), "XXH3_64 update")
         self
       end
 
@@ -24,13 +20,13 @@ module XXH
         LibXXH.XXH3_64bits_digest(@state)
       end
 
-      def reset(seed : Seed64 = 0_u64)
-        if seed == 0_u64
-          ErrorHandler.check!(LibXXH.XXH3_64bits_reset(@state), "XXH3_64 reset")
-        else
-          ErrorHandler.check!(LibXXH.XXH3_64bits_reset_withSeed(@state, seed), "XXH3_64 reset with seed")
-        end
-        @seed = seed
+      def reset(seed : Seed64)
+        ErrorHandler.check!(LibXXH.XXH3_64bits_reset_withSeed(@state, seed), "XXH3_64 reset with seed")
+        self
+      end
+
+      def reset
+        ErrorHandler.check!(LibXXH.XXH3_64bits_reset(@state), "XXH3_64 reset")
         self
       end
 

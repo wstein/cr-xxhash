@@ -12,6 +12,28 @@ describe XXH::XXH3::State64 do
     result.should be(state)
   end
 
+  it "accepts both String and Bytes inputs (State64) and produces identical digests" do
+    data = "interchangeable input"
+    bytes = Bytes.new(data.bytesize) { |i| data.to_slice[i] }
+
+    s_str = XXH::XXH3::State64.new
+    s_str.update(data)
+    d_str = s_str.digest
+
+    s_bytes = XXH::XXH3::State64.new
+    s_bytes.update(bytes)
+    d_bytes = s_bytes.digest
+
+    d_str.should eq(d_bytes)
+    d_str.should eq(XXH::XXH3.hash64(data))
+  end
+
+  it "update returns self for String and Bytes (State64)" do
+    state = XXH::XXH3::State64.new
+    state.update("foo").should be(state)
+    state.update(Bytes[0x66, 0x6F, 0x6F]).should be(state)
+  end
+
   it "digest matches one-shot hash" do
     input = "test data for streaming"
 
@@ -76,6 +98,28 @@ describe XXH::XXH3::State128 do
     state = XXH::XXH3::State128.new
     result = state.update("test".to_slice)
     result.should be(state)
+  end
+
+  it "accepts both String and Bytes inputs (State128) and produces identical digests" do
+    data = "interchangeable input"
+    bytes = Bytes.new(data.bytesize) { |i| data.to_slice[i] }
+
+    s_str = XXH::XXH3::State128.new
+    s_str.update(data)
+    d_str = s_str.digest
+
+    s_bytes = XXH::XXH3::State128.new
+    s_bytes.update(bytes)
+    d_bytes = s_bytes.digest
+
+    d_str.should eq(d_bytes)
+    d_str.should eq(XXH::XXH3.hash128(data))
+  end
+
+  it "update returns self for String and Bytes (State128)" do
+    state = XXH::XXH3::State128.new
+    state.update("foo").should be(state)
+    state.update(Bytes[0x66, 0x6F, 0x6F]).should be(state)
   end
 
   it "digest returns Hash128" do

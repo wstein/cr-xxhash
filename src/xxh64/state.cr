@@ -11,13 +11,9 @@ module XXH
         reset(seed)
       end
 
-      def update(slice : Slice(UInt8))
-        ErrorHandler.check!(LibXXH.XXH64_update(@state, slice.to_unsafe, slice.size), "XXH64 update")
+      def update(data : Bytes | String)
+        ErrorHandler.check!(LibXXH.XXH64_update(@state, data.to_unsafe, data.size), "XXH64 update")
         self
-      end
-
-      def update(str : String)
-        update(str.to_slice)
       end
 
       def digest : UInt64
@@ -26,7 +22,6 @@ module XXH
 
       def reset(seed : Seed64 = 0_u64)
         ErrorHandler.check!(LibXXH.XXH64_reset(@state, seed), "XXH64 reset")
-        @seed = seed
         self
       end
 
