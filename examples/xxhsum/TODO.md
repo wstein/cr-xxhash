@@ -13,6 +13,12 @@
 - [x] Seeding support (-s/--seed with decimal and 0xHEX)
 - [x] Help/version flags (--help, --version)
 - [x] No-args interactive help when TTY
+### Benchmark Enhancements (recent)
+
+- [x] Benchmark mode (-b / -b# / -i# / -B#)
+- [x] Live-progress updates during calibration (live-update)
+- [x] Calibration target increased to ~1s per variant (more stable timings)
+- [x] Size-suffix policy: all common suffixes (K/KB/M/MB/G/GB and IEC forms) are 1024-based
 
 ### Check Mode (Phase 2)
 
@@ -26,7 +32,7 @@
 - [x] Bad format line handling (skip by default, error with --strict)
 - [x] Comment support (# lines)
 - [x] Quiet mode (-q, --quiet)
-- [x] Exit codes (0=ok, 1=mismatch/missing, 2=format error in strict)
+- [x] Exit codes (vendor parity: 0=ok, 1=check failures/strict format errors)
 - [x] Cross-platform compatibility (vendor xxhsum interop)
 
 ### Testing Infrastructure (Phase 3)
@@ -73,7 +79,7 @@
 
 ### P2 — Features (Optional)
 
-- [ ] Benchmark mode (-b flag)
+- [x] Benchmark mode (-b / -b# / -i# / -B#)
 - [ ] Secret support for XXH3 (--secret flag)
 - [ ] Filename escaping for special characters
 - [ ] Multiple checksum file support in --check mode

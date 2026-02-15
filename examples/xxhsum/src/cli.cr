@@ -1,5 +1,6 @@
 require "cr-xxhash/src/xxh"
 require "./options"
+require "./benchmark"
 require "./hasher"
 require "./formatter"
 require "./checker"
@@ -14,6 +15,10 @@ module XXHSum
       stdin_tty : Bool = STDIN.tty?,
     ) : Int32
       options = Options.parse(argv)
+
+      if options.benchmark
+        return Benchmark.run(options, stdout)
+      end
 
       # If the user provided no arguments and nothing is piped, show help
       if argv.empty? && stdin_tty
