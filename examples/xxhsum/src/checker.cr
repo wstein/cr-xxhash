@@ -4,14 +4,14 @@ module XXHSum
   module CLI
     module Checker
       # Entry point for verifying from stdin
-      def self.verify_stdin(options : Options) : Int32
+      def self.verify_stdin(options : Options, stdin : IO = STDIN, out_io : IO = STDOUT, err_io : IO = STDERR) : Int32
         exit_code = 0
         total_checked = 0
         total_failed = 0
         total_missing = 0
         total_bad_format = 0
 
-        STDIN.each_line do |line|
+        stdin.each_line do |line|
           # Skip empty lines and comments
           line = line.strip
           next if line.empty? || line.starts_with?("#")
@@ -21,7 +21,7 @@ module XXHSum
           unless parsed
             total_bad_format += 1
             if options.strict
-              STDERR.puts "xxhsum: stdin: improperly formatted line: #{line}"
+              err_io.puts "xxhsum: stdin: improperly formatted line: #{line}"
               exit_code = 2
             end
             next
@@ -33,7 +33,7 @@ module XXHSum
           unless File.exists?(filename)
             total_missing += 1
             unless options.ignore_missing
-              STDERR.puts "xxhsum: #{filename}: No such file or directory"
+              err_io.puts "xxhsum: #{filename}: No such file or directory"
               total_failed += 1
               exit_code = 1
             end
@@ -55,17 +55,17 @@ module XXHSum
 
             if computed_hash.downcase == hash_str.downcase
               unless options.quiet
-                puts "#{filename}: OK"
+                out_io.puts "#{filename}: OK"
               end
               total_checked += 1
             else
-              STDERR.puts "#{filename}: FAILED"
+              err_io.puts "#{filename}: FAILED"
               total_failed += 1
               exit_code = 1
               total_checked += 1
             end
           rescue ex : Exception
-            STDERR.puts "xxhsum: #{filename}: #{ex.message}"
+            err_io.puts "xxhsum: #{filename}: #{ex.message}"
             total_failed += 1
             exit_code = 1
             total_checked += 1
@@ -75,7 +75,7 @@ module XXHSum
         # Summary (unless quiet mode)
         unless options.quiet
           if total_failed > 0
-            STDERR.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
+            err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
           end
         end
 
@@ -83,7 +83,7 @@ module XXHSum
       end
 
       # Entry point for verification mode
-      def self.verify(checksum_files : Array(String), options : Options) : Int32
+      def self.verify(checksum_files : Array(String), options : Options, out_io : IO = STDOUT, err_io : IO = STDERR) : Int32
         exit_code = 0
         total_checked = 0
         total_failed = 0
@@ -102,7 +102,7 @@ module XXHSum
               unless parsed
                 total_bad_format += 1
                 if options.strict
-                  STDERR.puts "xxhsum: #{checksum_file}: improperly formatted line: #{line}"
+                  err_io.puts "xxhsum: #{checksum_file}: improperly formatted line: #{line}"
                   exit_code = 2
                 end
                 next
@@ -114,7 +114,7 @@ module XXHSum
               unless File.exists?(filename)
                 total_missing += 1
                 unless options.ignore_missing
-                  STDERR.puts "xxhsum: #{filename}: No such file or directory"
+                  err_io.puts "xxhsum: #{filename}: No such file or directory"
                   total_failed += 1
                   exit_code = 1
                 end
@@ -130,24 +130,24 @@ module XXHSum
 
                 if computed_hash.downcase == hash_str.downcase
                   unless options.quiet
-                    puts "#{filename}: OK"
+                    out_io.puts "#{filename}: OK"
                   end
                   total_checked += 1
                 else
-                  STDERR.puts "#{filename}: FAILED"
+                  err_io.puts "#{filename}: FAILED"
                   total_failed += 1
                   exit_code = 1
                   total_checked += 1
                 end
               rescue ex : Exception
-                STDERR.puts "xxhsum: #{filename}: #{ex.message}"
+                err_io.puts "xxhsum: #{filename}: #{ex.message}"
                 total_failed += 1
                 exit_code = 1
                 total_checked += 1
               end
             end
           rescue ex : Exception
-            STDERR.puts "xxhsum: #{checksum_file}: #{ex.message}"
+            err_io.puts "xxhsum: #{checksum_file}: #{ex.message}"
             exit_code = 1
           end
         end
@@ -155,7 +155,7 @@ module XXHSum
         # Summary (unless quiet mode)
         unless options.quiet
           if total_failed > 0
-            STDERR.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
+            err_io.puts "xxhsum: WARNING: #{total_failed} computed checksums did NOT match"
           end
         end
 

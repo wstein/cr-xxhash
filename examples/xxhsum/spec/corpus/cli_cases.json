@@ -1,0 +1,79 @@
+[
+    {
+        "name": "hashes a file with default algorithm",
+        "args": [
+            "alpha.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 0,
+        "stdout_snapshot": "hash_default.stdout.snap",
+        "stderr_snapshot": "hash_default.stderr.snap"
+    },
+    {
+        "name": "hashes a file with xxh3",
+        "args": [
+            "-H3",
+            "alpha.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 0,
+        "stdout_snapshot": "hash_h3.stdout.snap",
+        "stderr_snapshot": "hash_h3.stderr.snap"
+    },
+    {
+        "name": "hashes piped stdin payload",
+        "args": [],
+        "stdin_fixture": "stdin_payload.txt",
+        "stdin_tty": false,
+        "expected_exit": 0,
+        "stdout_snapshot": "hash_stdin.stdout.snap",
+        "stderr_snapshot": "hash_stdin.stderr.snap"
+    },
+    {
+        "name": "prints help when no args and tty stdin",
+        "args": [],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "help_no_args.stdout.snap",
+        "stderr_snapshot": "help_no_args.stderr.snap"
+    },
+    {
+        "name": "verifies checksums from checksum file",
+        "args": [
+            "-c",
+            "checksums_gnu.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 0,
+        "stdout_snapshot": "check_file.stdout.snap",
+        "stderr_snapshot": "check_file.stderr.snap"
+    },
+    {
+        "name": "verifies checksums from piped stdin",
+        "args": [
+            "-c"
+        ],
+        "stdin_fixture": "checksums_h3_stdin.txt",
+        "stdin_tty": false,
+        "expected_exit": 0,
+        "stdout_snapshot": "check_stdin.stdout.snap",
+        "stderr_snapshot": "check_stdin.stderr.snap"
+    },
+    {
+        "name": "fails strict mode on malformed checksum line",
+        "args": [
+            "-c",
+            "--strict",
+            "checksums_bad.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 2,
+        "stdout_snapshot": "check_strict_bad.stdout.snap",
+        "stderr_snapshot": "check_strict_bad.stderr.snap"
+    }
+]

@@ -19,6 +19,22 @@ module XXHSum
       property ignore_missing : Bool = false
       property strict : Bool = false
 
+      def self.help_text : String
+        parser = OptionParser.new do |p|
+          p.banner = "Usage: xxhsum [options] [FILES...]"
+          p.on("-H INDEX", "Select algorithm (0=XXH32,1=XXH64,2=XXH128,3=XXH3_64)") { }
+          p.on("-c", "--check", "Verify checksums from file") { }
+          p.on("--tag", "BSD-style output") { }
+          p.on("-q", "--quiet", "Suppress extra output (bench/status) (not used in MVP)") { }
+          p.on("--ignore-missing", "Don't fail for missing files") { }
+          p.on("--strict", "Exit non-zero for improperly formatted lines") { }
+          p.on("-s SEED", "--seed SEED", "Seed (decimal or 0xHEX)") { }
+          p.on("--version", "Print version and exit") { }
+          p.on("-h", "--help", "Show this help") { }
+        end
+        parser.to_s
+      end
+
       def self.parse(argv : Array(String)) : Options
         opts = Options.new
         parser = OptionParser.new do |p|

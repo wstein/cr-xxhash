@@ -1,0 +1,10 @@
+Usage: xxhsum [options] [FILES...]
+    -H INDEX                         Select algorithm (0=XXH32,1=XXH64,2=XXH128,3=XXH3_64)
+    -c, --check                      Verify checksums from file
+    --tag                            BSD-style output
+    -q, --quiet                      Suppress extra output (bench/status) (not used in MVP)
+    --ignore-missing                 Don't fail for missing files
+    --strict                         Exit non-zero for improperly formatted lines
+    -s SEED, --seed SEED             Seed (decimal or 0xHEX)
+    --version                        Print version and exit
+    -h, --help                       Show this help
