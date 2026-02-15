@@ -7,17 +7,21 @@
 
 ## Current status (2026-02-15)
 
-- `crystal spec` executed: **249 examples, 0 failures, 0 errors** ✅.
-- All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, and vendor parity are **passing**.
-- Endianness/cross-platform tests added and verified (14 new tests covering big-endian canonical formats).
+- `crystal spec` executed: **265 examples, 0 failures, 0 errors** ✅.
+- All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, alignment, and vendor parity are **passing**.
+- Comprehensive test coverage including:
+  - 14 endianness/byte-order tests
+  - 16 alignment/unaligned buffer tests covering all size classes and SIMD paths
 
 ### Completed implementations
 
 - ✅ Vendor vector parity across all algorithms (XXH32, XXH64, XXH3-64, XXH3-128)
 - ✅ Canonical round-trip conversions (determinism verified)
 - ✅ Endianness/byte-order verification (big-endian canonical form validation)
-- ✅ Alignment tests (vendor_parity_spec.cr)
-- ✅ Seed-boundary edge cases (vendor_parity_spec.cr)
+- ✅ Alignment invariants (unaligned buffers, 4-byte and 8-byte boundary testing)
+- ✅ SIMD path coverage (size-class transitions: 0-16B, 17-240B, 240B+)
+- ✅ Seed-boundary edge cases
+- ✅ Streaming vs one-shot alignment parity
 
 ### Remaining TODO items (lower priority)
 
@@ -25,6 +29,7 @@
 - [ ] Thread-safety tests (concurrent one-shot, independent states)
 - [ ] CLI Cucumber features (check-mode, filename escaping, unicode)
 - [ ] Fuzz/property tests (deterministic seeds)
+- [ ] Deeper size-class stress & collision datasets (XXH3)
 
 ---
 
@@ -100,9 +105,9 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 
 | Missing test | Why it matters | Proposed file | Priority | Status |
 |---|---|---|---|---|
-| Alignment tests (aligned/unaligned pointer boundaries) | catches SIMD/ABI edge bugs | `spec/vendor_parity_spec.cr` | ⭐⭐⭐⭐ | ✅ Implemented |
-| Seed boundary tests (`0`, max UInt32/UInt64, random seeds) | seed handling correctness | `spec/vendor_parity_spec.cr` | ⭐⭐⭐⭐ | ✅ Implemented |
-| Endianness canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ | ✅ **NEW — 14 tests added (2026-02-15)** |
+| ~~Alignment tests~~ (unaligned buffers, SIMD paths) | catches SIMD/ABI edge bugs | `spec/unit/alignment_spec.cr` | ⭐⭐⭐⭐ | ✅ **NEW — 16 tests added (2026-02-15)** |
+| ~~Seed boundary tests~~ (`0`, max UInt32/UInt64) | seed handling correctness | Covered in alignment tests | ⭐⭐⭐⭐ | ✅ Implemented |
+| ~~Endianness~~ canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ | ✅ **14 tests added (2026-02-15)** |
 | FFI memory safety loop (create/free states) | leak/regression guard | `spec/integration/ffi_memory_spec.cr` | ⭐⭐⭐⭐⭐ |
 | Error-path tests (invalid secret size, invalid files) | robust APIs | `spec/unit/error_paths_spec.cr` + cucumber errors | ⭐⭐⭐⭐ |
 | State reuse/reset lifecycle tests | streaming correctness over reuse | `spec/unit/state_lifecycle_spec.cr` | ⭐⭐⭐⭐ |
