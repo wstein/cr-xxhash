@@ -11,4 +11,9 @@ describe "XXHSum CLI cucumber corpus" do
       CLICorpusHelper.assert_snapshot(kase.stderr_snapshot, result.stderr)
     end
   end
+
+  # Ensure fixtures are cleaned up after all corpus tests complete
+  after_all do
+    CLICorpusHelper.restore_all_fixtures
+  end
 end

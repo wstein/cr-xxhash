@@ -41,3 +41,56 @@ Output format matches the official vendor `xxhsum` for all P0 features:
 **Note:**
 
 This example deliberately uses the public `XXH::*` module APIs, not `LibXXH.*` FFI. This demonstrates the proper usage pattern for library consumers.
+
+**Testing:**
+
+The CLI includes comprehensive cucumber-style BDD tests with fixture/corpus/snapshot pattern:
+
+```bash
+cd examples/xxhsum
+crystal spec -v
+```
+
+Test infrastructure:
+
+- `spec/corpus/cli_cases.json` — Scenario corpus metadata with test parameters
+- `spec/fixtures/` — Test data (small text files, checksum files). Canonical originals are committed in `spec/fixtures/originals/`; runtime `.orig` backups are ignored.
+- `spec/snapshots/` — Expected stdout/stderr outputs for each scenario
+- `spec/support/cli_corpus_helper.cr` — Fixture restoration, corpus loader, snapshot assertions
+
+**Test Scenarios (11 total):**
+
+- **Hashing**: Default algorithm, XXH3, piped stdin
+- **Help/UX**: No-args with TTY, version flag
+- **Verification**: File checksums, piped checksums, both GNU and BSD formats
+- **Errors**: Malformed checksum lines (default skip, --strict fail)
+- **Mutations** (4 scenarios): Single file modification, batch corruption, algorithm auto-detection via stdin
+
+Each test runs via `XXHSum::CLI.run(args, stdin, stdout, stderr, stdin_tty)` — no shell subprocess wrapper.
+
+Fixtures are isolated between test cases and restored to original state after all tests complete.
+
+To update snapshots after intentional output changes:
+
+```bash
+UPDATE_SNAPSHOTS=1 crystal spec
+```
+
+Contributing — updating fixtures & snapshots
+
+- Update committed canonical fixtures in `spec/fixtures/originals/` when you change test data.
+- Regenerate snapshots for the example only (safer and faster):
+
+  ```bash
+  cd examples/xxhsum
+  UPDATE_SNAPSHOTS=1 crystal spec spec/cli_corpus_spec.cr -v
+  ```
+
+- Run the full test suite and verify before committing:
+
+  ```bash
+  cd /path/to/cr-xxhash
+  crystal spec -v
+  ```
+
+- Commit the canonical originals and the updated `spec/snapshots/` files. Do NOT commit runtime backup files (`.*.orig`) — they are ignored by `.gitignore`.

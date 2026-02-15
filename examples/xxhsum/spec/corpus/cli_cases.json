@@ -75,5 +75,62 @@
         "expected_exit": 2,
         "stdout_snapshot": "check_strict_bad.stdout.snap",
         "stderr_snapshot": "check_strict_bad.stderr.snap"
+    },
+    {
+        "name": "detects modified file in checksum verification",
+        "args": [
+            "-c",
+            "mutable_checksum.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "mutations": [
+            {
+                "file": "mutable.txt",
+                "content": "MODIFIED CONTENT\n"
+            }
+        ],
+        "expected_exit": 1,
+        "stdout_snapshot": "check_mutation_modified.stdout.snap",
+        "stderr_snapshot": "check_mutation_modified.stderr.snap"
+    },
+    {
+        "name": "detects multiple modified files in batch check",
+        "args": [
+            "-c",
+            "checksums_gnu.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "mutations": [
+            {
+                "file": "alpha.txt",
+                "content": "CORRUPTED ALPHA\n"
+            },
+            {
+                "file": "beta.txt",
+                "content": "CORRUPTED BETA\n"
+            }
+        ],
+        "expected_exit": 1,
+        "stdout_snapshot": "check_mutation_batch.stdout.snap",
+        "stderr_snapshot": "check_mutation_batch.stderr.snap"
+    },
+    {
+        "name": "detects single corruption in H3 batch via stdin",
+        "args": [
+            "-c"
+        ],
+        "stdin_fixture": "checksums_h3_stdin.txt",
+        "stdin_tty": false,
+        "mutations": [
+            {
+                "file": "alpha.txt",
+                "content": "corrupted\n"
+            }
+        ],
+        "expected_exit": 1,
+        "stdout_snapshot": "check_mutation_h3_stdin.stdout.snap",
+        "stderr_snapshot": "check_mutation_h3_stdin.stderr.snap"
     }
 ]

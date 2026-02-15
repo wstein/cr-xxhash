@@ -1,6 +1,13 @@
 require "json"
 require "../spec_helper"
 
+struct CLICorpusMutation
+  include JSON::Serializable
+
+  getter file : String
+  getter content : String
+end
+
 struct CLICorpusCase
   include JSON::Serializable
 
@@ -8,6 +15,7 @@ struct CLICorpusCase
   getter args : Array(String)
   getter stdin_fixture : String?
   getter stdin_tty : Bool = false
+  getter mutations : Array(CLICorpusMutation) = [] of CLICorpusMutation
   getter expected_exit : Int32
   getter stdout_snapshot : String
   getter stderr_snapshot : String
@@ -24,7 +32,33 @@ module CLICorpusHelper
     Array(CLICorpusCase).from_json(File.read(CORPUS_PATH))
   end
 
+  # Restore all tracked fixtures to their original state
+  def self.restore_all_fixtures
+    # Copy canonical originals from committed `originals/` directory
+    originals_dir = File.join(FIXTURES_DIR, "originals")
+
+    fixtures = [
+      "alpha.txt",
+      "beta.txt",
+      "mutable.txt",
+      "checksums_gnu.txt",
+      "checksums_h3_stdin.txt",
+      "checksums_bad.txt",
+      "mutable_checksum.txt",
+      "stdin_payload.txt",
+    ]
+
+    fixtures.each do |filename|
+      source = File.join(originals_dir, filename)
+      target = File.join(FIXTURES_DIR, filename)
+      File.copy(source, target) if File.exists?(source)
+    end
+  end
+
   def self.run_case(kase : CLICorpusCase) : CLICorpusResult
+    # Restore all fixtures before running this case (before reading stdin_fixture!)
+    restore_all_fixtures
+
     stdin_io = if (fixture = kase.stdin_fixture)
                  IO::Memory.new(File.read(File.join(FIXTURES_DIR, fixture)))
                else
@@ -36,6 +70,11 @@ module CLICorpusHelper
 
     exit_code = 0
     Dir.cd(FIXTURES_DIR) do
+      # Apply mutations before running CLI
+      kase.mutations.each do |mutation|
+        File.write(mutation.file, mutation.content)
+      end
+
       exit_code = XXHSum::CLI.run(
         kase.args,
         stdin: stdin_io,
