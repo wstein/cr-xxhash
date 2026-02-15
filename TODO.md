@@ -789,14 +789,14 @@ include XXH::SpecHelper
 **Implementation Summary**:
 
 - Wraps `LibXXH.XXH32_createState`, `update`, `digest`, and `reset` with error handling.
-- Exposes chaining-friendly `update(Bytes | Slice)` plus `digest`, `reset`, `dispose` helpers.
+- Exposes chaining-friendly `update(Bytes | String)` plus `digest`, `reset`, `dispose` helpers.
 - Registers a GC finalizer to release the native state when the instance is collected.
 - Accepts seeded resets and exposes a `dispose` helper for manual cleanup.
 
 **Validation**:
 
 - [x] Native state allocated and freed via `XXH32_freeState`
-- [x] `update` returns `self` and supports Bytes/Slice inputs
+- [x] `update` returns `self` and supports `Bytes`/`String` inputs
 - [x] `digest` output matches one-shot results
 - [x] `reset` accepts seeds and reuses the same state
 

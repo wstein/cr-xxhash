@@ -268,6 +268,29 @@ state64.update("bar")
 puts "XXH3_64 streaming with seed: #{state64.digest.to_s(16)}"
 
 > Tip: `State#update` accepts both `String` and `Bytes` directly (`update(data : Bytes | String)`), so you can pass `String` values without calling `to_slice`.
+
+### API overloads & examples — quick reference 🔧
+
+- One-shot overloads (unseeded / seeded):
+  - `XXH::XXH32.hash(data : Bytes)` / `XXH::XXH32.hash(data : Bytes, seed : UInt32)`
+  - `XXH::XXH64.hash(data : Bytes)` / `XXH::XXH64.hash(data : Bytes, seed : UInt64)`
+  - `XXH::XXH3.hash64(data : Bytes)` / `XXH::XXH3.hash64(data : Bytes, seed : UInt64)`
+  - `XXH::XXH3.hash128(data : Bytes)` → returns `UInt128` / `XXH::XXH3.hash128(data : Bytes, seed : UInt64)`
+
+- Convenience: all one-shot overloads also accept `String` (example):
+  - `XXH::XXH3.hash64("hello")`
+  - `XXH::XXH3.hash128("hello", 42_u64).to_hex32`
+
+- Streaming / State usage:
+  - `state = XXH::XXH3::State128.new` or `XXH::XXH3::State128.new(42_u64)`
+  - `state.update("chunk")` accepts `String` or `Bytes`
+  - `state.reset(seed)`, `state.digest` (returns `UInt128`)
+
+- `UInt128` helpers:
+  - `h = XXH::XXH3.hash128("x")` → accessors: `h.low64`, `h.high64`, `h.to_hex32`, `h.to_bytes`
+  - Conversions: `UInt128.from_halves(high, low)`, `UInt128.from_c_hash(c_hash)`
+
+> 💡 Style note: seeded and unseeded behaviors are explicit overloads (no runtime branching). This improves clarity and compile-time dispatch.
 ```
 ### CLI Tool
 

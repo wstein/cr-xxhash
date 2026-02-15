@@ -7,7 +7,7 @@ module XXH
 
   # Safe wrapper layer over low-level FFI bindings
   # Handles:
-  # - Type conversions (Bytes, String, Slice)
+  # - Type conversions (Bytes, String)
   # - Bounds checking via Bytes/String
   # - No unsafe pointers exposed to caller
   # - Error code validation
@@ -22,8 +22,8 @@ module XXH
         hash(string.to_slice, seed)
       end
 
-      def self.hash(slice : Slice(UInt8), seed : UInt32 = 0_u32) : UInt32
-        LibXXH.XXH32(slice.to_unsafe, slice.size, seed)
+      def self.hash(data : Bytes, seed : UInt32 = 0_u32) : UInt32
+        LibXXH.XXH32(data.to_unsafe, data.size, seed)
       end
 
       def self.hash(io : IO, seed : UInt32 = 0_u32) : UInt32
@@ -33,8 +33,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH32_update(state, slice.to_unsafe, bytes_read), "XXH32 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH32_update(state, data.to_unsafe, bytes_read), "XXH32 update")
           end
           LibXXH.XXH32_digest(state)
         ensure
@@ -59,8 +59,8 @@ module XXH
         hash(string.to_slice, seed)
       end
 
-      def self.hash(slice : Slice(UInt8), seed : UInt64 = 0_u64) : UInt64
-        LibXXH.XXH64(slice.to_unsafe, slice.size, seed)
+      def self.hash(data : Bytes, seed : UInt64 = 0_u64) : UInt64
+        LibXXH.XXH64(data.to_unsafe, data.size, seed)
       end
 
       def self.hash(io : IO, seed : UInt64 = 0_u64) : UInt64
@@ -70,8 +70,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH64_update(state, slice.to_unsafe, bytes_read), "XXH64 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH64_update(state, data.to_unsafe, bytes_read), "XXH64 update")
           end
           LibXXH.XXH64_digest(state)
         ensure
@@ -102,12 +102,12 @@ module XXH
         hash(string.to_slice, seed)
       end
 
-      def self.hash(slice : Slice(UInt8)) : UInt64
-        LibXXH.XXH3_64bits(slice.to_unsafe, slice.size)
+      def self.hash(data : Bytes) : UInt64
+        LibXXH.XXH3_64bits(data.to_unsafe, data.size)
       end
 
-      def self.hash(slice : Slice(UInt8), seed : UInt64) : UInt64
-        LibXXH.XXH3_64bits_withSeed(slice.to_unsafe, slice.size, seed)
+      def self.hash(data : Bytes, seed : UInt64) : UInt64
+        LibXXH.XXH3_64bits_withSeed(data.to_unsafe, data.size, seed)
       end
 
       def self.hash_with_secret(data : Bytes, secret : ::XXH::Secret) : UInt64
@@ -121,8 +121,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH3_64bits_update(state, slice.to_unsafe, bytes_read), "XXH3_64 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH3_64bits_update(state, data.to_unsafe, bytes_read), "XXH3_64 update")
           end
           LibXXH.XXH3_64bits_digest(state)
         ensure
@@ -137,8 +137,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH3_64bits_update(state, slice.to_unsafe, bytes_read), "XXH3_64 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH3_64bits_update(state, data.to_unsafe, bytes_read), "XXH3_64 update")
           end
           LibXXH.XXH3_64bits_digest(state)
         ensure
@@ -175,13 +175,13 @@ module XXH
         hash(string.to_slice, seed)
       end
 
-      def self.hash(slice : Slice(UInt8)) : UInt128
-        c_hash = LibXXH.XXH3_128bits(slice.to_unsafe, slice.size)
+      def self.hash(data : Bytes) : UInt128
+        c_hash = LibXXH.XXH3_128bits(data.to_unsafe, data.size)
         UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash(slice : Slice(UInt8), seed : UInt64) : UInt128
-        c_hash = LibXXH.XXH3_128bits_withSeed(slice.to_unsafe, slice.size, seed)
+      def self.hash(data : Bytes, seed : UInt64) : UInt128
+        c_hash = LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
         UInt128.from_c_hash(c_hash)
       end
 
@@ -197,8 +197,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH3_128bits_update(state, slice.to_unsafe, bytes_read), "XXH3_128 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH3_128bits_update(state, data.to_unsafe, bytes_read), "XXH3_128 update")
           end
           c_hash = LibXXH.XXH3_128bits_digest(state)
           UInt128.from_c_hash(c_hash)
@@ -214,8 +214,8 @@ module XXH
         buffer = Bytes.new(BUFFER_SIZE)
         begin
           while (bytes_read = io.read(buffer)) > 0
-            slice = buffer[0, bytes_read]
-            ErrorHandler.check!(LibXXH.XXH3_128bits_update(state, slice.to_unsafe, bytes_read), "XXH3_128 update")
+            data = buffer[0, bytes_read]
+            ErrorHandler.check!(LibXXH.XXH3_128bits_update(state, data.to_unsafe, bytes_read), "XXH3_128 update")
           end
           c_hash = LibXXH.XXH3_128bits_digest(state)
           UInt128.from_c_hash(c_hash)
