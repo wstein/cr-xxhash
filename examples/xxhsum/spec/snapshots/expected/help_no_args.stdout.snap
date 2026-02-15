@@ -1,14 +1,35 @@
+xxhsum 0.8.3 (Crystal implementation)
+Create or verify checksums using fast non-cryptographic algorithm xxHash
+
 Usage: xxhsum [options] [FILES...]
-    -H#                              Select algorithm (0=XXH32,1=XXH64,2=XXH128,3=XXH3_64)
-    -c, --check                      Verify checksums from file
-    --tag                            BSD-style output
-    -q, --quiet                      Suppress extra output (bench/status) (not used in MVP)
-    --ignore-missing                 Don't fail for missing files
-    --strict                         Exit non-zero for improperly formatted lines
+
+When no filename provided or when '-' is provided, uses stdin as input.
+
+Options:
+    -H#                              select an xxhash algorithm (default: 1)
+                                       0: XXH32
+                                       1: XXH64
+                                       2: XXH128 (also called XXH3_128bits)
+                                       3: XXH3 (also called XXH3_64bits)
+    -c, --check                      read xxHash checksum from [FILES] and check them
+    --filelist                       (NOT YET IMPLEMENTED) generate hashes for files listed in [FILES]
+    -h, --help                       display this help message
+
+Advanced:
+    -V, --version                    Display version information
+    --tag                            Produce BSD-style checksum lines
+    --little-endian                  (NOT YET IMPLEMENTED) Checksum values use little endian convention (default: big endian)
+    --binary                         (NOT YET IMPLEMENTED) Read in binary mode
     -b                               Run benchmark
-    --bench-all                      Run all 28 benchmark variants (equivalent to -b0)
-    -i#                              Number of times to run benchmark (default: 3)
-    -B#                              Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based; KiB/MiB/GiB accepted)
+    -b#                              Bench only algorithm variant #
+    -i#                              Number of times to run the benchmark (default: 3)
+    -B#                              Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based)
+    -q, --quiet                      Don't display version header in benchmark mode
+
+File list options:
+    --status                         (NOT YET IMPLEMENTED) Don't output anything, status code shows success
+    --strict                         Exit non-zero for improperly formatted lines in [FILES]
+    --warn                           (NOT YET IMPLEMENTED) Warn about improperly formatted lines in [FILES]
+    --ignore-missing                 Don't fail or report status for missing files
     -s SEED, --seed SEED             Seed (decimal or 0xHEX)
-    --version                        Print version and exit
-    -h, --help                       Show this help
+    --bench-all                      Run all 28 benchmark variants (equivalent to -b0)

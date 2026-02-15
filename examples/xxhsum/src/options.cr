@@ -26,20 +26,47 @@ module XXHSum
 
       def self.help_text : String
         parser = OptionParser.new do |p|
-          p.banner = "Usage: xxhsum [options] [FILES...]"
-          p.on("-H#", "Select algorithm (0=XXH32,1=XXH64,2=XXH128,3=XXH3_64)") { }
-          p.on("-c", "--check", "Verify checksums from file") { }
-          p.on("--tag", "BSD-style output") { }
-          p.on("-q", "--quiet", "Suppress extra output (bench/status) (not used in MVP)") { }
-          p.on("--ignore-missing", "Don't fail for missing files") { }
-          p.on("--strict", "Exit non-zero for improperly formatted lines") { }
+          p.banner = "xxhsum 0.8.3 (Crystal implementation)\n" \
+                     "Create or verify checksums using fast non-cryptographic algorithm xxHash\n" \
+                     "\nUsage: xxhsum [options] [FILES...]\n" \
+                     "\nWhen no filename provided or when '-' is provided, uses stdin as input.\n" \
+                     "\nOptions:"
+
+          # Basic options
+          p.on("-H#", "select an xxhash algorithm (default: 1)\n" \
+                      "  0: XXH32\n" \
+                      "  1: XXH64\n" \
+                      "  2: XXH128 (also called XXH3_128bits)\n" \
+                      "  3: XXH3 (also called XXH3_64bits)") { }
+          p.on("-c", "--check", "read xxHash checksum from [FILES] and check them") { }
+          p.on("--filelist", "(NOT YET IMPLEMENTED) generate hashes for files listed in [FILES]") { }
+          p.on("-h", "--help", "display this help message") { }
+
+          p.separator
+          p.separator "Advanced:"
+
+          # Advanced options
+          p.on("-V", "--version", "Display version information") { }
+          p.on("--tag", "Produce BSD-style checksum lines") { }
+          p.on("--little-endian", "(NOT YET IMPLEMENTED) Checksum values use little endian convention (default: big endian)") { }
+          p.on("--binary", "(NOT YET IMPLEMENTED) Read in binary mode") { }
           p.on("-b", "Run benchmark") { }
-          p.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") { }
-          p.on("-i#", "Number of times to run benchmark (default: 3)") { }
-          p.on("-B#", "Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based; KiB/MiB/GiB accepted)") { }
+          p.on("-b#", "Bench only algorithm variant #") { }
+          p.on("-i#", "Number of times to run the benchmark (default: 3)") { }
+          p.on("-B#", "Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based)") { }
+          p.on("-q", "--quiet", "Don't display version header in benchmark mode") { }
+
+          p.separator
+          p.separator "File list options:"
+
+          # File list options
+          p.on("--status", "(NOT YET IMPLEMENTED) Don't output anything, status code shows success") { }
+          p.on("--strict", "Exit non-zero for improperly formatted lines in [FILES]") { }
+          p.on("--warn", "(NOT YET IMPLEMENTED) Warn about improperly formatted lines in [FILES]") { }
+          p.on("--ignore-missing", "Don't fail or report status for missing files") { }
+
           p.on("-s SEED", "--seed SEED", "Seed (decimal or 0xHEX)") { }
-          p.on("--version", "Print version and exit") { }
-          p.on("-h", "--help", "Show this help") { }
+          p.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") { }
         end
         parser.to_s
       end
@@ -105,9 +132,14 @@ module XXHSum
         end
 
         parser = OptionParser.new do |p|
-          p.banner = "Usage: xxhsum [options] [FILES...]"
+          p.banner = "xxhsum 0.8.3 (Crystal implementation)\n" \
+                     "Create or verify checksums using fast non-cryptographic algorithm xxHash\n" \
+                     "\nUsage: xxhsum [options] [FILES...]\n" \
+                     "\nWhen no filename provided or when '-' is provided, uses stdin as input.\n" \
+                     "\nOptions:"
 
-          p.on("-H#", "Select algorithm (0=XXH32,1=XXH64,2=XXH128,3=XXH3_64)") do |v|
+          # Basic options
+          p.on("-H#", "select an xxhash algorithm (default: 1)") do |v|
             case v.to_i
             when 0 then opts.algorithm = Algorithm::XXH32
             when 1 then opts.algorithm = Algorithm::XXH64
@@ -119,20 +151,57 @@ module XXHSum
             end
           end
 
-          p.on("-c", "--check", "Verify checksums from file") { opts.check_mode = true }
-          p.on("--tag", "BSD-style output") { opts.bsd = true }
-          p.on("-q", "--quiet", "Suppress extra output (bench/status) (not used in MVP)") { opts.quiet = true }
-          p.on("--ignore-missing", "Don't fail for missing files") { opts.ignore_missing = true }
-          p.on("--strict", "Exit non-zero for improperly formatted lines") { opts.strict = true }
-
-          p.on("-b", "Run benchmark") { opts.benchmark = true }
-          p.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") do
-            opts.benchmark = true
-            opts.benchmark_all = true
-            opts.benchmark_ids.clear
+          p.on("-c", "--check", "read xxHash checksum from [FILES] and check them") { opts.check_mode = true }
+          p.on("--filelist", "generate hashes for files listed in [FILES]") do
+            STDERR.puts "Error: --filelist is not yet implemented"
+            exit 1
+          end
+          p.on("-h", "--help", "display this help message") do
+            puts p
+            exit 0
           end
 
-          p.on("-i#", "Number of times to run benchmark (default: 3)") do |v|
+          p.separator
+          p.separator "Advanced:"
+
+          # Advanced options
+          p.on("-V", "--version", "Display version information") do
+            puts "xxhsum Crystal (example) #{XXH::VERSION}"
+            exit 0
+          end
+          p.on("--tag", "Produce BSD-style checksum lines") { opts.bsd = true }
+          p.on("--little-endian", "Checksum values use little endian convention (default: big endian)") do
+            STDERR.puts "Error: --little-endian is not yet implemented"
+            exit 1
+          end
+          p.on("--binary", "Read in binary mode") do
+            STDERR.puts "Error: --binary is not yet implemented"
+            exit 1
+          end
+          p.on("-b#", "Bench only algorithm variant #") do |v|
+            spec = v
+            unless spec.gsub(",", "").chars.all?(&.ascii_number?)
+              STDERR.puts "Error: invalid benchmark selector '-b#{spec}'"
+              exit 1
+            end
+            opts.benchmark = true
+            spec.split(",").each do |token|
+              next if token.empty?
+              id = token.to_i
+              if id == 0 || id >= 29
+                opts.benchmark_all = true
+                opts.benchmark_ids.clear
+                break
+              elsif id >= 1
+                opts.benchmark_ids << id unless opts.benchmark_ids.includes?(id)
+              else
+                STDERR.puts "Error: invalid benchmark id '#{id}'"
+                exit 1
+              end
+            end
+          end
+          p.on("-b", "Run benchmark") { opts.benchmark = true }
+          p.on("-i#", "Number of times to run the benchmark (default: 3)") do |v|
             iters = v.to_i
             if iters < 1
               STDERR.puts "Error: benchmark iterations must be >= 1"
@@ -140,7 +209,24 @@ module XXHSum
             end
             opts.benchmark_iterations = iters
           end
+          p.on("-q", "--quiet", "Don't display version header in benchmark mode") { opts.quiet = true }
 
+          p.separator
+          p.separator "File list options:"
+
+          # File list options
+          p.on("--status", "Don't output anything, status code shows success") do
+            STDERR.puts "Error: --status is not yet implemented"
+            exit 1
+          end
+          p.on("--strict", "Exit non-zero for improperly formatted lines in [FILES]") { opts.strict = true }
+          p.on("--warn", "Warn about improperly formatted lines in [FILES]") do
+            STDERR.puts "Error: --warn is not yet implemented"
+            exit 1
+          end
+          p.on("--ignore-missing", "Don't fail or report status for missing files") { opts.ignore_missing = true }
+
+          p.separator
           p.on("-B#", "Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based; KiB/MiB/GiB accepted)") do |v|
             size = parse_size(v)
             if size == 0
@@ -159,14 +245,17 @@ module XXHSum
             opts.seed = seed_val.to_u64
           end
 
-          p.on("--version", "Print version and exit") do
-            puts "xxhsum Crystal (example) #{XXH::VERSION}"
-            exit 0
+          # Alias: --bench-all maps to -b0
+          p.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") do
+            opts.benchmark = true
+            opts.benchmark_all = true
+            opts.benchmark_ids.clear
           end
 
-          p.on("-h", "--help", "Show this help") do
-            puts p
-            exit 0
+          p.invalid_option do |flag|
+            STDERR.puts "Error: #{flag} is not a valid option or is not yet implemented"
+            STDERR.puts p
+            exit 1
           end
 
           p.unknown_args do |args|
