@@ -300,23 +300,46 @@ module XXH::CLI
       puts "Crystal port of xxhsum 0.8.3"
     end
 
-    # Parse size with K, KB, KiB, M, MB, MiB suffixes
+    # Parse size with K, KB, KiB, M, MB, MiB, G, GB, GiB suffixes
+    # Supports both decimal (1000-based) and binary (1024-based) units:
+    # - K, M, G = 1024-based (binary, legacy behavior)
+    # - KB, MB, GB = 1000-based (decimal)
+    # - KiB, MiB, GiB = 1024-based (binary)
     private def parse_size(str : String) : UInt64
       multiplier = 1_u64
       s = str
 
-      if s.ends_with?("K") || s.ends_with?("k")
+      # Check for GiB / GB / MiB / MB / KiB / KB first (binary/decimal with B)
+      if s.ends_with?("iB") || s.ends_with?("IB")
+        # Binary: KiB, MiB, GiB = 1024^n
+        s = s[0..-3] # Remove "iB" suffix
+        multiplier = case s[-1]
+                     when 'K', 'k' then 1024_u64
+                     when 'M', 'm' then 1024_u64 * 1024_u64
+                     when 'G', 'g' then 1024_u64 * 1024_u64 * 1024_u64
+                     else               1_u64
+                     end
+        s = s[0..-2] # Remove the K/M/G
+      elsif s.ends_with?("B")
+        # Decimal: KB, MB, GB = 1000^n
+        s = s[0..-2] # Remove "B" suffix
+        multiplier = case s[-1]
+                     when 'K', 'k' then 1000_u64
+                     when 'M', 'm' then 1000_u64 * 1000_u64
+                     when 'G', 'g' then 1000_u64 * 1000_u64 * 1000_u64
+                     else               1_u64
+                     end
+        s = s[0..-2] # Remove the K/M/G
+      elsif s.ends_with?("K") || s.ends_with?("k")
+        # Binary without B suffix (legacy): K, M, G = 1024^n
         multiplier = 1024_u64
         s = s[0..-2]
-        if s.ends_with?("i")
-          s = s[0..-2]
-        end
       elsif s.ends_with?("M") || s.ends_with?("m")
         multiplier = 1024_u64 * 1024_u64
         s = s[0..-2]
-        if s.ends_with?("i")
-          s = s[0..-2]
-        end
+      elsif s.ends_with?("G") || s.ends_with?("g")
+        multiplier = 1024_u64 * 1024_u64 * 1024_u64
+        s = s[0..-2]
       end
 
       value = s.to_u64? || 0_u64
