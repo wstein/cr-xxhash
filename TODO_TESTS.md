@@ -5,25 +5,26 @@
 
 ---
 
-## Current status (2026-02-14)
+## Current status (2026-02-15)
 
-- `crystal spec` executed: **223 examples, 11 failures, 0 errors**.
-- Unit specs for `xxh32`, `xxh64`, `xxh3` and supporting helpers have been *implemented and compile*.
-- Remaining failures are concentrated in official-vector/canonical checks (likely endianness / binding mapping vs test-vectors).
+- `crystal spec` executed: **249 examples, 0 failures, 0 errors** ✅.
+- All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, and vendor parity are **passing**.
+- Endianness/cross-platform tests added and verified (14 new tests covering big-endian canonical formats).
 
-### Open failures (top-level)
+### Completed implementations
 
-- Failing spec files (examples):
-  - `spec/xxh32_spec.cr` (vector parity assertions)
-  - `spec/xxh64_spec.cr` (vector parity assertions)
-  - `spec/xxh3_spec.cr` (hash64/hash128 vector assertions)
-  - `spec/xxh3_canonical_spec.cr` (canonical byte-order checks)
+- ✅ Vendor vector parity across all algorithms (XXH32, XXH64, XXH3-64, XXH3-128)
+- ✅ Canonical round-trip conversions (determinism verified)
+- ✅ Endianness/byte-order verification (big-endian canonical form validation)
+- ✅ Alignment tests (vendor_parity_spec.cr)
+- ✅ Seed-boundary edge cases (vendor_parity_spec.cr)
 
-Suggested next actions:
+### Remaining TODO items (lower priority)
 
-- Re-run failing examples with `--error-trace` and inspect `Bindings` output vs `LibXXH` direct call.
-- Verify test vectors in `spec/spec_helper.cr` match vendored `sanity_test_vectors.h` (byte order / literal correctness).
-- Add alignment & seed-boundary tests (high priority) and a small reproducer for canonical mismatch.
+- [ ] FFI memory-safety regression tests (create/free loops, GC/ASAN checks)
+- [ ] Thread-safety tests (concurrent one-shot, independent states)
+- [ ] CLI Cucumber features (check-mode, filename escaping, unicode)
+- [ ] Fuzz/property tests (deterministic seeds)
 
 ---
 
@@ -97,11 +98,11 @@ This keeps low-level correctness in Spec and user-facing acceptance in Cucumber.
 
 ## Missing Tests Matrix (Must Add)
 
-| Missing test | Why it matters | Proposed file | Priority |
-|---|---|---|---|
-| Alignment tests (aligned/unaligned pointer boundaries) | catches SIMD/ABI edge bugs | `spec/unit/alignment_spec.cr` | ⭐⭐⭐⭐ |
-| Seed boundary tests (`0`, max UInt32/UInt64, random seeds) | seed handling correctness | `spec/unit/seed_boundaries_spec.cr` | ⭐⭐⭐⭐ |
-| Endianness canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ |
+| Missing test | Why it matters | Proposed file | Priority | Status |
+|---|---|---|---|---|
+| Alignment tests (aligned/unaligned pointer boundaries) | catches SIMD/ABI edge bugs | `spec/vendor_parity_spec.cr` | ⭐⭐⭐⭐ | ✅ Implemented |
+| Seed boundary tests (`0`, max UInt32/UInt64, random seeds) | seed handling correctness | `spec/vendor_parity_spec.cr` | ⭐⭐⭐⭐ | ✅ Implemented |
+| Endianness canonical tests | cross-platform determinism | `spec/unit/endianness_spec.cr` | ⭐⭐⭐⭐ | ✅ **NEW — 14 tests added (2026-02-15)** |
 | FFI memory safety loop (create/free states) | leak/regression guard | `spec/integration/ffi_memory_spec.cr` | ⭐⭐⭐⭐⭐ |
 | Error-path tests (invalid secret size, invalid files) | robust APIs | `spec/unit/error_paths_spec.cr` + cucumber errors | ⭐⭐⭐⭐ |
 | State reuse/reset lifecycle tests | streaming correctness over reuse | `spec/unit/state_lifecycle_spec.cr` | ⭐⭐⭐⭐ |
@@ -236,9 +237,17 @@ features/
 
 **Priority**: ⭐⭐⭐⭐
 
-- [ ] canonical output format verification (canonical specs present; some canonical/endianness failures to triage)
-- [ ] big/little-endian robust assertions (to add)
+- [x] **canonical output format verification — all XXH32/64/3-128 round-trip tests in `spec/unit/endianness_spec.cr` ✅ NEW**
+- [x] **big/little-endian robust assertions — cross-platform determinism validated in `spec/unit/endianness_spec.cr` ✅ NEW**
+- [x] **vendor vector canonical parity — all vendor vectors tested for correct big-endian encoding ✅ NEW**
 - [x] Crystal wrapper equals direct `LibXXH` for representative vectors — `spec/bindings_safe_spec.cr`
+
+**Implementation Notes (2026-02-15)**:
+- Added comprehensive endianness test suite with 14 tests covering:
+  - XXH32/64/3-128 canonical big-endian encoding verification
+  - Round-trip canonical conversions (determinism across 50+ iterations)
+  - Cross-platform byte-order consistency (all vendor test vectors validated)
+  - Platform-independent canonical format (big-endian guaranteed)
 
 ### T2.5 Error and lifecycle tests
 

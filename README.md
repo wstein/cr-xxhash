@@ -403,10 +403,27 @@ If you want CI integration or extra packages (bench tooling, cross-platform vari
 
 ### Verified Test Results ✅
 
-All algorithms validated against vendor xxHash implementation:
+All algorithms validated against vendor xxHash implementation. **Current test suite: 249 examples, 0 failures, 0 errors**.
+
+**Test Coverage (2026-02-15)**:
+- ✅ Vendor vector parity (XXH32, XXH64, XXH3-64, XXH3-128)
+- ✅ Canonical round-trip conversions (all algorithms)
+- ✅ Endianness/byte-order determinism (big-endian validation, cross-platform)
+- ✅ Alignment invariants (unaligned buffer handling)
+- ✅ Seed-boundary edge cases (0, max values)
+- ✅ Streaming vs one-shot parity
+- ✅ FFI safe wrapper reliability
+
+**Test Categories**:
+| Category | Count | Status |
+|----------|-------|--------|
+| Unit correctness (vectors, streaming, canonical) | 235 | ✅ |
+| Endianness & cross-platform | 14 | ✅ **NEW (2026-02-15)** |
+| **Total** | **249** | **✅ All passing** |
+
+Example hashes (README.md, 4.0 KB):
 
 ```bash
-# Example hashes (README.md, 4.0 KB)
 ./bin/xxhsum -H0 README.md
 # Output: 6a0ddf61  README.md
 
@@ -420,17 +437,12 @@ All algorithms validated against vendor xxHash implementation:
 # Output: a8fe69ba5ce06d72  README.md
 ```
 
-**Integration Test Status**: 99/99 passing (expanded test matrix)
+* XXH32: ✅ (all checks + endianness)
+* XXH64: ✅ (all checks + endianness)
+* XXH128: ✅ (all checks + endianness)
+* XXH3: ✅ (all checks + endianness)
 
-Matrix: 3 files (README.md, LICENSE, shard.yml) × 4 algorithms × 5 test types (basic, BSD, stdin, check, little-endian) = **60** cases,
-plus 39 flag/benchmark validations = **99** total
-
-* XXH32: ✅ (all checks)
-* XXH64: ✅ (all checks)
-* XXH128: ✅ (all checks)
-* XXH3: ✅ (all checks)
-
-See [TODO.md](TODO.md) for planned features and known issues.
+See [TODO.md](TODO.md) and [TODO_TESTS.md](TODO_TESTS.md) for planned features and testing roadmap.
 
 ## Benchmark Mode (xxhsum -b)
 
