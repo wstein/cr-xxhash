@@ -137,34 +137,34 @@ module XXH
 
     # XXH3 128-bit safe one-shot hasher
     module XXH3_128
-      def self.hash(data : Bytes, seed : UInt64 = 0_u64) : ::XXH::Hash128
+      def self.hash(data : Bytes, seed : UInt64 = 0_u64) : UInt128
         c_hash = if seed == 0_u64
                    LibXXH.XXH3_128bits(data.to_unsafe, data.size)
                  else
                    LibXXH.XXH3_128bits_withSeed(data.to_unsafe, data.size, seed)
                  end
-        ::XXH::Hash128.new(c_hash)
+        UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash(string : String, seed : UInt64 = 0_u64) : ::XXH::Hash128
+      def self.hash(string : String, seed : UInt64 = 0_u64) : UInt128
         hash(string.to_slice, seed)
       end
 
-      def self.hash(slice : Slice(UInt8), seed : UInt64 = 0_u64) : ::XXH::Hash128
+      def self.hash(slice : Slice(UInt8), seed : UInt64 = 0_u64) : UInt128
         c_hash = if seed == 0_u64
                    LibXXH.XXH3_128bits(slice.to_unsafe, slice.size)
                  else
                    LibXXH.XXH3_128bits_withSeed(slice.to_unsafe, slice.size, seed)
                  end
-        ::XXH::Hash128.new(c_hash)
+        UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash_with_secret(data : Bytes, secret : ::XXH::Secret) : ::XXH::Hash128
+      def self.hash_with_secret(data : Bytes, secret : ::XXH::Secret) : UInt128
         c_hash = LibXXH.XXH3_128bits_withSecret(data.to_unsafe, data.size, secret.to_unsafe, secret.size)
-        ::XXH::Hash128.new(c_hash)
+        UInt128.from_c_hash(c_hash)
       end
 
-      def self.hash(io : IO, seed : UInt64 = 0_u64) : ::XXH::Hash128
+      def self.hash(io : IO, seed : UInt64 = 0_u64) : UInt128
         state = LibXXH.XXH3_createState
         raise StateError.new("Failed to create XXH3 state") if state.null?
         if seed == 0_u64
@@ -179,13 +179,13 @@ module XXH
             ErrorHandler.check!(LibXXH.XXH3_128bits_update(state, slice.to_unsafe, bytes_read), "XXH3_128 update")
           end
           c_hash = LibXXH.XXH3_128bits_digest(state)
-          ::XXH::Hash128.new(c_hash)
+          UInt128.from_c_hash(c_hash)
         ensure
           ErrorHandler.check!(LibXXH.XXH3_freeState(state), "XXH3 free state")
         end
       end
 
-      def self.hash_file(path : String | Path, seed : UInt64 = 0_u64) : ::XXH::Hash128
+      def self.hash_file(path : String | Path, seed : UInt64 = 0_u64) : UInt128
         File.open(path, "r") { |file| hash(file, seed) }
       end
     end

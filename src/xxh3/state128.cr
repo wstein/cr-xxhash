@@ -16,8 +16,9 @@ module XXH
         self
       end
 
-      def digest : ::XXH::Hash128
-        ::XXH::Hash128.new(LibXXH.XXH3_128bits_digest(@state))
+      def digest : UInt128
+        c_hash = LibXXH.XXH3_128bits_digest(@state)
+        UInt128.from_c_hash(c_hash)
       end
 
       def reset(seed : Seed64)

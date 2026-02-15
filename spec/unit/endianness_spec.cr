@@ -60,24 +60,25 @@ describe "Endianness & Cross-platform Determinism" do
     it "encodes both low64 and high64 in big-endian form" do
       [
         {
-          hash: XXH::Hash128.new(0x0_u64, 0x0_u64),
+          hash: UInt128.from_halves(0x0_u64, 0x0_u64),
           expected: Bytes[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
         },
         {
-          hash: XXH::Hash128.new(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64),
+          hash: UInt128.from_halves(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64),
           expected: Bytes[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
         },
         {
-          hash: XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
+          hash: UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
           expected: Bytes[0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10],
         },
         {
-          hash: XXH::Hash128.new(0xFF00FF00FF00FF00_u64, 0x00FF00FF00FF00FF_u64),
+          hash: UInt128.from_halves(0xFF00FF00FF00FF00_u64, 0x00FF00FF00FF00FF_u64),
           expected: Bytes[0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF],
         },
+
       ].each do |test_case|
         canonical = XXH::XXH3.canonical_from_hash(test_case[:hash])
-        canonical.should eq(test_case[:expected]), "Hash128(high=#{test_case[:hash].high64.to_s(16)}, low=#{test_case[:hash].low64.to_s(16)}) mismatch"
+        canonical.should eq(test_case[:expected]), "UInt128(high=#{test_case[:hash].high64.to_s(16)}, low=#{test_case[:hash].low64.to_s(16)}) mismatch"
       end
     end
 
@@ -90,7 +91,7 @@ describe "Endianness & Cross-platform Determinism" do
         }
       }
       test_values.each do |pair|
-        original = XXH::Hash128.new(pair[:high], pair[:low])
+        original = UInt128.from_halves(pair[:high], pair[:low])
         canonical = XXH::XXH3.canonical_from_hash(original)
         restored = XXH::XXH3.hash_from_canonical(canonical)
         restored.should eq(original)
@@ -139,7 +140,7 @@ describe "Endianness & Cross-platform Determinism" do
 
     it "produces correct canonical form for all XXH3 128-bit vendor vectors" do
       TEST_VECTORS_XXH3_128.each do |(input, seed), (expected_high, expected_low)|
-        hash = XXH::Hash128.new(expected_high, expected_low)
+        hash = UInt128.from_halves(expected_high, expected_low)
         canonical = XXH::XXH3.canonical_from_hash(hash)
         # Reconstruct from big-endian bytes
         result_high = (canonical[0].to_u64 << 56) |
@@ -169,8 +170,8 @@ describe "Endianness & Cross-platform Determinism" do
       test_hashes_32 = [0_u32, 0x12345678_u32, 0xFFFFFFFF_u32]
       test_hashes_64 = [0_u64, 0x123456789ABCDEF0_u64, 0xFFFFFFFFFFFFFFFF_u64]
       test_hashes_128 = [
-        XXH::Hash128.new(0_u64, 0_u64),
-        XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
+        UInt128.from_halves(0_u64, 0_u64),
+        UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
       ]
 
       # Run multiple times and verify consistency

@@ -114,9 +114,9 @@ end
 
 describe "XXH3 128-bit Hash" do
   describe ".hash128" do
-    it "returns Hash128 struct" do
+    it "returns UInt128" do
       result = XXH::XXH3.hash128("test")
-      result.should be_a(XXH::Hash128)
+      result.should be_a(UInt128)
     end
 
     it "matches official test vectors (no seed)" do
@@ -130,12 +130,12 @@ describe "XXH3 128-bit Hash" do
 
     it "accepts String input" do
       result = XXH::XXH3.hash128("test")
-      result.should be_a(XXH::Hash128)
+      result.should be_a(UInt128)
     end
 
     it "accepts Bytes input" do
       result = XXH::XXH3.hash128("test".to_slice)
-      result.should be_a(XXH::Hash128)
+      result.should be_a(UInt128)
     end
 
     it "string and bytes produce same hash" do
@@ -161,7 +161,7 @@ describe "XXH3 128-bit Hash" do
     it "handles large input (1MB)" do
       large_data = incremental_bytes(1_000_000)
       hash = XXH::XXH3.hash128(large_data)
-      hash.should be_a(XXH::Hash128)
+      hash.should be_a(UInt128)
     end
   end
 
@@ -215,7 +215,7 @@ describe "XXH3 128-bit Hash" do
     end
   end
 
-  describe "Hash128 struct" do
+  describe "UInt128 value" do
     it "can be compared for equality" do
       hash1 = XXH::XXH3.hash128("test")
       hash2 = XXH::XXH3.hash128("test")

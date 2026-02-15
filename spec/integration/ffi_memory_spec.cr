@@ -140,7 +140,7 @@ describe "FFI Memory Safety & Lifecycle" do
         state = XXH::XXH3::State128.new
         state.update(Bytes.new(64) { 0xBB_u8 })
         result = state.digest
-        result.should be_a(XXH::Hash128)
+        result.should be_a(UInt128)
       end
     end
 
@@ -152,7 +152,7 @@ describe "FFI Memory Safety & Lifecycle" do
       end
       results = states.map(&.digest)
       results.each do |r|
-        r.should be_a(XXH::Hash128)
+        r.should be_a(UInt128)
         r.high64.should be_a(UInt64)
         r.low64.should be_a(UInt64)
       end
@@ -166,7 +166,7 @@ describe "FFI Memory Safety & Lifecycle" do
         state.reset
         state.update(data)
         result = state.digest
-        result.should be_a(XXH::Hash128)
+        result.should be_a(UInt128)
       end
     end
 
@@ -179,7 +179,7 @@ describe "FFI Memory Safety & Lifecycle" do
             data = Bytes.new(size) { 0x99_u8 }
             state.update(data)
             result = state.digest
-            result.should be_a(XXH::Hash128)
+            result.should be_a(UInt128)
             state.reset(seed)
           end
         end
@@ -220,7 +220,7 @@ describe "FFI Memory Safety & Lifecycle" do
         XXH::XXH3::State128.new,
         XXH::XXH3::State128.new
       ]
-      
+
       300.times do |i|
         states.each_with_index do |state, idx|
           size = ((i + idx) % 256) + 1
@@ -228,9 +228,9 @@ describe "FFI Memory Safety & Lifecycle" do
           state.update(data)
         end
       end
-      
+
       results = states.map(&.digest)
-      results.each { |r| r.should be_a(XXH::Hash128) }
+      results.each { |r| r.should be_a(UInt128) }
     end
   end
 
@@ -239,13 +239,13 @@ describe "FFI Memory Safety & Lifecycle" do
       # If a state leaks or corrupts memory, digest might vary
       state = XXH::XXH3::State64.new
       data = Bytes.new(256) { |i| (i & 0xFF).to_u8 }
-      
+
       results = Array.new(10) do
         state.reset
         state.update(data)
         state.digest
       end
-      
+
       # All results should be identical
       results.each { |r| r.should eq(results[0]) }
     end
@@ -257,24 +257,24 @@ describe "FFI Memory Safety & Lifecycle" do
         XXH::XXH3::State64.new,
         XXH::XXH3::State128.new
       ]
-      
+
       data = Bytes.new(128) { 0x42_u8 }
-      
+
       # Interleave operations
       20.times do
         states.each { |state| state.update(data) }
       end
-      
+
       # All should produce valid results
       r32 = states[0].digest
       r64 = states[1].digest
       r3_64 = states[2].digest
       r3_128 = states[3].digest
-      
+
       r32.should be_a(UInt32)
       r64.should be_a(UInt64)
       r3_64.should be_a(UInt64)
-      r3_128.should be_a(XXH::Hash128)
+      r3_128.should be_a(UInt128)
     end
   end
 
@@ -282,7 +282,7 @@ describe "FFI Memory Safety & Lifecycle" do
     it "digest called multiple times on same state" do
       state = XXH::XXH64::State.new
       state.update(Bytes[0xAB, 0xCD, 0xEF])
-      
+
       # Multiple digest calls should work (though result may vary if state is mutated)
       5.times do
         result = state.digest
@@ -294,11 +294,11 @@ describe "FFI Memory Safety & Lifecycle" do
       state = XXH::XXH3::State64.new
       state.update(Bytes.new(100) { 0x11_u8 })
       r1 = state.digest
-      
+
       # Add more data after digest
       state.update(Bytes.new(100) { 0x22_u8 })
       r2 = state.digest
-      
+
       # Results should differ (different data)
       r1.should_not eq(r2)
     end
@@ -306,14 +306,14 @@ describe "FFI Memory Safety & Lifecycle" do
     it "reset between seeds produces different results" do
       state = XXH::XXH32::State.new(0_u32)
       data = Bytes.new(32) { 0x77_u8 }
-      
+
       state.update(data)
       r1 = state.digest
-      
+
       state.reset(1_u32)
       state.update(data)
       r2 = state.digest
-      
+
       r1.should_not eq(r2), "Different seeds should produce different results"
     end
   end
@@ -322,33 +322,33 @@ describe "FFI Memory Safety & Lifecycle" do
     it "independent states don't interfere" do
       state1 = XXH::XXH64::State.new(1_u64)
       state2 = XXH::XXH64::State.new(2_u64)
-      
+
       data = Bytes.new(64) { 0xEE_u8 }
-      
+
       10.times do
         state1.update(data)
         state2.update(data)
       end
-      
+
       r1 = state1.digest
       r2 = state2.digest
-      
+
       r1.should_not eq(r2), "Different seeds should yield different results"
     end
 
     it "reset truly resets to initial state" do
       state = XXH::XXH32::State.new(42_u32)
       data = Bytes.new(16) { 0x00_u8 }
-      
+
       state.update(data)
       result_after_update = state.digest
-      
+
       state.reset(42_u32)
-      
+
       # Update with same data
       state.update(data)
       result_after_reset = state.digest
-      
+
       result_after_update.should eq(result_after_reset), "Reset should return to initial state"
     end
   end
@@ -386,7 +386,7 @@ describe "FFI Memory Safety & Lifecycle" do
         state_array = Array.new(50) { XXH::XXH32::State.new }
         state_array.each { |s| s.update(Bytes[0x01, 0x02]) }
       end
-      
+
       # If we get here without crashing, GC worked properly
       true.should eq(true)
     end
@@ -404,7 +404,7 @@ describe "FFI Memory Safety & Lifecycle" do
           _s = Array.new(20) { XXH::XXH3::State128.new }
         end
       end
-      
+
       true.should eq(true)
     end
   end

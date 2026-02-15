@@ -41,7 +41,7 @@
 ✅ **Phase 1 Complete** (Foundation layer verified)
 
 - FFI bindings working (5/5 smoke tests passing)
-- Type system in place (Hash128, errors, seed aliases)
+- Type system in place (`UInt128`, errors, seed aliases) — added `UInt128` helpers and FFI conversion helpers
 - Safe wrapper layer functional
 - Spec infrastructure ready (test vectors in `spec/spec_helper.cr`)
 - Fixtures directory prepared (`spec/fixtures/`)

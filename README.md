@@ -80,7 +80,7 @@ Notes:
 
 * **Refactoring Phase 1 (Code Modularity):**
   * ✅ Created `src/xxh3/` subdirectory with 4 focused modules:
-    * `xxh3_types.cr`: Hash128 struct
+    * `xxh3_types.cr`: `UInt128` helpers (high/low accessors, canonical formatting)
     * `xxh3_base.cr`: 650+ lines of shared helpers, accumulation, scrambling, merging
     * `xxh3_64.cr`: 64-bit one-shot and long-input hashing
     * `xxh3_128.cr`: 128-bit one-shot and long-input hashing
@@ -127,7 +127,7 @@ Each algorithm implementation follows a small, consistent folder schema to keep 
 
 * `wrapper.cr` — Public API, one-shot helpers, and factory functions (always required)
 * `state.cr` — Streaming State implementation (FFI-backed for vendor/state where applicable)
-* `types.cr` — Optional small type definitions (e.g. `Hash128`) when needed
+* `types.cr` — Optional small type definitions (now using native `UInt128` for 128-bit hashes) when needed
 
 Example:
 
@@ -238,7 +238,7 @@ hash64 = XXH3.hash64("hello world")
 hash128 = XXH3.hash128("hello world")
 
 puts "XXH3_64: #{hash64.to_s(16)}"
-puts "XXH3_128: #{hash128.to_s(16)}"
+puts "XXH3_128: #{hash128.to_hex32}"
 
 # Streaming example (128-bit)
 state = XXH::XXH3.new_state128
@@ -434,6 +434,7 @@ All algorithms validated against vendor xxHash implementation. **Current test su
 - ✅ Alignment invariants (unaligned buffer handling, all size classes)
 - ✅ SIMD path coverage (size-class transitions: 0-16B, 17-240B, 240B+)
 - ✅ FFI memory-safety & state lifecycle (create/free cycles, GC interaction, stress testing)
+- ✅ UInt128 helpers (high64/low64, canonical bytes, C-struct conversions — `UInt128.from_halves`, `UInt128.from_c_hash`, `#to_c_hash`, `#to_hex32`)
 - ✅ Seed-boundary edge cases (0, max values)
 - ✅ Streaming vs one-shot parity
 - ✅ FFI safe wrapper reliability

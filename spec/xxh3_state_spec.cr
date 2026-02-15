@@ -126,7 +126,7 @@ describe XXH::XXH3::State128 do
     state = XXH::XXH3::State128.new
     state.update("test".to_slice)
     result = state.digest
-    result.should be_a(XXH::Hash128)
+    result.should be_a(UInt128)
   end
 
   it "digest matches one-shot hash" do

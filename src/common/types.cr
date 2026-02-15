@@ -1,24 +1,15 @@
 module XXH
-  # 128-bit hash result (idiomatic Crystal wrapper)
-  # Bidirectional conversion with C struct XXH128_hash_t
-  struct Hash128
-    getter low64 : UInt64
-    getter high64 : UInt64
-
-    # Construct from two integers: `high64, low64` (matches canonical ordering)
-    def initialize(@high64 : UInt64, @low64 : UInt64)
+  # 128-bit helpers — use native `UInt128` for 128-bit hash values.
+  # Provides `low64`/`high64` accessors and canonical serialization helpers.
+  struct ::UInt128
+    # Return the lower 64 bits as UInt64
+    def low64 : UInt64
+      (self & 0xFFFFFFFFFFFFFFFF_u128).to_u64
     end
 
-    # Initialize from C struct
-    def initialize(c_hash : LibXXH::XXH128_hash_t)
-      @low64 = c_hash.low64
-      @high64 = c_hash.high64
-    end
-
-    # String representation: uppercase hex (64 + 64 bits)
-    def to_s(io : IO) : Nil
-      io << high64.to_s(16).rjust(16, '0')
-      io << low64.to_s(16).rjust(16, '0')
+    # Return the upper 64 bits as UInt64
+    def high64 : UInt64
+      (self >> 64).to_u64
     end
 
     # Big-endian bytes (high64 first, then low64)
@@ -29,22 +20,34 @@ module XXH
       bytes
     end
 
-    # Equality comparison
-    def ==(other : Hash128) : Bool
-      low64 == other.low64 && high64 == other.high64
+    # 32-hex-digit canonical representation (zero-padded)
+    def to_hex32 : String
+      high64.to_s(16).rjust(16, '0') + low64.to_s(16).rjust(16, '0')
     end
 
-    # Hash code for use in Hash collections
-    def hash : UInt64
-      low64 ^ high64
-    end
-
-    # Inspect for debugging
+    # Inspect for debugging (keeps the representation explicit)
     def inspect(io : IO) : Nil
-      io << "XXH::Hash128("
-      io << high64.to_s(16).rjust(16, '0')
-      io << low64.to_s(16).rjust(16, '0')
+      io << "UInt128(0x"
+      io << to_hex32
       io << ")"
+    end
+
+    # Construct from high/low halves
+    @[AlwaysInline]
+    def self.from_halves(high : UInt64, low : UInt64) : UInt128
+      (high.to_u128 << 64) | low.to_u128
+    end
+
+    # Construct from FFI C struct (LibXXH::XXH128_hash_t)
+    @[AlwaysInline]
+    def self.from_c_hash(c_hash : LibXXH::XXH128_hash_t) : UInt128
+      (c_hash.high64.to_u128 << 64) | c_hash.low64.to_u128
+    end
+
+    # Produce an FFI C struct from a native UInt128
+    @[AlwaysInline]
+    def to_c_hash : LibXXH::XXH128_hash_t
+      LibXXH::XXH128_hash_t.new(low64: low64, high64: high64)
     end
   end
 

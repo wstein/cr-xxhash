@@ -2,15 +2,15 @@ require "./spec_helper"
 
 describe "XXH3 128-bit Canonical Representation" do
   describe "#canonical_from_hash" do
-    it "converts Hash128 to 16-byte canonical form" do
-      hash = XXH::Hash128.new(0x0123456789ABCDEF_u64, 0xFEDCBA9876543210_u64)
+    it "converts UInt128 to 16-byte canonical form" do
+      hash = UInt128.from_halves(0x0123456789ABCDEF_u64, 0xFEDCBA9876543210_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
       canonical.should be_a(Bytes)
       canonical.size.should eq(16)
     end
 
     it "produces big-endian byte order for high64" do
-      hash = XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFF00FF00FF00FF00_u64)
+      hash = UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFF00FF00FF00FF00_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
 
       # High 64 bits in big-endian
@@ -25,7 +25,7 @@ describe "XXH3 128-bit Canonical Representation" do
     end
 
     it "produces big-endian byte order for low64" do
-      hash = XXH::Hash128.new(0x0123456789ABCDEF_u64, 0xFF00FF00FF00FF00_u64)
+      hash = UInt128.from_halves(0x0123456789ABCDEF_u64, 0xFF00FF00FF00FF00_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
 
       # Low 64 bits in big-endian
@@ -40,13 +40,13 @@ describe "XXH3 128-bit Canonical Representation" do
     end
 
     it "handles all-zero hash" do
-      hash = XXH::Hash128.new(0_u64, 0_u64)
+      hash = UInt128.from_halves(0_u64, 0_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
       canonical.should eq(Bytes.new(16, 0x00_u8))
     end
 
     it "handles all-ones hash" do
-      hash = XXH::Hash128.new(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64)
+      hash = UInt128.from_halves(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
       canonical.should eq(Bytes.new(16, 0xFF_u8))
     end
@@ -54,7 +54,7 @@ describe "XXH3 128-bit Canonical Representation" do
 
   describe "#hash_from_canonical" do
     it "reconstructs Hash128 from canonical bytes" do
-      original_hash = XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
+      original_hash = UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
       canonical = XXH::XXH3.canonical_from_hash(original_hash)
       restored_hash = XXH::XXH3.hash_from_canonical(canonical)
       restored_hash.should eq(original_hash)
@@ -82,10 +82,10 @@ describe "XXH3 128-bit Canonical Representation" do
   describe "round-trip conversion" do
     it "hash -> canonical -> hash produces original" do
       [
-        XXH::Hash128.new(0_u64, 0_u64),
-        XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
-        XXH::Hash128.new(0xDEADBEEFCAFEBABE_u64, 0x0123456789ABCDEF_u64),
-        XXH::Hash128.new(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64),
+        UInt128.from_halves(0_u64, 0_u64),
+        UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64),
+        UInt128.from_halves(0xDEADBEEFCAFEBABE_u64, 0x0123456789ABCDEF_u64),
+        UInt128.from_halves(0xFFFFFFFFFFFFFFFF_u64, 0xFFFFFFFFFFFFFFFF_u64),
       ].each do |original|
         canonical = XXH::XXH3.canonical_from_hash(original)
         restored = XXH::XXH3.hash_from_canonical(canonical)
@@ -95,7 +95,7 @@ describe "XXH3 128-bit Canonical Representation" do
 
     it "handles test vectors" do
       TEST_VECTORS_XXH3_128.each do |(input, seed), (high, low)|
-        hash = XXH::Hash128.new(high, low)
+        hash = UInt128.from_halves(high, low)
         canonical = XXH::XXH3.canonical_from_hash(hash)
         canonical.size.should eq(16)
         restored = XXH::XXH3.hash_from_canonical(canonical)
@@ -106,15 +106,15 @@ describe "XXH3 128-bit Canonical Representation" do
 
   describe "canonical consistency" do
     it "same hash produces identical canonical bytes each time" do
-      hash = XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
+      hash = UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
       canonical1 = XXH::XXH3.canonical_from_hash(hash)
       canonical2 = XXH::XXH3.canonical_from_hash(hash)
       canonical1.should eq(canonical2)
     end
 
     it "different hashes produce different canonical bytes" do
-      hash1 = XXH::Hash128.new(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
-      hash2 = XXH::Hash128.new(0xFEDCBA9876543210_u64, 0x123456789ABCDEF0_u64)
+      hash1 = UInt128.from_halves(0x123456789ABCDEF0_u64, 0xFEDCBA9876543210_u64)
+      hash2 = UInt128.from_halves(0xFEDCBA9876543210_u64, 0x123456789ABCDEF0_u64)
       canonical1 = XXH::XXH3.canonical_from_hash(hash1)
       canonical2 = XXH::XXH3.canonical_from_hash(hash2)
       canonical1.should_not eq(canonical2)
@@ -123,7 +123,7 @@ describe "XXH3 128-bit Canonical Representation" do
 
   describe "cross-platform compatibility" do
     it "canonical form is portable (big-endian IEEE)" do
-      hash = XXH::Hash128.new(0x0123456789ABCDEF_u64, 0xFEDCBA9876543210_u64)
+      hash = UInt128.from_halves(0x0123456789ABCDEF_u64, 0xFEDCBA9876543210_u64)
       canonical = XXH::XXH3.canonical_from_hash(hash)
 
       # Reconstruct high64 from bytes manually

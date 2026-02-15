@@ -33,7 +33,7 @@ describe "Vendor-generated sanity vectors" do
     it "matches generated vendor vectors (sanity buffer)" do
       XXH::VectorLoader.xxh128_vectors.each do |(len, seed), expected|
         buf = XXH::VectorLoader.sanity_buffer(len)
-        expect_hash = XXH::Hash128.new(expected[:high], expected[:low])
+          expect_hash = UInt128.from_halves(expected[:high], expected[:low])
         XXH::XXH3.hash128(buf, seed).should eq(expect_hash)
       end
     end

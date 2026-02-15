@@ -125,7 +125,7 @@ Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
 
 **Priority**: ⭐⭐⭐⭐☆ | **Effort**: 2.5h | **Complexity**: High
 
-**Objective**: Provide a 128-bit hasher that mirrors the 64-bit API while returning the `XXH::Hash128` wrapper.
+**Objective**: Provide a 128-bit hasher that mirrors the 64-bit API while returning a native `UInt128` value.
 
 **File**: `src/xxh3/hasher_128.cr` ✅ **CREATED**
 
@@ -137,7 +137,7 @@ Phase 6: Documentation      [░░░░░░░░░░] 0/4 tasks
 
 **Validation**:
 
-- [x] Seedless, seeded, and secret entry points exist and return `Hash128`
+- [x] Seedless, seeded, and secret entry points exist and return `UInt128`
 - [x] File/IO helpers route through streaming state (Task 2.0)
 
 **Dependencies**: 1.3, 1.5, 1.6
@@ -556,7 +556,7 @@ include XXH::SpecHelper
 
 **Objective**: Set up PR smoke tests and CI workflows
 
-**Files**: 
+**Files**:
 - `.github/workflows/ci-fast.yml` ✅ **CREATED** (PR smoke tests)
 - `.github/workflows/ci.yml` (placeholder for full matrix)
 - `.github/workflows/check-generated-vectors.yml` (generator verification)
@@ -710,7 +710,7 @@ include XXH::SpecHelper
 **Deliverables**:
 
 - `src/xxh.cr` - Main library entry point
-- `src/common/types.cr` - Hash128 struct, type aliases
+- `src/common/types.cr` - `UInt128` helpers, type aliases (Hash128 removed)
 - `src/common/errors.cr` - Error handling module
 - `src/bindings/lib_xxh.cr` - Low-level FFI bindings (migrated from vendor/)
 - `src/bindings/safe.cr` - Safe wrapper layer with Bindings::* modules
@@ -1677,7 +1677,7 @@ end
 
 **Validation**:
 
-- Hash128 struct works correctly
+- `UInt128` helpers (high/low, canonical bytes) work correctly
 - Hex/bytes conversion functional
 - Equality comparison works
 
