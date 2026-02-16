@@ -73,7 +73,7 @@ module XXHSum
       end
 
       private def self.configure_parser(parser : OptionParser, opts_ptr : Pointer(Options)) : Nil
-        parser.banner = "xxhsum 0.8.3 (Crystal implementation)\n" \
+        parser.banner = "xxhsum 0.8.3 (Using Crystal bindings)\n" \
                         "Create or verify checksums using fast non-cryptographic algorithm xxHash\n" \
                         "\nUsage: xxhsum [options] [FILES...]\n" \
                         "\nWhen no filename provided or when '-' is provided, uses stdin as input.\n" \
@@ -115,14 +115,7 @@ module XXHSum
           puts "xxhsum Crystal (example) #{XXH::VERSION}"
           exit 0
         end
-        backends = Options.simd_backends.join(", ")
-        parser.on("--SIMD [BACKEND]", "(NOT IMPLEMENTED) Select SIMD backend (available: #{backends})") do |value|
-          unless Options.simd_backends.includes?(value)
-            STDERR.puts "Error: invalid SIMD backend '#{value}' (available: #{backends})"
-            exit 1
-          end
-          opts_ptr.value.simd_mode = value
-        end
+
         parser.on("--tag", "Produce BSD-style checksum lines") { opts_ptr.value.bsd = true }
         parser.on("--little-endian", "(NOT IMPLEMENTED) Checksum values use little endian convention (default: big endian)") do
           STDERR.puts "Error: --little-endian is not yet implemented"
@@ -135,13 +128,21 @@ module XXHSum
         parser.on("-b", "Run benchmark with default variant set (equivalent to -b1,3,5,11)") do
           opts_ptr.value.benchmark = true
         end
-        parser.on("-b [VARIANTS]", "Run specified benchmark variant(s)\nVARIANTS may be comma-separated IDs (e.g. \"1,3,5\") or ranges (e.g. \"1-5\")\nuse --bench-all or -b0 for all 28 benchmark variants") do |value|
+        parser.on("-b [VARIANTS]", "Run specified benchmark variant(s)\nVARIANTS may be comma-separated IDs (e.g. \"1,3,5\") or ranges (e.g. \"1-5\")") do |value|
           if value.empty?
             opts_ptr.value.benchmark = true
           else
             apply_benchmark_selector!(opts_ptr, value)
           end
         end
+
+        # Alias: --bench-all maps to -b0
+        parser.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") do
+          opts_ptr.value.benchmark = true
+          opts_ptr.value.benchmark_all = true
+          opts_ptr.value.benchmark_ids.clear
+        end
+
         parser.on("-i [ITERATIONS]", "Number of times to run the benchmark (default: 3)") do |value|
           iterations = value.to_i
           if iterations < 1
@@ -158,10 +159,25 @@ module XXHSum
           end
           opts_ptr.value.benchmark_size = size
         end
-        parser.on("-q", "--quiet", "Don't display version header in benchmark mode") { opts_ptr.value.quiet = true }
+        parser.on("-s SEED", "--seed SEED", "Seed (decimal or 0xHEX)") do |value|
+          seed_val = if value.starts_with?("0x") || value.starts_with?("0X")
+                       value[2..-1].to_i(16)
+                     else
+                       value.to_i
+                     end
+          opts_ptr.value.seed = seed_val.to_u64
+        end
+        parser.on("--SIMD [BACKEND]", "(NOT IMPLEMENTED) Select SIMD backend (available: " + Options.simd_backends.join(", ") + ")") do |value|
+          unless Options.simd_backends.includes?(value)
+            STDERR.puts "Error: invalid SIMD backend '#{value}' (available: #{Options.simd_backends.join(", ")})"
+            exit 1
+          end
+          opts_ptr.value.simd_mode = value
+        end
+        parser.on("-q", "--quiet", "Don't display version header in benchmark mode\nDon't print OK for each successfully verified hash") { opts_ptr.value.quiet = true }
 
         parser.separator
-        parser.separator "File list options:"
+        parser.separator "The following five options are useful only when using lists in [files] to verify or generate checksums:"
 
         # File list options
         parser.on("--status", "(NOT IMPLEMENTED) Don't output anything, status code shows success") do
@@ -174,22 +190,6 @@ module XXHSum
           exit 1
         end
         parser.on("--ignore-missing", "Don't fail or report status for missing files") { opts_ptr.value.ignore_missing = true }
-
-        parser.on("-s SEED", "--seed SEED", "Seed (decimal or 0xHEX)") do |value|
-          seed_val = if value.starts_with?("0x") || value.starts_with?("0X")
-                       value[2..-1].to_i(16)
-                     else
-                       value.to_i
-                     end
-          opts_ptr.value.seed = seed_val.to_u64
-        end
-
-        # Alias: --bench-all maps to -b0
-        parser.on("--bench-all", "Run all 28 benchmark variants (equivalent to -b0)") do
-          opts_ptr.value.benchmark = true
-          opts_ptr.value.benchmark_all = true
-          opts_ptr.value.benchmark_ids.clear
-        end
 
         parser.invalid_option do |flag|
           STDERR.puts "Error: #{flag} is not a valid option or is not yet implemented"

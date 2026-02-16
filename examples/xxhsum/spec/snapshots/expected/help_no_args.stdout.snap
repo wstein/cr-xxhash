@@ -1,4 +1,4 @@
-xxhsum 0.8.3 (Crystal implementation)
+xxhsum 0.8.3 (Using Crystal bindings)
 Create or verify checksums using fast non-cryptographic algorithm xxHash
 
 Usage: xxhsum [options] [FILES...]
@@ -17,22 +17,22 @@ Options:
 
 Advanced:
     -V, --version                    Display version information
-    --SIMD [BACKEND]                 (NOT IMPLEMENTED) Select SIMD backend (available: scalar, neon)
     --tag                            Produce BSD-style checksum lines
     --little-endian                  (NOT IMPLEMENTED) Checksum values use little endian convention (default: big endian)
     --binary                         Read in binary mode (compat: no-op — files are binary by default)
     -b                               Run benchmark with default variant set (equivalent to -b1,3,5,11)
     -b [VARIANTS]                    Run specified benchmark variant(s)
                                      VARIANTS may be comma-separated IDs (e.g. "1,3,5") or ranges (e.g. "1-5")
-                                     use --bench-all or -b0 for all 28 benchmark variants
+    --bench-all                      Run all 28 benchmark variants (equivalent to -b0)
     -i [ITERATIONS]                  Number of times to run the benchmark (default: 3)
     -B [SIZE]                        Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based)
+    -s SEED, --seed SEED             Seed (decimal or 0xHEX)
+    --SIMD [BACKEND]                 (NOT IMPLEMENTED) Select SIMD backend (available: scalar, neon)
     -q, --quiet                      Don't display version header in benchmark mode
+                                     Don't print OK for each successfully verified hash
 
-File list options:
+The following five options are useful only when using lists in [files] to verify or generate checksums:
     --status                         (NOT IMPLEMENTED) Don't output anything, status code shows success
     --strict                         Exit non-zero for improperly formatted lines in [FILES]
     --warn                           (NOT IMPLEMENTED) Warn about improperly formatted lines in [FILES]
     --ignore-missing                 Don't fail or report status for missing files
-    -s SEED, --seed SEED             Seed (decimal or 0xHEX)
-    --bench-all                      Run all 28 benchmark variants (equivalent to -b0)
