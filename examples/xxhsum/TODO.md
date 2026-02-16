@@ -13,14 +13,18 @@
 - [x] Seeding support (-s/--seed with decimal and 0xHEX)
 - [x] Help/version flags (--help, --version)
 - [x] No-args interactive help when TTY
+
 ### Benchmark Enhancements (recent)
 
 - [x] Benchmark mode (-b / -b# / -i# / -B#)
+- [x] Comma-separated benchmark IDs (-b1,3,5,11)
 - [x] Live-progress updates during calibration (live-update)
 - [x] Calibration target increased to ~1s per variant (more stable timings)
 - [x] Size-suffix policy: all common suffixes (K/KB/M/MB/G/GB and IEC forms) are 1024-based
 - [x] Added `--bench-all` alias (runs all 28 variants, equivalent to -b0)
-- [x] Added spec to verify live-update carriage-return behavior
+- [x] Added specs to verify:
+  - [x] Live-update carriage-return behavior
+  - [x] Comma-separated benchmark ID parsing and execution
 
 ### Check Mode (Phase 2)
 
@@ -69,6 +73,15 @@
   - [x] Two-phase update workflow (review → commit → verify)
   - [x] Documentation of snapshot maintenance strategy
   - [x] Vendor CLI analysis & architectural comparison document
+
+### Code Quality & Refactoring
+
+- [x] Refactor `options.cr` to use idiomatic Crystal `OptionParser.parse` block
+  - [x] Eliminated duplicate parser definitions (one in `help_text`, one in `parse`)
+  - [x] Implemented pointer-based `Options` mutation pattern for struct value semantics
+  - [x] Enabled `gnu_optional_args: true` for correct compact flag handling (-b3, -i5, -B100K)
+  - [x] Updated flag declarations to match vendor help style (`-H [ALGORITHM]`, `-b [VARIANTS]`, etc.)
+  - [x] All 305 repository tests passing (45 xxhsum specs + 17 vendor parity cases)
 
 ## 📋 Future Work (Prioritized)
 

@@ -47,7 +47,7 @@ describe "XXHSum benchmark mode" do
   it "parses block-size suffixes for -B#" do
     opts = XXHSum::CLI::Options.parse(["-b", "-B64K", "-i2"])
     opts.benchmark.should be_true
-    opts.benchmark_size.should eq(64_u64 * 1024_u64)  # 1024-based binary kilobytes
+    opts.benchmark_size.should eq(64_u64 * 1024_u64) # 1024-based binary kilobytes
     opts.benchmark_iterations.should eq(2)
   end
 
@@ -87,6 +87,28 @@ describe "XXHSum benchmark mode" do
     output.should contain("\n")
     # Verify that -i2 ran both iterations (intermediate and final)
     output.should contain("7#XXH3_64b w/seed")
+    stderr.to_s.should eq("")
+  end
+
+  it "parses comma-separated benchmark IDs with -b1,3,5,11" do
+    opts = XXHSum::CLI::Options.parse(["-b1,3,5,11", "-i2"])
+    opts.benchmark.should be_true
+    opts.benchmark_ids.should eq([1, 3, 5, 11])
+    opts.benchmark_iterations.should eq(2)
+  end
+
+  it "runs comma-separated benchmark variants" do
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    code = XXHSum::CLI.run(["-b1,3,5", "-i1", "-B1K", "-q"], stdout: stdout, stderr: stderr, stdin_tty: true)
+
+    code.should eq(0)
+    output = stdout.to_s
+    output.should contain("1#XXH32")
+    output.should contain("3#XXH64")
+    output.should contain("5#XXH3_64b")
+    output.should_not contain("11#XXH128") # Not in the comma-separated list
     stderr.to_s.should eq("")
   end
 end

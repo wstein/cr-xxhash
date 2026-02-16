@@ -60,10 +60,10 @@ See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 **Benchmark Mode (Vendor-Compatible IDs)**
 
 - `-b` run benchmark with vendor default variants: `1, 3, 5, 11`
-- `-b#` run selected benchmark variant(s), e.g. `-b7` or `-b1,3,5,11`
+- `-b#` run selected benchmark variant(s), e.g. `-b7`, `-b1,3,5,11` (single or comma-separated)
 - `-b0` (or IDs `>=29`) runs all 28 variants (vendor-compatible behavior)
 - `-i#` number of timing iterations (default: `3`)
-- `-B#` sample size with suffixes (`K/KB/M/MB/G/GB` — 1024-based; `KiB/MiB/GiB` also accepted)
+- `-B#` sample size with suffixes (`K/KB/M/MB/G/GB` — 1024-based)
 
 Output format follows vendor style:
 
