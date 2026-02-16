@@ -27,7 +27,7 @@ Advanced:
     -i [ITERATIONS]                  Number of times to run the benchmark (default: 3)
     -B [SIZE]                        Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based)
     -s SEED, --seed SEED             Seed (decimal or 0xHEX)
-    --SIMD [BACKEND]                 (NOT IMPLEMENTED) Select SIMD backend (available: scalar, neon)
+    --simd [BACKEND]                 (NOT IMPLEMENTED) Select SIMD backend (available: scalar, neon)
     -q, --quiet                      Don't display version header in benchmark mode
                                      Don't print OK for each successfully verified hash
 

@@ -16,7 +16,7 @@ describe "XXHSum SIMD mode" do
 
   it "shows available backends in help text" do
     help = XXHSum::CLI::Options.help_text
-    help.should contain("--SIMD [BACKEND]")
+    help.should contain("--simd [BACKEND]")
     help.should contain("(NOT IMPLEMENTED)")
     help.should contain("scalar")
 

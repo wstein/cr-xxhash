@@ -24,6 +24,8 @@
 
 - [x] Benchmark mode (-b / -b# / -i# / -B#)
 - [x] Comma-separated benchmark IDs (-b1,3,5,11)
+- [x] Range benchmark selector (-b1-3)
+- [x] Compact `-biN` form (vendor-style `-bi1`)
 - [x] Live-progress updates during calibration (live-update)
 - [x] Calibration target increased to ~1s per variant (more stable timings)
 - [x] Size-suffix policy: all common suffixes (K/KB/M/MB/G/GB and IEC forms) are 1024-based
@@ -103,6 +105,7 @@
   - [x] Implemented pointer-based `Options` mutation pattern for struct value semantics
   - [x] Enabled `gnu_optional_args: true` for correct compact flag handling (-b3, -i5, -B100K)
   - [x] Updated flag declarations to match vendor help style (`-H [ALGORITHM]`, `-b [VARIANTS]`, etc.)
+  - [x] Lowercased `--simd` help entry (`--simd [BACKEND]`), validation placeholder unchanged
   - [x] All 305 repository tests passing (45 xxhsum specs + 17 vendor parity cases)
 - [x] Refactor `benchmark.cr` to align with codebase conventions
   - [x] Fixed module structure: `XXHSum::Benchmark::Benchmark` → `XXHSum::CLI::Benchmark`

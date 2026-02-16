@@ -66,6 +66,20 @@ module XXHSum
         opts = Options.new
         args = argv.dup
 
+        # Normalize ambiguous GNU-style optional args so that "-b -i1" behaves like
+        # vendor xxhsum (i.e. `-b` and then `-i1`), rather than treating "-i1" as
+        # the optional argument for `-b`.
+        i = 0
+        while i < args.size - 1
+          if args[i] == "-b" && args[i + 1].starts_with?("-")
+            # Insert empty value so OptionParser treats -b as provided without a VARIANTS arg
+            args.insert(i + 1, "")
+            i += 2
+          else
+            i += 1
+          end
+        end
+
         OptionParser.parse(args, gnu_optional_args: true) do |parser|
           configure_parser(parser, pointerof(opts))
         end
@@ -129,7 +143,17 @@ module XXHSum
           if value.empty?
             opts_ptr.value.benchmark = true
           else
-            apply_benchmark_selector!(opts_ptr, value)
+            # Support vendor-compatible compact forms such as `-bi1` (iterations)
+            # Treat leading alphabetic tokens (e.g. "i1") as separate short options
+            if value =~ /^i(\d+)$/
+              opts_ptr.value.benchmark = true
+              opts_ptr.value.benchmark_iterations = value[1..-1].to_i
+            elsif value.starts_with?("-") || value =~ /^\D/ && !(value =~ /^\d/)
+              # Defensive: when OptionParser hands us a non-numeric token, treat as no-arg
+              opts_ptr.value.benchmark = true
+            else
+              apply_benchmark_selector!(opts_ptr, value)
+            end
           end
         end
 
@@ -164,8 +188,8 @@ module XXHSum
                      end
           opts_ptr.value.seed = seed_val.to_u64
         end
-        parser.on("--SIMD [BACKEND]", "(NOT IMPLEMENTED) Select SIMD backend (available: " + Options.simd_backends.join(", ") + ")") do |value|
-          unless Options.simd_backends.includes?(value)
+        parser.on("--simd [BACKEND]", "(NOT IMPLEMENTED) Select SIMD backend (available: " + Options.simd_backends.join(", ") + ")") do |value|
+          unless value.nil? || Options.simd_backends.includes?(value)
             STDERR.puts "Error: invalid SIMD backend '#{value}' (available: #{Options.simd_backends.join(", ")})"
             exit 1
           end
@@ -193,7 +217,8 @@ module XXHSum
       end
 
       private def self.apply_benchmark_selector!(opts_ptr : Pointer(Options), spec : String) : Nil
-        unless spec.gsub(",", "").chars.all?(&.ascii_number?)
+        # Accept comma-separated ids and ranges (e.g. "1,3,5" or "1-5")
+        unless spec.split(",").all? { |t| t =~ /^\d+(-\d+)?$/ }
           STDERR.puts "Error: invalid benchmark selector '-b#{spec}'"
           exit 1
         end
@@ -201,16 +226,38 @@ module XXHSum
         opts_ptr.value.benchmark = true
         spec.split(",").each do |token|
           next if token.empty?
-          id = token.to_i
-          if id == 0 || id >= 29
-            opts_ptr.value.benchmark_all = true
-            opts_ptr.value.benchmark_ids.clear
-            break
-          elsif id >= 1
-            opts_ptr.value.benchmark_ids << id unless opts_ptr.value.benchmark_ids.includes?(id)
+
+          if token.includes?("-")
+            start_s, end_s = token.split("-", 2)
+            start_id = start_s.to_i
+            end_id = end_s.to_i
+            if start_id <= 0 || end_id < start_id
+              STDERR.puts "Error: invalid benchmark range '#{token}'"
+              exit 1
+            end
+
+            # If range includes 0 or an id >= 29 => treat as 'all'
+            if start_id == 0 || end_id >= 29
+              opts_ptr.value.benchmark_all = true
+              opts_ptr.value.benchmark_ids.clear
+              break
+            end
+
+            (start_id..end_id).each do |id|
+              opts_ptr.value.benchmark_ids << id unless opts_ptr.value.benchmark_ids.includes?(id)
+            end
           else
-            STDERR.puts "Error: invalid benchmark id '#{id}'"
-            exit 1
+            id = token.to_i
+            if id == 0 || id >= 29
+              opts_ptr.value.benchmark_all = true
+              opts_ptr.value.benchmark_ids.clear
+              break
+            elsif id >= 1
+              opts_ptr.value.benchmark_ids << id unless opts_ptr.value.benchmark_ids.includes?(id)
+            else
+              STDERR.puts "Error: invalid benchmark id '#{id}'"
+              exit 1
+            end
           end
         end
       end

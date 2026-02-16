@@ -37,6 +37,8 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   ./bin/xxhsum --filelist myfiles.txt             # Filelist from file
   ./bin/xxhsum -c checksums.txt                   # Verify checksums
   ./bin/xxhsum -b -i1 -B64K                       # Run benchmark (default variants)
+  ./bin/xxhsum -b1-3 -i1 -B64K                     # Run benchmark variants 1 through 3 (range)
+  ./bin/xxhsum -bi1 -B64K                          # Compact form: -b with iterations (vendor-style -bi1)
   ./bin/xxhsum -b7 -i3 -B1M                       # Run one benchmark variant
 
 **Format Parity:**
@@ -75,7 +77,8 @@ See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 **Benchmark Mode (Vendor-Compatible IDs)**
 
 - `-b` run benchmark with vendor default variants: `1, 3, 5, 11`
-- `-b#` run selected benchmark variant(s), e.g. `-b7`, `-b1,3,5,11` (single or comma-separated)
+- `-b#` run selected benchmark variant(s), e.g. `-b7`, `-b1,3,5,11` — accepts `comma-separated` lists or `ranges` such as `-b1-3`
+- `-bi#` compact vendor-style form to set iterations together with `-b` (e.g. `-bi1` behaves like `-b -i1`)
 - `-b0` (or IDs `>=29`) runs all 28 variants (vendor-compatible behavior)
 - `-i#` number of timing iterations (default: `3`)
 - `-B#` sample size with suffixes (`K/KB/M/MB/G/GB` — 1024-based)

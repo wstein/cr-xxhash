@@ -97,6 +97,20 @@ describe "XXHSum benchmark mode" do
     opts.benchmark_iterations.should eq(2)
   end
 
+  it "parses -bi1 compact form" do
+    opts = XXHSum::CLI::Options.parse(["-bi1", "-B64K"])
+    opts.benchmark.should be_true
+    opts.benchmark_iterations.should eq(1)
+    opts.benchmark_ids.should be_empty
+  end
+
+  it "parses range -b1-3" do
+    opts = XXHSum::CLI::Options.parse(["-b1-3", "-i2"])
+    opts.benchmark.should be_true
+    opts.benchmark_ids.should eq([1, 2, 3])
+    opts.benchmark_iterations.should eq(2)
+  end
+
   it "runs comma-separated benchmark variants" do
     stdout = IO::Memory.new
     stderr = IO::Memory.new
