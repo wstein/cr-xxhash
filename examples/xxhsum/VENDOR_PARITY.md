@@ -38,6 +38,7 @@ The vendor parity validation covers these scenarios:
 - ✅ Strict mode (`--strict`): Format validation with exit code 1
 - ✅ Ignore missing files (`--ignore-missing`): Skip missing files gracefully
 - ✅ Quiet mode (`-q`): Suppress per-file "OK" messages
+- ✅ Status-only mode (`--status`): Suppress all output (OK, FAILED, errors, summary)
 - ✅ Combined modes: strict + ignore-missing, ignore-missing + quiet
 
 ## Behavioral Alignment Detail

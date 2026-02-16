@@ -49,6 +49,11 @@
 - [x] Bad format line handling (skip by default, error with --strict)
 - [x] Comment support (# lines)
 - [x] Quiet mode (-q, --quiet)
+- [x] Status-only mode (--status - no output, exit code only)
+  - [x] Suppresses all output (OK, FAILED, errors, summary)
+  - [x] Maintains correct exit codes (0 on success, 1 on failure/missing files/format errors)
+  - [x] Works in both verify_stdin() and verify() code paths
+  - [x] Vendor parity: matches C xxhsum behavior
 - [x] Exit codes (vendor parity: 0=ok, 1=check failures/strict format errors)
 - [x] Cross-platform compatibility (vendor xxhsum interop)
 

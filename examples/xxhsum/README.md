@@ -11,6 +11,12 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   - GNU (default): `<hash>  <filename>`
   - BSD (--tag): `<algo> (<filename>) = <hash>`
   - Little-endian (--little-endian): `<algo>_LE_<reversed_hash>` with byte reversal
+- Checksum verification: `-c file` or `-c` with piped checksums
+- Verification flags:
+  - Quiet mode (`-q`, `--quiet`): Suppress per-file OK messages
+  - Status-only mode (`--status`): No output, exit code only (useful for scripts)
+  - Ignore missing files: `--ignore-missing`
+  - Strict mode: `--strict` (non-zero exit on format errors)
 - Seeding: `-s SEED` or `--seed SEED` (decimal or 0xHEX format)
 - Version & help: `--version`, `-h`, `--help`
 - Benchmark mode: `-b`, `-b#`, `-i#`, `-B#`
@@ -284,12 +290,23 @@ Contributing (short)
 
 - PR checklist: tests added/updated, `spec/fixtures/originals/` updated when needed, snapshots regenerated, no runtime `.*.orig` files committed.
 
-Behavior matrix — `-q` (quiet) and `--ignore-missing`
+Behavior matrix — `-q` (quiet), `--status`, and `--ignore-missing`
 
-| Scenario | no flags | `-q` | `--ignore-missing` | `--ignore-missing -q` |
+| Output Type | no flags | `-q` | `--status` | With `--ignore-missing` |
 |---|---:|---:|---:|---:|
-| Missing-only (checksums_missing.txt) | stderr: missing + WARNING; exit 1 | same | stdout: `no file was verified`; exit 1 | same |
-| Mixed (present + missing) | stdout: `OK` + stderr: missing + WARNING; exit 1 | OK suppressed; stderr: missing + WARNING; exit 1 | stdout: `OK` only; exit 0 | OK suppressed; no stderr; exit 0 |
+| Per-file OK message | ✅ Print | ❌ Skip | ❌ Skip | `--ignore-missing` with `-q/--status`: same suppression |
+| Per-file FAILED message | ✅ Print | ✅ Print | ❌ Skip | Same as above |
+| Format error message | ✅ Print (strict) | ✅ Print (strict) | ❌ Skip | Same as above |
+| Missing file error | ✅ Print | ✅ Print | ❌ Skip | Same as above |
+| Summary message | ✅ Print | ✅ Print | ❌ Skip | ❌ Skip (no summary) |
+| Exit Code (on failure) | 1 | 1 | 1 | Depends on ignore-missing |
+| **Use Case** | Default behavior | Reduce output noise | Scripts that only care about exit code | Skip missing files, combined with flags above |
+
+**Key Differences**:
+
+- `-q` (quiet): Suppresses OK messages only, shows errors and summary
+- `--status`: Suppresses all output (OK, errors, summary), exit code only—useful for scripts where you only check `$?`
+- Combined: `-q --status` is equivalent to `--status` (status takes precedence for complete suppression)
 
 Notes: table documents vendor-parity behavior covered by the new corpus tests in `spec/corpus/cli_cases.json` (flag-matrix cases).
 

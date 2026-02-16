@@ -14,6 +14,7 @@ module XXHSum
       property bsd : Bool = false
       property quiet : Bool = false
       property little_endian : Bool = false
+      property status_only : Bool = false
       property seed : UInt64? = nil
       property files : Array(String) = [] of String
       property check_mode : Bool = false
@@ -178,10 +179,7 @@ module XXHSum
         parser.separator "The following five options are useful only when using lists in [files] to verify or generate checksums:"
 
         # File list options
-        parser.on("--status", "(NOT IMPLEMENTED) Don't output anything, status code shows success") do
-          STDERR.puts "Error: --status is not yet implemented"
-          exit 1
-        end
+        parser.on("--status", "Don't output anything, status code shows success") { opts_ptr.value.status_only = true }
         parser.on("--strict", "Exit non-zero for improperly formatted lines in [FILES]") { opts_ptr.value.strict = true }
         parser.on("--warn", "(NOT IMPLEMENTED) Warn about improperly formatted lines in [FILES]") do
           STDERR.puts "Error: --warn is not yet implemented"

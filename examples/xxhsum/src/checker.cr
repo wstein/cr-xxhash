@@ -26,7 +26,9 @@ module XXHSum
           unless parsed
             total_bad_format += 1
             if options.strict
-              out_io.puts "stdin: improperly formatted line: #{line}"
+              unless options.status_only
+                out_io.puts "stdin: improperly formatted line: #{line}"
+              end
               exit_code = 1
             end
             next
@@ -38,7 +40,9 @@ module XXHSum
           unless File.exists?(filename)
             total_missing += 1
             unless options.ignore_missing
-              out_io.puts "stdin:1: Could not open or read '#{filename}': No such file or directory."
+              unless options.status_only
+                out_io.puts "stdin:1: Could not open or read '#{filename}': No such file or directory."
+              end
               exit_code = 1
             end
             next
@@ -60,18 +64,22 @@ module XXHSum
             hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
             if hash_to_compare.downcase == hash_str.downcase
-              unless options.quiet
+              unless options.quiet || options.status_only
                 out_io.puts "#{filename}: OK"
               end
               total_checked += 1
             else
-              out_io.puts "#{filename}: FAILED"
+              unless options.status_only
+                out_io.puts "#{filename}: FAILED"
+              end
               total_failed += 1
               exit_code = 1
               total_checked += 1
             end
           rescue ex : Exception
-            out_io.puts "#{filename}: FAILED"
+            unless options.status_only
+              out_io.puts "#{filename}: FAILED"
+            end
             total_failed += 1
             exit_code = 1
             total_checked += 1
@@ -79,23 +87,25 @@ module XXHSum
         end
 
         # Summary - output to stdout (vendor parity)
-        if total_missing > 0 && total_failed > 0
-          # Mixed missing and mismatched
-          verb = total_failed == 1 ? "checksum" : "checksums"
-          out_io.puts "#{total_failed} computed #{verb} did NOT match"
-        elsif total_missing > 0
-          # Only missing files
-          count_str = total_missing == 1 ? "file" : "files"
-          out_io.puts "#{total_missing} listed #{count_str} could not be read"
-        elsif total_failed > 0
-          # Only mismatched hashes
-          verb = total_failed == 1 ? "checksum" : "checksums"
-          out_io.puts "#{total_failed} computed #{verb} did NOT match"
+        unless options.status_only
+          if total_missing > 0 && total_failed > 0
+            # Mixed missing and mismatched
+            verb = total_failed == 1 ? "checksum" : "checksums"
+            out_io.puts "#{total_failed} computed #{verb} did NOT match"
+          elsif total_missing > 0
+            # Only missing files
+            count_str = total_missing == 1 ? "file" : "files"
+            out_io.puts "#{total_missing} listed #{count_str} could not be read"
+          elsif total_failed > 0
+            # Only mismatched hashes
+            verb = total_failed == 1 ? "checksum" : "checksums"
+            out_io.puts "#{total_failed} computed #{verb} did NOT match"
+          end
         end
 
         # Vendor parity: when --ignore-missing is used and no files were verified
         # from stdin, print a short message and fail.
-        if options.ignore_missing && total_checked == 0
+        if options.ignore_missing && total_checked == 0 && !options.status_only
           out_io.puts "stdin: no file was verified"
           exit_code = 1
         end
@@ -140,7 +150,9 @@ module XXHSum
               unless File.exists?(filename)
                 total_missing += 1
                 unless options.ignore_missing
-                  out_io.puts "#{checksum_file}:#{line_index}: Could not open or read '#{filename}': No such file or directory."
+                  unless options.status_only
+                    out_io.puts "#{checksum_file}:#{line_index}: Could not open or read '#{filename}': No such file or directory."
+                  end
                   exit_code = 1
                 end
                 next
@@ -156,19 +168,23 @@ module XXHSum
                 hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
                 if hash_to_compare.downcase == hash_str.downcase
-                  unless options.quiet
+                  unless options.quiet || options.status_only
                     out_io.puts "#{filename}: OK"
                   end
                   total_checked += 1
                   matched_in_file += 1
                 else
-                  out_io.puts "#{filename}: FAILED"
+                  unless options.status_only
+                    out_io.puts "#{filename}: FAILED"
+                  end
                   total_failed += 1
                   exit_code = 1
                   total_checked += 1
                 end
               rescue ex : Exception
-                out_io.puts "#{filename}: FAILED"
+                unless options.status_only
+                  out_io.puts "#{filename}: FAILED"
+                end
                 total_failed += 1
                 exit_code = 1
                 total_checked += 1
@@ -176,14 +192,14 @@ module XXHSum
             end
 
             # In strict mode with no properly formatted lines, output error to stderr
-            if options.strict && had_bad_format && total_properly_formatted == 0
+            if options.strict && had_bad_format && total_properly_formatted == 0 && !options.status_only
               err_io.puts "#{checksum_file}: no properly formatted xxHash checksum lines found"
               exit_code = 1
             end
 
             # If --ignore-missing is enabled but no file from this checksum file was verified,
             # mirror vendor behavior and treat it as an error.
-            if options.ignore_missing && matched_in_file == 0
+            if options.ignore_missing && matched_in_file == 0 && !options.status_only
               out_io.puts "#{checksum_file}: no file was verified"
               exit_code = 1
             end
@@ -194,8 +210,8 @@ module XXHSum
         end
 
         # Summary - output to stdout (vendor parity)
-        # Don't output summary when using --ignore-missing (vendor behavior)
-        unless options.ignore_missing
+        # Don't output summary when using --ignore-missing or --status (vendor behavior)
+        unless options.ignore_missing || options.status_only
           if total_missing > 0
             count_str = total_missing == 1 ? "file" : "files"
             out_io.puts "#{total_missing} listed #{count_str} could not be read"
