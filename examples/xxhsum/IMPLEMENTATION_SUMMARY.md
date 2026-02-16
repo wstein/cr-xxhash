@@ -39,6 +39,7 @@
 ## Performance Comparison: Crystal vs Vendor
 
 ### Test Configuration
+
 - **Hardware**: M1 Pro (Apple Silicon)
 - **Test case**: `-b -i3 -B123k` (3 calibration iterations, 123 KB buffer)
 - **Compiler**: Crystal 1.19.1 (release mode, -O3)
@@ -53,6 +54,7 @@
 | **XXH128** | 426,101 it/s | 421,784 it/s | 99.0% | ✅ Excellent |
 
 **Analysis**: Crystal achieves 98-100% of vendor throughput. Small variance due to:
+
 - Inlining differences (C more aggressive)
 - Wrapping addition overhead (data dependency)
 - Function call conventions
@@ -82,6 +84,7 @@ end
 ```
 
 **Outcome**:
+
 - Ensures accurate results even for single-iteration runs (-i1).
 - Provides 99%+ accuracy compared to vendor C implementation.
 - Prevents measurement skew common in early calibration stages.
@@ -93,9 +96,11 @@ end
 ### New/Modified Files
 
 #### 1. `src/benchmark.cr` (262 LOC) — NEW
+
 **Purpose**: Benchmark runner implementing all 28 variants
 
 **Key components**:
+
 - `self.run(options, stdout)` — Main entry point called from CLI
 - `Variant` record — Metadata for each benchmark config
 - `digest_variant()` — Case statement dispatching to correct algorithm
@@ -106,26 +111,34 @@ end
 **Design pattern**: Module with private methods, public `run()` entry point
 
 #### 2. `src/options.cr` (Modified, +50 LOC)
+
 **Changes**:
+
 - Added properties: `benchmark`, `benchmark_all`, `benchmark_ids`, `benchmark_iterations`, `benchmark_size`
 - Preprocessing loop for compact flags (`-b#`, `-i#`, `-B#`)
 - `parse_size()` function for binary (1024-based) suffix handling (K/KB/M/MB/G/GB, plus IEC KiB/MiB/GiB)
 - Integration with standard OptionParser
 
 #### 3. `src/cli.cr` (Modified, +3 LOC)  
+
 **Changes**:
+
 - `require "./benchmark"`
 - Early return: `if options.benchmark; return Benchmark.run(options, stdout); end`
 
 #### 4. `spec/benchmark_spec.cr` (60 LOC) — NEW
+
 **4 tests**:
+
 1. Default variant set runs with `-b -i1 -B1K`
 2. Single variant selection with `-b7`
 3. All variants with `-b0`
 4. Size parsing: `-B64K` → 65,536 bytes (1024-based binary)
 
 #### 5. `BENCHMARK_ANALYSIS.md` (NEW)
+
 Comprehensive technical analysis covering:
+
 - Architecture & design decisions (ratings 7-9/10)
 - Performance analysis vs vendor
 - Testing coverage
@@ -136,6 +149,7 @@ Comprehensive technical analysis covering:
 ## Command Examples
 
 ### Basic Usage
+
 ```bash
 ./bin/xxhsum -b                    # Run default (IDs 1,3,5,11)
 ./bin/xxhsum -b0                   # Run all 28 variants
@@ -144,6 +158,7 @@ Comprehensive technical analysis covering:
 ```
 
 ### With Options
+
 ```bash
 ./bin/xxhsum -b -i3 -B1M           # 3 iterations, 1MB buffer
 ./bin/xxhsum -b5 -i1 -B64K -q      # Quiet mode (no header)
@@ -151,6 +166,7 @@ Comprehensive technical analysis covering:
 ```
 
 ### Output Example
+
 ```
 xxhsum Crystal benchmark (cr-xxhash)
 Sample of 123.0 KB...
@@ -165,6 +181,7 @@ Sample of 123.0 KB...
 ## Test Results
 
 ### Benchmark-Specific Tests
+
 ```
 ✓ 4/4 passing (benchmark_spec.cr)
   - Default variant set
@@ -174,6 +191,7 @@ Sample of 123.0 KB...
 ```
 
 ### Example CLI Tests
+
 ```
 ✓ 42/42 passing (full example suite)
   - Existing hashing tests
@@ -182,13 +200,14 @@ Sample of 123.0 KB...
 ```
 
 ### Main Library Tests
+
 ```
 ✓ 305/305 passing (main library)
   - No regressions from benchmark module
   - All XXH32/XXH64/XXH3/XXH128 paths verified
 ```
 
-**Total: 350/350 tests passing** ✅
+**Total: 354/354 tests passing** ✅
 
 ---
 
@@ -228,6 +247,7 @@ Sample of 123.0 KB...
 ## Technical Highlights
 
 ### 1. Calibration Algorithm — Class-Leading Design
+
 ```crystal
 FIRST_MBPS = 10                    # Initial throughput hint
 TARGET_SECONDS = 0.20              # 200ms measurement window
@@ -239,21 +259,25 @@ loops = (loops * adjust).clamp(1, max)
 ```
 
 **Why excellent**:
+
 - Vendor-compatible (C uses identical strategy)
 - Handles 1000x performance range differences
 - Converges in 3-4 iterations typically
 
 ### 2. Dead-Code Elimination Prevention
+
 ```crystal
 local_sum = local_sum &+ digest_variant(variant, data, i.to_u32)
 ```
 
 **Why effective**:
+
 - Wrapping addition creates strict data dependency
 - Result feeds back (can't be optimized away)
 - No explicit compiler barriers needed
 
 ### 3. Binary-Only Size Parsing (project policy)
+
 ```
 K/k/KB/kb  → 1024 (binary)
 M/m/MB/mb  → 1024² (binary)
@@ -262,6 +286,7 @@ G/g/GB/gb  → 1024³ (binary)
 ```
 
 **Why pragmatic**:
+
 - Removes ambiguity between SI and IEC forms
 - Simplifies documentation and unit tests
 - `KiB/MiB/GiB` still available for explicit binary notation
@@ -318,6 +343,7 @@ The benchmark mode has been successfully implemented with **production-grade qua
 **Ready to ship.** 🚀
 
 See also:
+
 - [BENCHMARK_ANALYSIS.md](BENCHMARK_ANALYSIS.md)
 - [DESIGN_RATIONALE.md](DESIGN_RATIONALE.md)
 - [VENDOR_PARITY.md](VENDOR_PARITY.md)

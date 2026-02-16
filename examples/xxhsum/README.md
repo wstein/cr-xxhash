@@ -53,7 +53,7 @@ This Crystal implementation has achieved **100% behavioral parity with the offic
 - **Output formats**: GNU and BSD modes match exactly
 - **Error handling**: Same error messages, summary format, and missing file behavior
 - **Modes**: Quiet mode, ignore-missing, strict mode, seeding all confirmed compatible
-- **All 350 tests passing**: main library (305) + example CLI (45) including 17 vendor parity cases
+- **All 354 tests passing**: main library (305) + example CLI (49) including 17 vendor parity cases
 
 See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 

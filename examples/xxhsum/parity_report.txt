@@ -6,3 +6,20 @@ Pass rate: 100.0%
 
 ✅ All cases match vendor xxhsum perfectly!
 
+Example full run:
+
+  $ crystal spec
+  .....................................
+  Vendor Parity Report
+  ====================
+
+  Summary: 17/17 cases match vendor xxhsum
+  Pass rate: 100.0%
+
+  ✅ All cases match vendor xxhsum perfectly!
+
+  ............
+
+  Finished in 2.34 seconds
+  49 examples, 0 failures, 0 errors, 0 pending
+

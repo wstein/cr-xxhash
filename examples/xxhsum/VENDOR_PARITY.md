@@ -122,8 +122,8 @@ Finished in 200ms
 **Full Test Suite Results**:
 
 - Main repository: 305 tests, 0 failures ✅
-- Example CLI: 45 tests (including benchmark cases), 0 failures ✅
-- Total: 350 tests, 0 failures ✅
+- Example CLI: 49 tests (including benchmark cases), 0 failures ✅
+- Total: 354 tests, 0 failures ✅
 
 ## Compatibility Claims
 
@@ -157,6 +157,7 @@ These differences don't affect compatibility:
 The cr-xxhash project has achieved **production-readiness for vendor compatibility**. The CLI tool can be used as a drop-in replacement for the official xxhsum binary in shell scripts and automation without behavioral surprises.
 
 See also:
+
 - [DESIGN_RATIONALE.md](DESIGN_RATIONALE.md) — architecture & verification
 - [BENCHMARK_ANALYSIS.md](BENCHMARK_ANALYSIS.md) — benchmarking design & ratings
 - [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — implementation checklist

@@ -7,7 +7,7 @@
 
 ## Current status (2026-02-15)
 
-- `crystal spec` executed: **305 examples (library) + 45 examples (xxhsum) = 350 examples, 0 failures, 0 errors** ✅.
+- `crystal spec` executed: **305 examples (library) + 49 examples (xxhsum) = 354 examples, 0 failures, 0 errors** ✅.
 - All unit specs for `xxh32`, `xxh64`, `xxh3`, canonical, endianness, alignment, memory-safety, and vendor parity are **passing**.
 - Comprehensive test coverage including:
   - 14 endianness/byte-order tests
@@ -252,6 +252,7 @@ features/
 - [x] Crystal wrapper equals direct `LibXXH` for representative vectors — `spec/bindings_safe_spec.cr`
 
 **Implementation Notes (2026-02-15)**:
+
 - Added comprehensive endianness test suite with 14 tests covering:
   - XXH32/64/3-128 canonical big-endian encoding verification
   - Round-trip canonical conversions (determinism across 50+ iterations)
