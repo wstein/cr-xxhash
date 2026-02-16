@@ -49,6 +49,7 @@
 - [x] Algorithm prefix detection (XXH3_)
 - [x] Missing file handling (error by default, skip with --ignore-missing)
 - [x] Bad format line handling (skip by default, error with --strict)
+- [x] Warn mode (--warn) — print warnings for improperly formatted lines but do not fail
 - [x] Comment support (# lines)
 - [x] Quiet mode (-q, --quiet)
 - [x] Status-only mode (--status - no output, exit code only)

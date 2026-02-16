@@ -1,0 +1,2 @@
+checksums_bad.txt:1: Error: Improperly formatted checksum line.
+checksums_bad.txt: no properly formatted xxHash checksum lines found

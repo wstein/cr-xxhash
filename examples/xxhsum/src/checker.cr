@@ -25,12 +25,20 @@ module XXHSum
 
           unless parsed
             total_bad_format += 1
+
+            # --warn: print a warning (to stderr) but continue
+            if options.warn && !options.status_only
+              err_io.puts "stdin: Error: Improperly formatted checksum line."
+            end
+
+            # --strict: treat malformed lines as fatal
             if options.strict
               unless options.status_only
-                out_io.puts "stdin: improperly formatted line: #{line}"
+                err_io.puts "stdin: Error: Improperly formatted checksum line."
               end
               exit_code = 1
             end
+
             next
           end
 
@@ -139,6 +147,12 @@ module XXHSum
               unless parsed
                 total_bad_format += 1
                 had_bad_format = true
+
+                # Per-line warning when --warn is used (vendor parity)
+                if options.warn && !options.status_only
+                  err_io.puts "#{checksum_file}:#{line_index}: Error: Improperly formatted checksum line."
+                end
+
                 next
               end
 
@@ -191,9 +205,13 @@ module XXHSum
               end
             end
 
-            # In strict mode with no properly formatted lines, output error to stderr
-            if options.strict && had_bad_format && total_properly_formatted == 0 && !options.status_only
-              err_io.puts "#{checksum_file}: no properly formatted xxHash checksum lines found"
+            # When no properly formatted lines were found, mirror vendor behavior:
+            # always treat as an error (exit code 1) but only print the message
+            # when not in status-only mode.
+            if total_properly_formatted == 0
+              unless options.status_only
+                err_io.puts "#{checksum_file}: no properly formatted xxHash checksum lines found"
+              end
               exit_code = 1
             end
 

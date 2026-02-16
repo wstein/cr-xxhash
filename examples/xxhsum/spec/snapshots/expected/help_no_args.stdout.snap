@@ -34,5 +34,5 @@ Advanced:
 The following five options are useful only when using lists in [files] to verify or generate checksums:
     --status                         Don't output anything, status code shows success
     --strict                         Exit non-zero for improperly formatted lines in [FILES]
-    --warn                           (NOT IMPLEMENTED) Warn about improperly formatted lines in [FILES]
+    --warn                           Warn about improperly formatted lines in [FILES]
     --ignore-missing                 Don't fail or report status for missing files

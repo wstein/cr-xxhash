@@ -77,6 +77,19 @@
         "stderr_snapshot": "check_strict_bad.stderr.snap"
     },
     {
+        "name": "check: warn on malformed checksum lines (vendor parity — exit when no properly formatted lines)",
+        "args": [
+            "-c",
+            "--warn",
+            "checksums_bad.txt"
+        ],
+        "stdin_fixture": null,
+        "stdin_tty": true,
+        "expected_exit": 1,
+        "stdout_snapshot": "check_warn_bad.stdout.snap",
+        "stderr_snapshot": "check_warn_bad.stderr.snap"
+    },
+    {
         "name": "detects modified file in checksum verification",
         "args": [
             "-c",

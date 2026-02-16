@@ -19,6 +19,7 @@ module XXHSum
       property files : Array(String) = [] of String
       property check_mode : Bool = false
       property filelist_mode : Bool = false
+      property warn : Bool = false
       property ignore_missing : Bool = false
       property strict : Bool = false
       property benchmark : Bool = false
@@ -203,10 +204,7 @@ module XXHSum
         # File list options
         parser.on("--status", "Don't output anything, status code shows success") { opts_ptr.value.status_only = true }
         parser.on("--strict", "Exit non-zero for improperly formatted lines in [FILES]") { opts_ptr.value.strict = true }
-        parser.on("--warn", "(NOT IMPLEMENTED) Warn about improperly formatted lines in [FILES]") do
-          STDERR.puts "Error: --warn is not yet implemented"
-          exit 1
-        end
+        parser.on("--warn", "Warn about improperly formatted lines in [FILES]") { opts_ptr.value.warn = true }
         parser.on("--ignore-missing", "Don't fail or report status for missing files") { opts_ptr.value.ignore_missing = true }
 
         parser.invalid_option do |flag|

@@ -15,6 +15,7 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
 - Checksum verification: `-c file` or `-c` with piped checksums
 - Verification flags:
   - Quiet mode (`-q`, `--quiet`): Suppress per-file OK messages
+  - Warn mode (`--warn`): Print warnings for improperly formatted checksum lines (do not fail)
   - Status-only mode (`--status`): No output, exit code only (useful for scripts)
   - Ignore missing files: `--ignore-missing`
   - Strict mode: `--strict` (non-zero exit on format errors)
