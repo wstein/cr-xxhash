@@ -102,7 +102,8 @@ end
 **Key components**:
 
 - `self.run(options, stdout)` — Main entry point called from CLI
-- `Variant` record — Metadata for each benchmark config
+- `Benchmark::Variant` record — Metadata for each benchmark config (fields: `id`, `name`, `aligned`, `variant_type : Symbol`, `algorithm`)
+- `TARGET_SECONDS`, `MIN_SECONDS`, `FIRST_MBPS`, `DEFAULT_VARIANT_IDS` — tuning constants for calibration and defaults
 - `digest_variant()` — Case statement dispatching to correct algorithm
 - `run_variant()` — Single benchmark variant execution with calibration
 - `all_variants()` — Array of 28 variant definitions

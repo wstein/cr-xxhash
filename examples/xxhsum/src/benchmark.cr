@@ -3,216 +3,250 @@ require "../../../src/common/constants"
 require "../../../src/common/types"
 require "./options"
 
-module XXHSum
-  module CLI
-    module Benchmark
-      TARGET_SECONDS = 1.0_f64
-      MIN_SECONDS    = 0.1_f64
-      FIRST_MBPS     =  10_u64
+module XXHSum::CLI::Benchmark
+  # Constants for benchmark tuning
+  TARGET_SECONDS = 1.0_f64
+  MIN_SECONDS    = 0.1_f64
+  FIRST_MBPS     =  10_u64
 
-      record Variant,
-        id : Int32,
-        name : String,
-        aligned : Bool,
-        kind : Symbol
+  # Default variant IDs for quick benchmark
+  DEFAULT_VARIANT_IDS = [1, 3, 5, 11]
 
-      def self.run(options : Options, stdout : IO = STDOUT) : Int32
-        variants = selected_variants(options)
-        data = prepare_data(options.benchmark_size)
+  # Benchmark variant record (immutable, minimal boilerplate)
+  record Variant,
+    id : Int32,
+    name : String,
+    aligned : Bool,
+    variant_type : Symbol,
+    algorithm : Algorithm
 
-        unless options.quiet
-          stdout.puts "xxhsum Crystal benchmark (cr-xxhash)"
+  # Run benchmark mode with the given options
+  def self.run(options : Options, io : IO = STDOUT) : Int32
+    sample_size = options.benchmark_size
+
+    # Generate fast pseudo-random sample data (not cryptographically secure)
+    rng = Random.new
+    data_array = Array(UInt8).new(sample_size) { rng.rand(256).to_u8 }
+    aligned_data = Bytes.new(data_array.size) { |i| data_array[i] }
+
+    # Create unaligned data (offset by +3 bytes)
+    padded_array = Array(UInt8).new(data_array.size + 3) { 0_u8 }
+    data_array.each_with_index { |byte, i| padded_array[i + 3] = byte }
+    unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
+
+    # Print version header unless -q (quiet) flag is set
+    unless options.quiet
+      io.puts "Crystal port of xxhsum 0.8.3"
+    end
+
+    io.puts "Sample of #{sample_size.to_f / 1024.0} KB..."
+
+    # Build list of all available benchmark variants
+    all_variants = build_benchmark_variants
+
+    # Filter variants to run based on options
+    variants_to_run = if options.benchmark_all
+                        all_variants
+                      elsif !options.benchmark_ids.empty?
+                        options.benchmark_ids.compact_map do |id|
+                          all_variants.find { |v| v.id == id }
+                        end
+                      else
+                        all_variants.select { |v| DEFAULT_VARIANT_IDS.includes?(v.id) }
+                      end
+
+    variants_to_run.each do |variant|
+      run_single_benchmark(aligned_data, unaligned_data, variant, options.benchmark_iterations, io)
+    end
+
+    0
+  end
+
+  def self.build_benchmark_variants : Array(Variant)
+    [
+      Variant.new(1, "XXH32", true, :basic, Algorithm::XXH32),
+      Variant.new(2, "XXH32 unaligned", false, :basic, Algorithm::XXH32),
+      Variant.new(3, "XXH64", true, :basic, Algorithm::XXH64),
+      Variant.new(4, "XXH64 unaligned", false, :basic, Algorithm::XXH64),
+      Variant.new(5, "XXH3_64b", true, :basic, Algorithm::XXH3_64),
+      Variant.new(6, "XXH3_64b unaligned", false, :basic, Algorithm::XXH3_64),
+      Variant.new(7, "XXH3_64b w/seed", true, :seeded, Algorithm::XXH3_64),
+      Variant.new(8, "XXH3_64b w/seed unaligned", false, :seeded, Algorithm::XXH3_64),
+      Variant.new(9, "XXH3_64b w/secret", true, :secret, Algorithm::XXH3_64),
+      Variant.new(10, "XXH3_64b w/secret unaligned", false, :secret, Algorithm::XXH3_64),
+      Variant.new(11, "XXH128", true, :basic, Algorithm::XXH128),
+      Variant.new(12, "XXH128 unaligned", false, :basic, Algorithm::XXH128),
+      Variant.new(13, "XXH128 w/seed", true, :seeded, Algorithm::XXH128),
+      Variant.new(14, "XXH128 w/seed unaligned", false, :seeded, Algorithm::XXH128),
+      Variant.new(15, "XXH128 w/secret", true, :secret, Algorithm::XXH128),
+      Variant.new(16, "XXH128 w/secret unaligned", false, :secret, Algorithm::XXH128),
+      Variant.new(17, "XXH32_stream", true, :stream, Algorithm::XXH32),
+      Variant.new(18, "XXH32_stream unaligned", false, :stream, Algorithm::XXH32),
+      Variant.new(19, "XXH64_stream", true, :stream, Algorithm::XXH64),
+      Variant.new(20, "XXH64_stream unaligned", false, :stream, Algorithm::XXH64),
+      Variant.new(21, "XXH3_stream", true, :stream, Algorithm::XXH3_64),
+      Variant.new(22, "XXH3_stream unaligned", false, :stream, Algorithm::XXH3_64),
+      Variant.new(23, "XXH3_stream w/seed", true, :stream, Algorithm::XXH3_64),
+      Variant.new(24, "XXH3_stream w/seed unaligned", false, :stream, Algorithm::XXH3_64),
+      Variant.new(25, "XXH128_stream", true, :stream, Algorithm::XXH128),
+      Variant.new(26, "XXH128_stream unaligned", false, :stream, Algorithm::XXH128),
+      Variant.new(27, "XXH128_stream w/seed", true, :stream, Algorithm::XXH128),
+      Variant.new(28, "XXH128_stream w/seed unaligned", false, :stream, Algorithm::XXH128),
+    ]
+  end
+
+  private def self.print_live_update(variant : Variant, buffer_size : Int32, iteration : Int32, iterations_per_sec : Float64, throughput_mb : Float64, io : IO)
+    io.printf("%2d-%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\r",
+      iteration, variant.name, buffer_size, iterations_per_sec, throughput_mb)
+    io.flush
+  end
+
+  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : Variant, user_iterations : Int32 = 0, io : IO = STDOUT)
+    data = variant.aligned ? aligned_data : unaligned_data
+    max_calibrations = user_iterations > 0 ? user_iterations : 3
+    run_time_based_benchmark(data, variant, max_calibrations, io)
+  end
+
+  private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, io : IO = STDOUT)
+    target_duration = TARGET_SECONDS
+    min_duration = MIN_SECONDS
+    initial_throughput = FIRST_MBPS * 1024_u64 * 1024_u64
+    nbh_per_iteration = ((initial_throughput / data.size) + 1).to_u32
+    fastest_time_per_hash = Float64::INFINITY
+
+    max_calibrations.times do |attempt|
+      start_time = Time.instant
+      actual_iterations = 0_u32
+      result = uninitialized UInt64
+      iteration_number = 0_u32
+
+      while (Time.instant - start_time).total_seconds < target_duration
+        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration)
+        actual_iterations += nbh_per_iteration
+        iteration_number += 1
+      end
+
+      elapsed = Time.instant - start_time
+      elapsed_seconds = elapsed.total_seconds
+
+      if elapsed_seconds > 0 && actual_iterations > 0
+        time_per_hash = elapsed_seconds / actual_iterations.to_f
+        if time_per_hash < fastest_time_per_hash
+          fastest_time_per_hash = time_per_hash
         end
+      end
 
-        if options.benchmark_size >= 1024_u64
-          kb = options.benchmark_size / 1024_u64
-          stdout.puts "Sample of #{kb} KB..."
+      iterations_per_sec = fastest_time_per_hash > 1e-15 ? 1.0 / fastest_time_per_hash : 0.0
+      throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
+      print_live_update(variant, data.size, attempt + 1, iterations_per_sec, throughput_mb, io)
+
+      if elapsed_seconds >= min_duration
+        # valid
+      else
+        if elapsed_seconds == 0
+          nbh_per_iteration *= 100_u32
         else
-          stdout.puts "Sample of #{options.benchmark_size} bytes..."
-        end
-
-        variants.each do |variant|
-          run_variant(variant, data, options, stdout)
-        end
-
-        0
-      end
-
-      private def self.prepare_data(size : UInt64) : {aligned: Bytes, unaligned: Bytes}
-        bytes = Bytes.new(size.to_i) { |i| ((i * 131 + 17) & 0xff).to_u8 }
-        padded = Bytes.new(size.to_i + 3, 0_u8)
-        bytes.each_with_index { |b, i| padded[i + 3] = b }
-        {
-          aligned:   bytes,
-          unaligned: padded[3, size.to_i],
-        }
-      end
-
-      private def self.run_variant(variant : Variant, data_set : {aligned: Bytes, unaligned: Bytes}, options : Options, stdout : IO)
-        data = variant.aligned ? data_set[:aligned] : data_set[:unaligned]
-        loops = ((FIRST_MBPS * 1024_u64 * 1024_u64) / (data.size + 1)).to_u64 + 1_u64
-        loops = 1_u64 if loops < 1_u64
-
-        fastest = Float64::INFINITY
-        checksum = 0_u64
-
-        options.benchmark_iterations.times do |iter|
-          start = Time.instant
-          local_sum = 0_u64
-          i = 0_u64
-
-          # Main benchmark loop - compute hashes with varying seeds
-          while i < loops
-            # Use wrapping add to ensure computation chain cannot be optimized away
-            local_sum = local_sum &+ digest_variant(variant, data, i.to_u32)
-            i += 1
-          end
-
-          # Accumulate checksum with data dependency to prevent optimization
-          checksum = checksum &+ local_sum
-
-          # Use checksum to create a data dependency the compiler cannot eliminate
-          # This ensures all prior computation must execute
-          # (The condition will never be true, but the compiler can't prove it)
-          sink_value = checksum
-
-          elapsed = (Time.instant - start).total_seconds
-
-          # Calculate time per hash BEFORE adjusting loops for next iteration
-          per_hash = elapsed > 0 ? (elapsed / loops.to_f64) : Float64::INFINITY
-          fastest = per_hash if per_hash < fastest
-
-          # Live update during calibration iterations
-          if iter < options.benchmark_iterations - 1
-            it_per_sec_current = per_hash.finite? && per_hash > 0 ? (1.0_f64 / per_hash) : 0.0_f64
-            mb_per_sec_current = (it_per_sec_current * data.size.to_f64) / (1024_f64 * 1024_f64)
-            stdout.printf("%2d#%-29s : %10d -> %8.0f it/s (%7.1f MB/s)\r",
-              variant.id,
-              variant.name,
-              data.size,
-              it_per_sec_current,
-              mb_per_sec_current)
-            STDOUT.flush
-          end
-
-          # Adjust loops for next iteration (if there is one)
-          if elapsed < MIN_SECONDS
-            adjust = (TARGET_SECONDS / (elapsed > 0 ? elapsed : 0.001_f64)).to_u64
-            adjust = 1_u64 if adjust < 1_u64
-            loops = (loops * adjust).clamp(1_u64, 4_000_u64 << 20)
-          end
-        end
-
-        # Final result (clears the \r and prints final line)
-        it_per_sec = fastest.finite? && fastest > 0 ? (1.0_f64 / fastest) : 0.0_f64
-        mb_per_sec = (it_per_sec * data.size.to_f64) / (1024_f64 * 1024_f64)
-
-        stdout.printf("%2d#%-29s : %10d -> %8.0f it/s (%7.1f MB/s)\n",
-          variant.id,
-          variant.name,
-          data.size,
-          it_per_sec,
-          mb_per_sec)
-      end
-
-      private def self.digest_variant(variant : Variant, data : Bytes, seed_u32 : UInt32) : UInt64
-        seed = seed_u32.to_u64
-        secret = XXH::XXH3::Secret.default
-
-        case variant.id
-        when 1, 2
-          XXH::XXH32.hash(data).to_u64
-        when 3, 4
-          XXH::XXH64.hash(data)
-        when 5, 6
-          XXH::XXH3.hash64(data)
-        when 7, 8
-          XXH::XXH3.hash64(data, seed)
-        when 9, 10
-          XXH::Bindings::XXH3_64.hash_with_secret(data, secret)
-        when 11, 12
-          reduce_u128(XXH::XXH3.hash128(data))
-        when 13, 14
-          reduce_u128(XXH::XXH3.hash128(data, seed))
-        when 15, 16
-          reduce_u128(XXH::Bindings::XXH3_128.hash_with_secret(data, secret))
-        when 17, 18
-          state = XXH::XXH32::State.new
-          state.update(data)
-          state.digest.to_u64
-        when 19, 20
-          state = XXH::XXH64::State.new
-          state.update(data)
-          state.digest
-        when 21, 22
-          state = XXH::XXH3::State64.new
-          state.update(data)
-          state.digest
-        when 23, 24
-          state = XXH::XXH3::State64.new(seed)
-          state.update(data)
-          state.digest
-        when 25, 26
-          state = XXH::XXH3::State128.new
-          state.update(data)
-          reduce_u128(state.digest)
-        when 27, 28
-          state = XXH::XXH3::State128.new(seed)
-          state.update(data)
-          reduce_u128(state.digest)
-        else
-          0_u64
+          new_nbh = ((target_duration / elapsed_seconds) * nbh_per_iteration).to_u32
+          nbh_per_iteration = new_nbh.clamp(1_u32, 10_000_000_u32)
         end
       end
+    end
 
-      private def self.reduce_u128(value : UInt128) : UInt64
-        value.low64 ^ value.high64
-      end
+    iterations_per_sec = fastest_time_per_hash > 0 && fastest_time_per_hash != Float64::INFINITY ? 1.0 / fastest_time_per_hash : 0.0
+    throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
+    io.printf("%80s\r", "")
+    io.printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
+      variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
+  end
 
-      private def self.selected_variants(options : Options) : Array(Variant)
-        all = all_variants
-        return all if options.benchmark_all
+  private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32) : UInt64
+    result = 0_u64
+    nbh_per_iteration.times do |hash_idx|
+      seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+      result = run_single_hash(data, variant, seed)
+    end
+    result
+  end
 
-        if options.benchmark_ids.empty?
-          defaults = [1, 3, 5, 11]
-          return all.select { |v| defaults.includes?(v.id) }
-        end
+  private def self.run_single_hash(data : Bytes, variant : Variant, seed : UInt32) : UInt64
+    case variant.variant_type
+    when :basic  then run_basic_benchmark_one(data, variant.algorithm, seed)
+    when :seeded then run_seeded_benchmark_one(data, variant.algorithm, seed)
+    when :secret then run_secret_benchmark_one(data, variant.algorithm, seed)
+    when :stream then run_streaming_benchmark_one(data, variant.algorithm, seed)
+    else              0_u64
+    end
+  end
 
-        all.select { |v| options.benchmark_ids.includes?(v.id) }
-      end
+  private def self.run_basic_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    case algorithm
+    when Algorithm::XXH32
+      XXH::XXH32.hash(data, seed_u).to_u64
+    when Algorithm::XXH64
+      XXH::XXH64.hash(data, seed_u.to_u64)
+    when Algorithm::XXH3_64
+      XXH::XXH3.hash64(data, seed_u.to_u64)
+    when Algorithm::XXH128
+      result = XXH::XXH3.hash128(data, 0_u64)
+      result.high64 ^ result.low64
+    else
+      0_u64
+    end
+  end
 
-      private def self.all_variants : Array(Variant)
-        [
-          Variant.new(1, "XXH32", true, :basic),
-          Variant.new(2, "XXH32 unaligned", false, :basic),
-          Variant.new(3, "XXH64", true, :basic),
-          Variant.new(4, "XXH64 unaligned", false, :basic),
-          Variant.new(5, "XXH3_64b", true, :basic),
-          Variant.new(6, "XXH3_64b unaligned", false, :basic),
-          Variant.new(7, "XXH3_64b w/seed", true, :seeded),
-          Variant.new(8, "XXH3_64b w/seed unaligned", false, :seeded),
-          Variant.new(9, "XXH3_64b w/secret", true, :secret),
-          Variant.new(10, "XXH3_64b w/secret unaligned", false, :secret),
-          Variant.new(11, "XXH128", true, :basic),
-          Variant.new(12, "XXH128 unaligned", false, :basic),
-          Variant.new(13, "XXH128 w/seed", true, :seeded),
-          Variant.new(14, "XXH128 w/seed unaligned", false, :seeded),
-          Variant.new(15, "XXH128 w/secret", true, :secret),
-          Variant.new(16, "XXH128 w/secret unaligned", false, :secret),
-          Variant.new(17, "XXH32_stream", true, :stream),
-          Variant.new(18, "XXH32_stream unaligned", false, :stream),
-          Variant.new(19, "XXH64_stream", true, :stream),
-          Variant.new(20, "XXH64_stream unaligned", false, :stream),
-          Variant.new(21, "XXH3_stream", true, :stream),
-          Variant.new(22, "XXH3_stream unaligned", false, :stream),
-          Variant.new(23, "XXH3_stream w/seed", true, :stream),
-          Variant.new(24, "XXH3_stream w/seed unaligned", false, :stream),
-          Variant.new(25, "XXH128_stream", true, :stream),
-          Variant.new(26, "XXH128_stream unaligned", false, :stream),
-          Variant.new(27, "XXH128_stream w/seed", true, :stream),
-          Variant.new(28, "XXH128_stream w/seed unaligned", false, :stream),
-        ]
-      end
+  private def self.run_seeded_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    base_seed = 42_u64
+    seed = (base_seed + seed_u.to_u64) ^ 0xc4ceb9fe1a85ec53_u64
+    case algorithm
+    when Algorithm::XXH32
+      XXH::XXH32.hash(data, seed.to_u32).to_u64
+    when Algorithm::XXH64
+      XXH::XXH64.hash(data, seed)
+    when Algorithm::XXH3_64
+      XXH::XXH3.hash64(data, seed)
+    when Algorithm::XXH128
+      result = XXH::XXH3.hash128(data, seed)
+      result.high64 ^ result.low64
+    else
+      0_u64
+    end
+  end
+
+  private def self.run_secret_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
+    seed_from_secret = IO::ByteFormat::LittleEndian.decode(UInt64, secret_buffer[0, 8])
+    case algorithm
+    when Algorithm::XXH32, Algorithm::XXH64
+      run_seeded_benchmark_one(data, algorithm, seed_u)
+    when Algorithm::XXH3_64
+      XXH::XXH3.hash64(data, seed_from_secret)
+    when Algorithm::XXH128
+      result = XXH::XXH3.hash128(data, seed_from_secret)
+      result.high64 ^ result.low64
+    else
+      0_u64
+    end
+  end
+
+  private def self.run_streaming_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+    case algorithm
+    when Algorithm::XXH32
+      state = XXH::XXH32::State.new(seed_u)
+      state.update(data)
+      state.digest.to_u64
+    when Algorithm::XXH64
+      state = XXH::XXH64::State.new(seed_u.to_u64)
+      state.update(data)
+      state.digest
+    when Algorithm::XXH3_64
+      state = XXH::XXH3::State64.new(seed_u.to_u64)
+      state.update(data)
+      state.digest
+    when Algorithm::XXH128
+      result = XXH::XXH3.hash128(data, seed_u.to_u64)
+      result.high64 ^ result.low64
+    else
+      0_u64
     end
   end
 end

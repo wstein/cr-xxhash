@@ -82,6 +82,16 @@
   - [x] Enabled `gnu_optional_args: true` for correct compact flag handling (-b3, -i5, -B100K)
   - [x] Updated flag declarations to match vendor help style (`-H [ALGORITHM]`, `-b [VARIANTS]`, etc.)
   - [x] All 305 repository tests passing (45 xxhsum specs + 17 vendor parity cases)
+- [x] Refactor `benchmark.cr` to align with codebase conventions
+  - [x] Fixed module structure: `XXHSum::Benchmark::Benchmark` → `XXHSum::CLI::Benchmark`
+  - [x] Renamed `BenchmarkVariant` → `Benchmark::Variant` for clearer namespacing (now a `record` with `variant_type : Symbol`)
+  - [x] Added benchmark tuning constants: `TARGET_SECONDS`, `MIN_SECONDS`, `FIRST_MBPS`, `DEFAULT_VARIANT_IDS`
+  - [x] Aligned Options field names: `benchmark_variants` → `benchmark_ids`, `iterations` → `benchmark_iterations`, `sample_size` → `benchmark_size`
+  - [x] Added IO parameter for testability: `run(options : Options, io : IO = STDOUT) : Int32`
+  - [x] Fixed Algorithm enum references: `Algorithm::XXH3` → `Algorithm::XXH3_64`
+  - [x] Corrected XXH API calls: Use `XXH::XXH3.hash64()`, `XXH::XXH3.hash128()`, `XXH::XXH3::State64.new()`
+  - [x] Fixed constant references: `XXH::Constants::XXH3_SECRET_SIZE_MIN` → `LibXXH::XXH3_SECRET_SIZE_MIN`
+  - [x] All 49 tests passing, code reduced from 259 to 253 lines
 
 ## 📋 Future Work (Prioritized)
 

@@ -37,9 +37,12 @@ Output format matches the official vendor `xxhsum` for all P0 features:
 **Architecture:**
 
 - `src/options.cr` — command-line argument parsing (OptionParser)
+- `src/cli.cr` — main CLI orchestration and mode routing
 - `src/hasher.cr` — delegates to `XXH::*` library APIs (uses streaming/file APIs)
 - `src/formatter.cr` — output formatting (GNU/BSD modes, algorithm prefixes)
-- `src/xxhsum.cr` — main entry point and CLI orchestration
+- `src/checker.cr` — checksum verification mode implementation
+- `src/benchmark.cr` — benchmark mode implementation (28 variants with time-based calibration). Exposes `Benchmark::Variant` record (`variant_type : Symbol`) for variant metadata.
+- `src/xxhsum.cr` — main entry point
 
 **Note:**
 
