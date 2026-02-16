@@ -133,6 +133,12 @@
 ### P2 — Features (Optional)
 
 - [x] Benchmark mode & --bench-all alias
+- [ ] Programmatic completion generator (DRY) — needs investigation
+  - [ ] Design single source-of-truth for options/metadata (used by OptionParser + completion generator)
+  - [ ] Investigate packaging as separate tool/shard or rubygem-like distribution for broader reuse
+  - [ ] Implement `--completions [SHELL]` to emit completion scripts (bash, zsh, fish)
+  - [ ] Add tests and snapshots for generated completion output
+  - [ ] Document install instructions for bash/zsh/fish
 - [ ] Secret support for XXH3 (--secret flag)
 - [ ] Filename escaping for special characters
 - [ ] Multiple checksum file support in --check mode
