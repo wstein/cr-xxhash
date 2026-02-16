@@ -179,6 +179,33 @@ Sample of 123.0 KB...
 11#XXH128                        :     123000 ->   421784 it/s (49476.1 MB/s)
 ```
 
+### Smoke Test Mode (for CI/Integration Tests)
+
+For faster execution in CI/test suites without reducing functionality:
+
+```bash
+# Full benchmark execution in ~7 seconds (vs ~66s normally)
+crystal spec
+
+# Individual manual smoke test run
+BENCHMARK_SMOKE=1 ./bin/xxhsum -b -i1 -B10K
+```
+
+**When enabled (automatic in test suite)**:
+
+- Timing targets reduced 10x: `target_seconds: 1.0 → 0.1` (100ms per variant)
+- Min measurement reduced 100x: `min_seconds: 0.001 → 0.00001` (10μs)
+- **All benchmark logic unchanged**: variants, calibration, dispatch, output formatting
+- **Test setup**: `spec/spec_helper.cr` sets `BENCHMARK_SMOKE=1` before loading specs
+- **Runtime evaluation**: `Benchmark#target_seconds` and `Benchmark#min_seconds` are methods (not compile-time constants), enabling ENV checks at runtime
+
+**Trade-off**: Less precise timing estimates in smoke mode, but realistic enough for:
+
+- Variant availability checks
+- Output format validation
+- Algorithm dispatch verification
+- CI pipeline regression detection
+
 ---
 
 ## Test Results

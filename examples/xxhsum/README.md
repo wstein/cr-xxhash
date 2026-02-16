@@ -72,6 +72,27 @@ Output format follows vendor style:
 
 - `ID#Name : Size -> it/s (MB/s)`
 
+**Benchmark Smoke Test Mode (for CI/Tests)**
+
+For faster benchmark testing, benchmark specs automatically enable smoke test mode during test runs via `spec_helper.cr`:
+
+```bash
+# All benchmark specs run in ~7 seconds (smoke mode auto-enabled)
+crystal spec
+
+# Manual smoke test benchmark (explicit ENV var for CLI use)
+BENCHMARK_SMOKE=1 ./bin/xxhsum -b -i1 -B10K
+```
+
+When enabled, timing targets are reduced 10x:
+
+- `target_seconds: 1.0 → 0.1` (100ms per variant)
+- `min_seconds: 0.001 → 0.00001` (10μs minimum)
+
+This enables realistic benchmark validation without the overhead of full measurements. All benchmark variant logic, algorithm dispatch, and output formatting remain unchanged—only timing calibration is reduced.
+
+**Implementation**: `Benchmark#target_seconds` and `Benchmark#min_seconds` are runtime methods that check the `BENCHMARK_SMOKE` env var, enabling seamless test acceleration without code duplication or per-test setup/teardown.
+
 **Testing:**
 
 The CLI includes comprehensive cucumber-style BDD tests with fixture/corpus/snapshot pattern:

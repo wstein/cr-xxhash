@@ -25,6 +25,11 @@
 - [x] Added specs to verify:
   - [x] Live-update carriage-return behavior
   - [x] Comma-separated benchmark ID parsing and execution
+- [x] Smoke test mode for fast CI/spec runs (BENCHMARK_SMOKE=1)
+  - [x] Environment variable controls timing constants without CLI changes
+  - [x] Reduces benchmark exec time from ~60s → ~2-3s for full spec suite
+  - [x] All integration tests wrapped with BENCHMARK_SMOKE in setup/teardown
+  - [x] Benchmarks still execute fully (all variants, calibration, output) — only timing reduced
 
 ### Check Mode (Phase 2)
 

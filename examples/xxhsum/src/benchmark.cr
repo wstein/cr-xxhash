@@ -5,7 +5,9 @@ require "./options"
 
 module XXHSum::CLI::Benchmark
   # Constants for benchmark tuning
-  TARGET_SECONDS =   1.0_f64
+  # Enable smoke test mode with: BENCHMARK_SMOKE=1 crystal spec
+  TARGET_SECONDS = 1.0_f64
+  SMOKE_SECONDS  = TARGET_SECONDS / 10.0_f64
   MIN_SECONDS    = 0.001_f64
   FIRST_MBPS     =    10_u64
 
@@ -114,7 +116,7 @@ module XXHSum::CLI::Benchmark
   end
 
   private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, io : IO = STDOUT)
-    target_duration = TARGET_SECONDS
+    target_duration = ENV["BENCHMARK_SMOKE"]? ? SMOKE_SECONDS : TARGET_SECONDS
     min_duration = MIN_SECONDS
     initial_throughput = FIRST_MBPS * 1024_u64 * 1024_u64
     nbh_per_iteration = ((initial_throughput / data.size) + 1).to_u32
