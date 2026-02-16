@@ -41,6 +41,16 @@ The vendor parity validation covers these scenarios:
 - ✅ Status-only mode (`--status`): Suppress all output (OK, FAILED, errors, summary)
 - ✅ Combined modes: strict + ignore-missing, ignore-missing + quiet
 
+### Hashing Operations (Generation Mode)
+
+- ✅ Hash files with default algorithm (XXH64)
+- ✅ Hash files with algorithm selection (`-H0`, `-H1`, `-H2`, `-H3`)
+- ✅ Hash from piped stdin
+- ✅ Filelist mode (`--filelist FILE`): Read filenames from file and generate hashes
+- ✅ Filelist from stdin: Read filenames from stdin with `--filelist`
+- ✅ All output formats supported with filelist (GNU, BSD, little-endian)
+- ✅ Error handling: Reports on missing files but continues processing
+
 ## Behavioral Alignment Detail
 
 ### 1. stdin Filename Output

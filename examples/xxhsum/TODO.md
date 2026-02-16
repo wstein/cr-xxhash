@@ -54,6 +54,12 @@
   - [x] Maintains correct exit codes (0 on success, 1 on failure/missing files/format errors)
   - [x] Works in both verify_stdin() and verify() code paths
   - [x] Vendor parity: matches C xxhsum behavior
+- [x] Filelist mode (--filelist FILE - generate hashes for listed files)
+  - [x] Read filenames from file, one per line
+  - [x] Support filelist from stdin
+  - [x] Respects all flags (algorithm, BSD format, little-endian, seeding)
+  - [x] Error handling for missing files (reports but continues)
+  - [x] Vendor parity: matches C xxhsum behavior
 - [x] Exit codes (vendor parity: 0=ok, 1=check failures/strict format errors)
 - [x] Cross-platform compatibility (vendor xxhsum interop)
 

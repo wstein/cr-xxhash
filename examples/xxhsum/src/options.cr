@@ -18,6 +18,7 @@ module XXHSum
       property seed : UInt64? = nil
       property files : Array(String) = [] of String
       property check_mode : Bool = false
+      property filelist_mode : Bool = false
       property ignore_missing : Bool = false
       property strict : Bool = false
       property benchmark : Bool = false
@@ -100,10 +101,7 @@ module XXHSum
         end
 
         parser.on("-c", "--check", "read xxHash checksum from [FILES] and check them") { opts_ptr.value.check_mode = true }
-        parser.on("--filelist", "(NOT IMPLEMENTED) generate hashes for files listed in [FILES]") do
-          STDERR.puts "Error: --filelist is not yet implemented"
-          exit 1
-        end
+        parser.on("--filelist", "generate hashes for files listed in [FILE]") { opts_ptr.value.filelist_mode = true }
         parser.on("-h", "--help", "display this help message") do
           puts parser
           exit 0

@@ -40,6 +40,7 @@ module CLICorpusHelper
     fixtures = [
       "alpha.txt",
       "beta.txt",
+      "gamma.txt",
       "mutable.txt",
       "checksums_gnu.txt",
       "checksums_h3_stdin.txt",
@@ -48,6 +49,9 @@ module CLICorpusHelper
       "checksums_mixed_missing.txt",
       "mutable_checksum.txt",
       "stdin_payload.txt",
+      "filelist.txt",
+      "filelist_missing.txt",
+      "filelist_stdin.txt",
     ]
 
     fixtures.each do |filename|

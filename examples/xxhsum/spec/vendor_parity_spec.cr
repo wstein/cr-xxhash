@@ -13,6 +13,9 @@ describe "Vendor Parity — cr-xxhash vs. vendor xxhsum" do
     "help",
     # No-args with TTY is Crystal-specific behavior
     "tty",
+    # Filelist mode tests are validated separately in corpus tests
+    # (vendor xxhsum binary not available in test environment)
+    "filelist",
   ]
 
   # Filter cases: only test baseline parity cases (not mutation or extreme edge cases initially)

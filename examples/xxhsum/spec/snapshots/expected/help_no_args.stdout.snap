@@ -12,7 +12,7 @@ Options:
                                        2: XXH128 (also called XXH3_128bits)
                                        3: XXH3 (also called XXH3_64bits)
     -c, --check                      read xxHash checksum from [FILES] and check them
-    --filelist                       (NOT IMPLEMENTED) generate hashes for files listed in [FILES]
+    --filelist                       generate hashes for files listed in [FILE]
     -h, --help                       display this help message
 
 Advanced:

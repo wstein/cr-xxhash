@@ -7,6 +7,7 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
 - Algorithm selection: `-H0` (XXH32), `-H1` (XXH64, default), `-H2` (XXH128), `-H3` (XXH3_64)
 - File hashing: `./bin/xxhsum [options] file1 [file2 ...]`
 - stdin support: `echo "data" | ./bin/xxhsum` or `./bin/xxhsum -`
+- Filelist mode: `--filelist FILE` (generate hashes for files listed in FILE, one per line)
 - Output formats:
   - GNU (default): `<hash>  <filename>`
   - BSD (--tag): `<algo> (<filename>) = <hash>`
@@ -32,6 +33,9 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   ./bin/xxhsum --tag file.txt                     # BSD format output
   ./bin/xxhsum --little-endian file.txt           # Little-endian (byte-reversed) output
   ./bin/xxhsum -s 12345 file.txt                  # Seeded hash
+  echo -e "file1.txt\nfile2.txt" | ./bin/xxhsum --filelist  # Filelist from stdin
+  ./bin/xxhsum --filelist myfiles.txt             # Filelist from file
+  ./bin/xxhsum -c checksums.txt                   # Verify checksums
   ./bin/xxhsum -b -i1 -B64K                       # Run benchmark (default variants)
   ./bin/xxhsum -b7 -i3 -B1M                       # Run one benchmark variant
 
