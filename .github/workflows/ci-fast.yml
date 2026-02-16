@@ -95,7 +95,6 @@ jobs:
           submodules: recursive
 
       - name: Setup Crystal
-        if: ${{ runner.os != 'Linux' }}
         uses: crystal-lang/install-crystal@v1
         with:
           crystal: latest
