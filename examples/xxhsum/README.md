@@ -10,6 +10,7 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
 - Output formats:
   - GNU (default): `<hash>  <filename>`
   - BSD (--tag): `<algo> (<filename>) = <hash>`
+  - Little-endian (--little-endian): `<algo>_LE_<reversed_hash>` with byte reversal
 - Seeding: `-s SEED` or `--seed SEED` (decimal or 0xHEX format)
 - Version & help: `--version`, `-h`, `--help`
 - Benchmark mode: `-b`, `-b#`, `-i#`, `-B#`
@@ -19,13 +20,14 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   cd examples/xxhsum
   shards install
   shards build xxhsum --release
-  ./bin/xxhsum README.md           # Hash a file
-  echo "test" | ./bin/xxhsum       # Hash from stdin
-  ./bin/xxhsum -H3 file.txt        # Use XXH3_64 algorithm
-  ./bin/xxhsum --tag file.txt      # BSD format output
-  ./bin/xxhsum -s 12345 file.txt   # Seeded hash
-  ./bin/xxhsum -b -i1 -B64K        # Run benchmark (default variants)
-  ./bin/xxhsum -b7 -i3 -B1M        # Run one benchmark variant
+  ./bin/xxhsum README.md                          # Hash a file
+  echo "test" | ./bin/xxhsum                      # Hash from stdin
+  ./bin/xxhsum -H3 file.txt                       # Use XXH3_64 algorithm
+  ./bin/xxhsum --tag file.txt                     # BSD format output
+  ./bin/xxhsum --little-endian file.txt           # Little-endian (byte-reversed) output
+  ./bin/xxhsum -s 12345 file.txt                  # Seeded hash
+  ./bin/xxhsum -b -i1 -B64K                       # Run benchmark (default variants)
+  ./bin/xxhsum -b7 -i3 -B1M                       # Run one benchmark variant
 
 **Format Parity:**
 

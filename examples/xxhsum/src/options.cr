@@ -13,6 +13,7 @@ module XXHSum
       property algorithm : Algorithm = Algorithm::XXH64
       property bsd : Bool = false
       property quiet : Bool = false
+      property little_endian : Bool = false
       property seed : UInt64? = nil
       property files : Array(String) = [] of String
       property check_mode : Bool = false
@@ -117,10 +118,7 @@ module XXHSum
         end
 
         parser.on("--tag", "Produce BSD-style checksum lines") { opts_ptr.value.bsd = true }
-        parser.on("--little-endian", "(NOT IMPLEMENTED) Checksum values use little endian convention (default: big endian)") do
-          STDERR.puts "Error: --little-endian is not yet implemented"
-          exit 1
-        end
+        parser.on("--little-endian", "Checksum values use little endian convention (default: big endian)") { opts_ptr.value.little_endian = true }
         parser.on("--binary", "Read in binary mode (compat: no-op — files are binary by default)") do
           # Compatibility no-op: inputs are treated as binary by default.
         end

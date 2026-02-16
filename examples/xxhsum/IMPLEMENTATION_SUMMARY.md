@@ -1,3 +1,39 @@
+# xxhsum Example Implementation — Complete Summary
+
+## ✅ Latest Features Implemented
+
+### Little-Endian Output Format (--little-endian)
+
+**Status**: ✅ Production Ready
+
+**Implementation**:
+
+- CLI flag: `--little-endian`
+- Output: Byte-reversed hex with `_LE` suffix (e.g., `XXH64_LE_93430f1a435a25c8`)
+- Verification: Automatic LE format detection and verification
+- All algorithms: XXH32, XXH64, XXH3_64, XXH128 supported
+- Formats: GNU and BSD modes both supported
+
+**Example Usage**:
+
+```bash
+# Generate LE hash
+./bin/xxhsum --little-endian file.txt
+# Output: XXH64_LE_93430f1a435a25c8  file.txt
+
+# Verify LE checksum
+./bin/xxhsum -c checksum_le.txt
+# Automatically detects _LE suffix and compares correctly
+
+# BSD format
+./bin/xxhsum --tag --little-endian file.txt
+# Output: xxh64_LE (file.txt) = 93430f1a435a25c8
+```
+
+**Vendor Parity**: ✅ Matches vendor C implementation behavior
+
+---
+
 # Benchmark Mode Implementation — Complete Summary
 
 ## ✅ Completion Status

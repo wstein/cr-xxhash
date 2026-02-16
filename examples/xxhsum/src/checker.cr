@@ -3,6 +3,11 @@ require "../../../src/xxh"
 module XXHSum
   module CLI
     module Checker
+      # Helper to reverse hex bytes for LE comparison
+      private def self.reverse_hex_bytes(hex : String) : String
+        hex.chars.each_slice(2).map { |slice| slice.join }.to_a.reverse.join
+      end
+
       # Entry point for verifying from stdin
       def self.verify_stdin(options : Options, stdin : IO = STDIN, out_io : IO = STDOUT, err_io : IO = STDERR) : Int32
         exit_code = 0
@@ -27,7 +32,7 @@ module XXHSum
             next
           end
 
-          hash_str, filename, algo_str = parsed
+          hash_str, filename, algo_str, is_le = parsed
 
           # Check if file exists
           unless File.exists?(filename)
@@ -51,8 +56,10 @@ module XXHSum
           begin
             # Compute hash of the file
             computed_hash = compute_hash(filename, algo, options.seed)
+            # If file format is LE, reverse the computed hash for comparison
+            hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
-            if computed_hash.downcase == hash_str.downcase
+            if hash_to_compare.downcase == hash_str.downcase
               unless options.quiet
                 out_io.puts "#{filename}: OK"
               end
@@ -127,7 +134,7 @@ module XXHSum
 
               total_properly_formatted += 1
 
-              hash_str, filename, algo_str = parsed
+              hash_str, filename, algo_str, is_le = parsed
 
               # Check if file exists
               unless File.exists?(filename)
@@ -145,8 +152,10 @@ module XXHSum
               begin
                 # Compute hash of the file
                 computed_hash = compute_hash(filename, algo, options.seed)
+                # If file format is LE, reverse the computed hash for comparison
+                hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
-                if computed_hash.downcase == hash_str.downcase
+                if hash_to_compare.downcase == hash_str.downcase
                   unless options.quiet
                     out_io.puts "#{filename}: OK"
                   end
@@ -200,10 +209,11 @@ module XXHSum
       end
 
       # Parse a line in GNU or BSD format
-      # GNU: "hash  filename"
+      # GNU: "hash  filename" or "XXH32_[LE_]hash  filename"
       # BSD: "algo (filename) = hash"
-      # Returns {hash, filename, algo_name} or nil if unparseable
-      private def self.parse_line(line : String) : {String, String, String?}?
+      # LE format: algo_name ends with _LE, and hex bytes are little-endian
+      # Returns {hash, filename, algo_name, is_little_endian} or nil if unparseable
+      private def self.parse_line(line : String) : {String, String, String?, Bool}?
         line = line.strip
 
         # Try BSD format first: "algo (filename) = hash"
@@ -222,7 +232,11 @@ module XXHSum
             algo = prefix_part[0...open_paren].strip
             filename = prefix_part[(open_paren + 1)...-1].strip
 
-            return {hash_part, filename, algo}
+            # Check for _LE suffix in algo name
+            is_le = algo.ends_with?("_LE")
+            algo_clean = is_le ? algo[0...-3] : algo
+
+            return {hash_part, filename, algo_clean, is_le}
           end
         end
 
@@ -236,20 +250,40 @@ module XXHSum
 
           # Detect algorithm prefix and extract hash
           algo = nil
-          hash_to_use = if hash_part.starts_with?("XXH3_")
+          is_le = false
+          hash_to_use = if hash_part.starts_with?("XXH3_LE_")
+                          is_le = true
+                          algo = "XXH3"
+                          hash_part[8..-1]
+                        elsif hash_part.starts_with?("XXH3_")
                           algo = "XXH3"
                           hash_part[5..-1]
+                        elsif hash_part.starts_with?("XXH32_LE_")
+                          is_le = true
+                          algo = "XXH32"
+                          hash_part[9..-1]
                         elsif hash_part.starts_with?("XXH32_")
                           algo = "XXH32"
                           hash_part[6..-1]
+                        elsif hash_part.starts_with?("XXH128_LE_")
+                          is_le = true
+                          algo = "XXH128"
+                          hash_part[10..-1]
                         elsif hash_part.starts_with?("XXH128_")
                           algo = "XXH128"
                           hash_part[7..-1]
+                        elsif hash_part.starts_with?("XXH64_LE_")
+                          is_le = true
+                          algo = "XXH64"
+                          hash_part[9..-1]
+                        elsif hash_part.starts_with?("XXH64_")
+                          algo = "XXH64"
+                          hash_part[6..-1]
                         else
                           hash_part
                         end
 
-          return {hash_to_use, filename, algo}
+          return {hash_to_use, filename, algo, is_le}
         end
 
         nil

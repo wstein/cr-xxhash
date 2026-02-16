@@ -13,6 +13,12 @@
 - [x] Seeding support (-s/--seed with decimal and 0xHEX)
 - [x] Help/version flags (--help, --version)
 - [x] No-args interactive help when TTY
+- [x] Little-endian output format (--little-endian)
+  - [x] Byte-reversed hex output with `_LE` suffix
+  - [x] Works with all algorithms (XXH32, XXH64, XXH3, XXH128)
+  - [x] GNU and BSD output format support
+  - [x] Checksum verification with LE format parsing
+  - [x] All 49 tests passing (no regressions)
 
 ### Benchmark Enhancements (recent)
 

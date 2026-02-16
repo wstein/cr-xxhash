@@ -39,7 +39,7 @@ module XXHSum
       # If no files given -> read from stdin
       if options.files.empty?
         hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
-        output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin") : Formatter.format_gnu(hex, "stdin", options.algorithm)
+        output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin", options.little_endian) : Formatter.format_gnu(hex, "stdin", options.algorithm, options.little_endian)
         stdout.puts output
         return 0
       end
@@ -47,13 +47,13 @@ module XXHSum
       options.files.each do |f|
         if f == "-"
           hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
-          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin") : Formatter.format_gnu(hex, "stdin", options.algorithm)
+          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin", options.little_endian) : Formatter.format_gnu(hex, "stdin", options.algorithm, options.little_endian)
           next
         end
 
         begin
           hex = Hasher.hash_path(f, options.algorithm, options.seed)
-          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, f) : Formatter.format_gnu(hex, f, options.algorithm)
+          stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, f, options.little_endian) : Formatter.format_gnu(hex, f, options.algorithm, options.little_endian)
         rescue ex : Exception
           stderr.puts "xxhsum: #{f}: #{ex.message}"
           return 1

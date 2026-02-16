@@ -1,11 +1,39 @@
 module XXHSum
   module CLI
     module Formatter
-      def self.format_gnu(hex : String, filename : String?, algorithm : CLI::Algorithm) : String
-        # Add algorithm prefix for XXH3_64 to match vendor behavior
+      # Reverse hex string bytes (e.g., "aabbccdd" -> "ddccbbaa")
+      # Assumes input is valid hex with even length
+      private def self.reverse_hex_bytes(hex : String) : String
+        hex.chars.each_slice(2).map { |slice| slice.join }.to_a.reverse.join
+      end
+
+      def self.format_gnu(hex : String, filename : String?, algorithm : CLI::Algorithm, little_endian : Bool = false) : String
+        # Add algorithm prefix and handle endianness
         hex_with_prefix = case algorithm
                           when CLI::Algorithm::XXH3_64
-                            "XXH3_#{hex}"
+                            if little_endian
+                              "XXH3_LE_#{reverse_hex_bytes(hex)}"
+                            else
+                              "XXH3_#{hex}"
+                            end
+                          when CLI::Algorithm::XXH32
+                            if little_endian
+                              "XXH32_LE_#{reverse_hex_bytes(hex)}"
+                            else
+                              hex
+                            end
+                          when CLI::Algorithm::XXH64
+                            if little_endian
+                              "XXH64_LE_#{reverse_hex_bytes(hex)}"
+                            else
+                              hex
+                            end
+                          when CLI::Algorithm::XXH128
+                            if little_endian
+                              "XXH128_LE_#{reverse_hex_bytes(hex)}"
+                            else
+                              hex
+                            end
                           else
                             hex
                           end
@@ -19,8 +47,10 @@ module XXHSum
         end
       end
 
-      def self.format_bsd(algo_name : String, hex : String, filename : String) : String
-        "#{algo_name} (#{filename}) = #{hex}"
+      def self.format_bsd(algo_name : String, hex : String, filename : String, little_endian : Bool = false) : String
+        le_hex = little_endian ? reverse_hex_bytes(hex) : hex
+        le_suffix = little_endian ? "_LE" : ""
+        "#{algo_name}#{le_suffix} (#{filename}) = #{le_hex}"
       end
 
       def self.algo_name(algorithm : CLI::Algorithm) : String
