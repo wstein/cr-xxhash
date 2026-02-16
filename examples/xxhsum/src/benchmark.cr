@@ -1,6 +1,6 @@
-require "cr-xxhash/src/xxh"
-require "cr-xxhash/src/common/constants"
-require "cr-xxhash/src/common/types"
+require "../../../src/xxh"
+require "../../../src/common/constants"
+require "../../../src/common/types"
 require "./options"
 
 module XXHSum
@@ -8,7 +8,7 @@ module XXHSum
     module Benchmark
       TARGET_SECONDS = 1.0_f64
       MIN_SECONDS    = 0.1_f64
-      FIRST_MBPS     =   10_u64
+      FIRST_MBPS     =  10_u64
 
       record Variant,
         id : Int32,

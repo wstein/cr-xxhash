@@ -1,4 +1,4 @@
-require "cr-xxhash/src/xxh"
+require "../../../src/xxh"
 
 module XXHSum
   module CLI

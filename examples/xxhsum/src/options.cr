@@ -102,7 +102,7 @@ module XXHSum
             next
           end
 
-          if arg.starts_with?("-b") && arg.size > 2
+          if arg.starts_with?("-b") && !arg.starts_with?("--") && arg.size > 2
             # Support vendor-style compact IDs: -b3, -b1,3,5, -b0 (all)
             spec = arg[2..]
             unless spec.gsub(",", "").chars.all?(&.ascii_number?)
