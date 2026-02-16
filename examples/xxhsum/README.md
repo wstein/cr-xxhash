@@ -41,7 +41,7 @@ Output format matches the official vendor `xxhsum` for all P0 features:
 - `src/hasher.cr` — delegates to `XXH::*` library APIs (uses streaming/file APIs)
 - `src/formatter.cr` — output formatting (GNU/BSD modes, algorithm prefixes)
 - `src/checker.cr` — checksum verification mode implementation
-- `src/benchmark.cr` — benchmark mode implementation (28 variants with time-based calibration). Exposes `Benchmark::Variant` record (`variant_type : Symbol`) for variant metadata.
+- `src/benchmark.cr` — benchmark mode implementation (28 variants with time-based calibration). Exposes `Benchmark::Variant` record (`kind : Symbol`) for variant metadata. Optimized for zero-copy data generation and stack-allocated secret buffers.
 - `src/xxhsum.cr` — main entry point
 
 **Note:**

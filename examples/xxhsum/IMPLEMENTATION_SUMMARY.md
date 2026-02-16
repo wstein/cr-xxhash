@@ -101,13 +101,15 @@ end
 
 **Key components**:
 
+**Key components**:
+
 - `self.run(options, stdout)` — Main entry point called from CLI
-- `Benchmark::Variant` record — Metadata for each benchmark config (fields: `id`, `name`, `aligned`, `variant_type : Symbol`, `algorithm`)
+- `Benchmark::Variant` record — Metadata for each benchmark config (fields: `id`, `name`, `aligned`, `kind : Symbol`, `algorithm`)
 - `TARGET_SECONDS`, `MIN_SECONDS`, `FIRST_MBPS`, `DEFAULT_VARIANT_IDS` — tuning constants for calibration and defaults
 - `digest_variant()` — Case statement dispatching to correct algorithm
 - `run_variant()` — Single benchmark variant execution with calibration
 - `all_variants()` — Array of 28 variant definitions
-- `prepare_data()` — Generate aligned + unaligned test buffers
+- `prepare_data()` — Generate aligned + unaligned test buffers (optimized: direct Bytes generation, stack-allocated secrets)
 
 **Design pattern**: Module with private methods, public `run()` entry point
 

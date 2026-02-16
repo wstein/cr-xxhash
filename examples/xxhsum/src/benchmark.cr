@@ -5,19 +5,25 @@ require "./options"
 
 module XXHSum::CLI::Benchmark
   # Constants for benchmark tuning
-  TARGET_SECONDS = 1.0_f64
-  MIN_SECONDS    = 0.1_f64
-  FIRST_MBPS     =  10_u64
+  TARGET_SECONDS =   1.0_f64
+  MIN_SECONDS    = 0.001_f64
+  FIRST_MBPS     =    10_u64
 
   # Default variant IDs for quick benchmark
   DEFAULT_VARIANT_IDS = [1, 3, 5, 11]
 
   # Benchmark variant record (immutable, minimal boilerplate)
+  # Fields:
+  #   id - unique identifier (1-28)
+  #   name - human-readable variant name
+  #   aligned - whether to use aligned data (true) or unaligned+3 (false)
+  #   kind - benchmark category: :basic, :seeded, :secret, :stream
+  #   algorithm - which algorithm to test (XXH32, XXH64, XXH3_64, XXH128)
   record Variant,
     id : Int32,
     name : String,
     aligned : Bool,
-    variant_type : Symbol,
+    kind : Symbol,
     algorithm : Algorithm
 
   # Run benchmark mode with the given options
@@ -26,13 +32,13 @@ module XXHSum::CLI::Benchmark
 
     # Generate fast pseudo-random sample data (not cryptographically secure)
     rng = Random.new
-    data_array = Array(UInt8).new(sample_size) { rng.rand(256).to_u8 }
-    aligned_data = Bytes.new(data_array.size) { |i| data_array[i] }
+    aligned_data = Bytes.new(sample_size.to_i) { |i| rng.rand(256).to_u8 }
 
-    # Create unaligned data (offset by +3 bytes)
-    padded_array = Array(UInt8).new(data_array.size + 3) { 0_u8 }
-    data_array.each_with_index { |byte, i| padded_array[i + 3] = byte }
-    unaligned_data = Bytes.new(padded_array.size - 3) { |i| padded_array[i + 3] }
+    # Create unaligned data (offset by +3 bytes) by slicing offset copy
+    padded_data = Bytes.new((sample_size + 3).to_i) do |i|
+      i < 3 ? 0_u8 : rng.rand(256).to_u8
+    end
+    unaligned_data = padded_data[3, sample_size.to_i]
 
     # Print version header unless -q (quiet) flag is set
     unless options.quiet
@@ -169,7 +175,7 @@ module XXHSum::CLI::Benchmark
   end
 
   private def self.run_single_hash(data : Bytes, variant : Variant, seed : UInt32) : UInt64
-    case variant.variant_type
+    case variant.kind
     when :basic  then run_basic_benchmark_one(data, variant.algorithm, seed)
     when :seeded then run_seeded_benchmark_one(data, variant.algorithm, seed)
     when :secret then run_secret_benchmark_one(data, variant.algorithm, seed)
@@ -213,8 +219,10 @@ module XXHSum::CLI::Benchmark
   end
 
   private def self.run_secret_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
-    secret_buffer = Bytes.new(LibXXH::XXH3_SECRET_SIZE_MIN) { |i| (((i * 17) ^ seed_u) % 256).to_u8 }
-    seed_from_secret = IO::ByteFormat::LittleEndian.decode(UInt64, secret_buffer[0, 8])
+    # Generate secret buffer on stack (136 bytes, minimal allocation)
+    secret_buffer = uninitialized UInt8[136]
+    (0...136).each { |i| secret_buffer[i] = (((i * 17) ^ seed_u) % 256).to_u8 }
+    seed_from_secret = IO::ByteFormat::LittleEndian.decode(UInt64, Bytes.new(secret_buffer.to_unsafe, 8))
     case algorithm
     when Algorithm::XXH32, Algorithm::XXH64
       run_seeded_benchmark_one(data, algorithm, seed_u)
