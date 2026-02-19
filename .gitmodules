@@ -1,0 +1,4 @@
+[submodule "vendor/xxhash-wrapper"]
+	path = vendor/xxhash-wrapper
+	url = https://github.com/wstein/xxhash-wrapper.git
+	branch = develop
