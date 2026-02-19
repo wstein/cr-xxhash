@@ -26,22 +26,15 @@ module XXH
       end
 
       def copy : State
-        # Create destination state for copying
-        copy_state = LibXXH.XXH64_createState
-        raise StateError.new("Failed to allocate XXH64 state for copy") if copy_state.null?
-        
+        # Allocate a fresh destination object (allocates its own C state)
+        dst = self.class.new(0_u64)
         begin
-          # Deep copy the source state into the destination
-          ErrorHandler.check!(LibXXH.XXH3_copyState(copy_state, @state), "XXH64 copyState")
-          
-          # Create a new Ruby-side object wrapping the copied C state
-          copied = self.class.allocate
-          copied.instance_variable_set(:@state, copy_state)
-          copied
-        rescue
-          # Clean up on error
-          LibXXH.XXH64_freeState(copy_state)
-          raise
+          # Deep-copy into the destination's C state
+          ErrorHandler.check!(LibXXH.XXH3_copyState(dst.@state, @state), "XXH64 copyState")
+          dst
+        rescue ex
+          dst.dispose
+          raise ex
         end
       end
 

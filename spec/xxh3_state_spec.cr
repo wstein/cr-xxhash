@@ -281,3 +281,5 @@ describe XXH::XXH3::State128 do
     state2.digest.should_not eq(state3.digest)
     state1.digest.should eq(state2.digest)
   end
+
+end

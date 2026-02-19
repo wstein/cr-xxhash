@@ -1,6 +1,7 @@
 {
   "chat.tools.terminal.autoApprove": {
     "shards": true,
-    "./bin/xxhsum": true
+    "./bin/xxhsum": true,
+    "crystal": true
   }
 }

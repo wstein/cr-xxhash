@@ -18,51 +18,53 @@ module XXHSum
       private def self.hash_xxh3_64_bytes(data : Bytes, seed : UInt64, simd_mode : String?) : UInt64
         return XXH::XXH3.hash64(data, seed) if simd_mode.nil?
 
-        case simd_mode
-        when "scalar"
-          LibXXH.xxh3_64_scalar(data.to_unsafe, data.size, seed)
-        {% if flag?(:x86_64) %}
-        when "sse2"
-          LibXXH.xxh3_64_sse2(data.to_unsafe, data.size, seed)
-        when "avx2"
-          LibXXH.xxh3_64_avx2(data.to_unsafe, data.size, seed)
-        when "avx512"
-          LibXXH.xxh3_64_avx512(data.to_unsafe, data.size, seed)
-        {% elsif flag?(:aarch64) %}
-        when "neon"
-          LibXXH.xxh3_64_neon(data.to_unsafe, data.size, seed)
-        when "sve"
-          LibXXH.xxh3_64_sve(data.to_unsafe, data.size, seed)
-        {% end %}
-        else
-          XXH::XXH3.hash64(data, seed)
+        if simd_mode == "scalar"
+          return LibXXH.xxh3_64_scalar(data.to_unsafe, data.size, seed)
         end
+
+        {% if flag?(:x86_64) %}
+        if simd_mode == "sse2"
+          return LibXXH.xxh3_64_sse2(data.to_unsafe, data.size, seed)
+        elsif simd_mode == "avx2"
+          return LibXXH.xxh3_64_avx2(data.to_unsafe, data.size, seed)
+        elsif simd_mode == "avx512"
+          return LibXXH.xxh3_64_avx512(data.to_unsafe, data.size, seed)
+        end
+        {% elsif flag?(:aarch64) %}
+        if simd_mode == "neon"
+          return LibXXH.xxh3_64_neon(data.to_unsafe, data.size, seed)
+        elsif simd_mode == "sve"
+          return LibXXH.xxh3_64_sve(data.to_unsafe, data.size, seed)
+        end
+        {% end %}
+
+        XXH::XXH3.hash64(data, seed)
       end
 
       private def self.hash_xxh128_bytes(data : Bytes, seed : UInt64, simd_mode : String?) : UInt128
         return XXH::XXH3.hash128(data, seed) if simd_mode.nil?
 
-        c_hash = case simd_mode
-                 when "scalar"
-                   LibXXH.xxh3_128_scalar(data.to_unsafe, data.size, seed)
-                 {% if flag?(:x86_64) %}
-                 when "sse2"
-                   LibXXH.xxh3_128_sse2(data.to_unsafe, data.size, seed)
-                 when "avx2"
-                   LibXXH.xxh3_128_avx2(data.to_unsafe, data.size, seed)
-                 when "avx512"
-                   LibXXH.xxh3_128_avx512(data.to_unsafe, data.size, seed)
-                 {% elsif flag?(:aarch64) %}
-                 when "neon"
-                   LibXXH.xxh3_128_neon(data.to_unsafe, data.size, seed)
-                 when "sve"
-                   LibXXH.xxh3_128_sve(data.to_unsafe, data.size, seed)
-                 {% end %}
-                 else
-                   return XXH::XXH3.hash128(data, seed)
-                 end
+        if simd_mode == "scalar"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_scalar(data.to_unsafe, data.size, seed))
+        end
 
-        UInt128.from_c_hash(c_hash)
+        {% if flag?(:x86_64) %}
+        if simd_mode == "sse2"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_sse2(data.to_unsafe, data.size, seed))
+        elsif simd_mode == "avx2"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_avx2(data.to_unsafe, data.size, seed))
+        elsif simd_mode == "avx512"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_avx512(data.to_unsafe, data.size, seed))
+        end
+        {% elsif flag?(:aarch64) %}
+        if simd_mode == "neon"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_neon(data.to_unsafe, data.size, seed))
+        elsif simd_mode == "sve"
+          return UInt128.from_c_hash(LibXXH.xxh3_128_sve(data.to_unsafe, data.size, seed))
+        end
+        {% end %}
+
+        XXH::XXH3.hash128(data, seed)
       end
 
       def self.hash_path(path : String, algorithm : CLI::Algorithm, seed : UInt64? = nil, simd_mode : String? = nil) : String

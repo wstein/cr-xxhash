@@ -296,3 +296,5 @@ describe XXH::XXH32::State do
       state1.digest.should eq(state2.digest)
     end
   end
+
+end
