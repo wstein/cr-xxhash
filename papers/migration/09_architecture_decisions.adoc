@@ -10,7 +10,7 @@
 ### ADR 2: SIMD Strategy
 
 *   **Context**: xxHash speed comes from SIMD instructions (unrolling and vectorization).
-*   **Decision**: Use Crystal's LLVM-backed intrinsics where possible. Fall back to `LibC` hardware detection logic via `vendor/xxHash/xxh_x86dispatch.c` if needed for runtime dispatch.
+*   **Decision**: Use Crystal's LLVM-backed intrinsics where possible. Fall back to `LibC` hardware detection logic via `vendor/xxhash-wrapper/vendor/xxHash/xxh_x86dispatch.c` if needed for runtime dispatch.
 *   **Goal**: Ensure `XXH3` reaches 10+ GB/s on modern x86_64 hardware.
 
 ### ADR 3: CLI Output Format - Match Vendor Implementation Exactly
@@ -21,7 +21,7 @@
     ** BSD format: `ALGO (FILENAME) = HASH` (using `--tag` flag)
     ** Endianness: Support both big-endian (default) and little-endian with `--little-endian` flag
 *   **Validation**: All 12 integration tests pass with vendor binary comparison (3 files × 4 algorithms):
-    *** Test command: `crystal spec/integration_test.cr -- -c ./bin/xxhsum -v vendor/xxHash/xxhsum`
+    *** Test command: `crystal spec/integration_test.cr -- -c ./bin/xxhsum -v vendor/xxhash-wrapper/vendor/xxHash/xxhsum`
     *** Status: 12/12 passing ✅
 *   **Consequences**: Developers can drop-in replace vendor `xxhsum` with our Crystal implementation without script changes. However, we inherit vendor's quirks (e.g., no prefix in output) and must maintain output parity as they evolve.
 

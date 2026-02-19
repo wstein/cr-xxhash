@@ -47,7 +47,7 @@ module XXHSum
       # Regular hashing mode
       # If no files given -> read from stdin
       if options.files.empty?
-        hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
+        hex = Hasher.hash_stdin(options.algorithm, options.seed, options.simd_mode, input: stdin)
         output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin", options.little_endian) : Formatter.format_gnu(hex, "stdin", options.algorithm, options.little_endian)
         stdout.puts output
         return 0
@@ -55,13 +55,13 @@ module XXHSum
 
       options.files.each do |f|
         if f == "-"
-          hex = Hasher.hash_stdin(options.algorithm, options.seed, input: stdin)
+          hex = Hasher.hash_stdin(options.algorithm, options.seed, options.simd_mode, input: stdin)
           stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin", options.little_endian) : Formatter.format_gnu(hex, "stdin", options.algorithm, options.little_endian)
           next
         end
 
         begin
-          hex = Hasher.hash_path(f, options.algorithm, options.seed)
+          hex = Hasher.hash_path(f, options.algorithm, options.seed, options.simd_mode)
           stdout.puts options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, f, options.little_endian) : Formatter.format_gnu(hex, f, options.algorithm, options.little_endian)
         rescue ex : Exception
           stderr.puts "xxhsum: #{f}: #{ex.message}"
@@ -82,7 +82,7 @@ module XXHSum
 
           if line == "-"
             # Read from stdin is not typical for filelist, but handle it anyway
-            hex = Hasher.hash_stdin(options.algorithm, options.seed)
+            hex = Hasher.hash_stdin(options.algorithm, options.seed, options.simd_mode)
             output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, "stdin", options.little_endian) : Formatter.format_gnu(hex, "stdin", options.algorithm, options.little_endian)
             stdout.puts output
             next
@@ -95,7 +95,7 @@ module XXHSum
               next
             end
 
-            hex = Hasher.hash_path(line, options.algorithm, options.seed)
+            hex = Hasher.hash_path(line, options.algorithm, options.seed, options.simd_mode)
             output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, line, options.little_endian) : Formatter.format_gnu(hex, line, options.algorithm, options.little_endian)
             stdout.puts output
           rescue ex : Exception
@@ -129,7 +129,7 @@ module XXHSum
             next
           end
 
-          hex = Hasher.hash_path(line, options.algorithm, options.seed)
+          hex = Hasher.hash_path(line, options.algorithm, options.seed, options.simd_mode)
           output = options.bsd ? Formatter.format_bsd(Formatter.algo_name(options.algorithm), hex, line, options.little_endian) : Formatter.format_gnu(hex, line, options.algorithm, options.little_endian)
           stdout.puts output
         rescue ex : Exception

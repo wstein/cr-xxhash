@@ -47,8 +47,12 @@ jobs:
           fi
 
           shards install --ignore-crystal-version || true
-          # Build vendored C library used by FFI bindings (best-effort)
-          make -C vendor/xxHash xxhash.o libxxhash.a || true
+          # Build vendored wrapper library used by FFI bindings (best-effort)
+          if [ -f vendor/xxhash-wrapper/meson.build ]; then
+            meson setup vendor/xxhash-wrapper/build --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build
+            meson compile -C vendor/xxhash-wrapper/build || true
+            ln -sf libxxh3_wrapper_static.a vendor/xxhash-wrapper/build/libxxh3_wrapper.a || true
+          fi
 
       - name: Sanity-check project (no-op build)
         shell: bash

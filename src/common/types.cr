@@ -44,6 +44,11 @@ module XXH
       (c_hash.high64.to_u128 << 64) | c_hash.low64.to_u128
     end
 
+    @[AlwaysInline]
+    def self.from_c_hash(c_hash : LibXXH::XXH3_128_hash_t) : UInt128
+      (c_hash.high.to_u128 << 64) | c_hash.low.to_u128
+    end
+
     # Produce an FFI C struct from a native UInt128
     @[AlwaysInline]
     def to_c_hash : LibXXH::XXH128_hash_t

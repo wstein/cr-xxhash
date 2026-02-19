@@ -69,7 +69,7 @@ It incorporates review feedback by adding:
 | Area | Rating | Notes |
 |---|---|---|
 | Test architecture | ⭐⭐⭐⭐⭐ | Phased, dependency-aware, CI-ready |
-| Vendor parity | ⭐⭐⭐⭐⭐ | Direct mapping from `vendor/xxHash/tests/*` |
+| Vendor parity | ⭐⭐⭐⭐⭐ | Direct mapping from `vendor/xxhash-wrapper/vendor/xxHash/tests/*` |
 | Unit depth | ⭐⭐⭐⭐⭐ | Vectors + streaming + canonical + errors |
 | Integration depth | ⭐⭐⭐⭐ | Cucumber for CLI workflows + snapshots |
 | Cross-platform rigor | ⭐⭐⭐⭐ | Endianness, SIMD path checks, arch notes |
@@ -366,5 +366,5 @@ This keeps calendar time down while maintaining high verification depth.
 ## Cross-References
 
 - Parent roadmap: [TODO.md](TODO.md)
-- Vendor vectors: [vendor/xxHash/tests/sanity_test_vectors.h](vendor/xxHash/tests/sanity_test_vectors.h)
-- Vendor sanity logic: [vendor/xxHash/tests/sanity_test.c](vendor/xxHash/tests/sanity_test.c)
+- Vendor vectors: [vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h](vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h)
+- Vendor sanity logic: [vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test.c](vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test.c)

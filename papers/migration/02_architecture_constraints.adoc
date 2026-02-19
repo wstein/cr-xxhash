@@ -50,7 +50,7 @@ chmod +x scripts/tool_versions.cr
 === Quality Requirements
 
 * Throughput target: {throughput_m4}
-* Correctness target: pass the upstream `vendor/xxHash/tests/*.c` vectors (match big-endian and little-endian results).
+* Correctness target: pass the upstream `vendor/xxhash-wrapper/vendor/xxHash/tests/*.c` vectors (match big-endian and little-endian results).
 * Tool stability: tool_versions.cr output must be recorded during each major benchmark so environments can be reproduced.
 
 === Decision Records

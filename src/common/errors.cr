@@ -26,6 +26,11 @@ module XXH
       end
     end
 
+    def self.check!(error_code : Int32, message : String) : Nil
+      return if error_code == 0
+      raise Error.new("Error code #{error_code}: #{message}")
+    end
+
     # Convert C error code to human-readable string
     def self.error_message(error_code : LibXXH::XXHErrorcode) : String
       case error_code

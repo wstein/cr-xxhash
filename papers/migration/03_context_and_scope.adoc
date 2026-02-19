@@ -33,4 +33,4 @@ The following diagram illustrates the boundaries of the `cr-xxhash` component an
 | **Crystal API** | Native | Public methods like `XXH3.hash64` accepting `Bytes` or `String`. |
 | **Memory Access** | Unsafe | Direct `Pointer(UInt8)` arithmetic for zero-copy performance. |
 | **Intrinsics** | LLVM binding | Mapping of `@llvm.*` functions for hardware-specific vectorization. |
-| **Reference Data** | Verification | Bit-parity comparison with `vendor/xxHash` outputs. |
+| **Reference Data** | Verification | Bit-parity comparison with `vendor/xxhash-wrapper/vendor/xxHash` outputs. |

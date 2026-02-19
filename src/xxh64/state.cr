@@ -21,14 +21,14 @@ module XXH
       end
 
       def reset(seed : Seed64 = 0_u64)
-        ErrorHandler.check!(LibXXH.XXH64_reset(@state, seed), "XXH64 reset")
+        LibXXH.XXH64_reset(@state, seed)
         self
       end
 
       def dispose
         return if @state.null?
-        ErrorHandler.check!(LibXXH.XXH64_freeState(@state), "XXH64 free state")
-        @state = Pointer(LibXXH::XXH64_state_t).null
+        LibXXH.XXH64_freeState(@state)
+        @state = Pointer(LibXXH::XXH_state_t).null
       end
 
       def finalize

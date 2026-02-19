@@ -13,9 +13,7 @@
 *.a
 
 # Vendor compiled artifacts
-vendor/xxHash/xxhash.o
-vendor/xxHash/libxxhash.a
-vendor/xxHash/xxhsum
+vendor/xxhash-wrapper/build/
 
 # Crystal cache
 .crystal/

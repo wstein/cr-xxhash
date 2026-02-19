@@ -5,7 +5,7 @@ This directory contains binary test data files used by the test suite.
 ## Files
 
 - **vendor_vectors_xxh32.json / vendor_vectors_xxh64.json / vendor_vectors_xxh3.json / vendor_vectors_xxh128.json**
-  - Auto-generated (hex) from `vendor/xxHash/tests/sanity_test_vectors.h`
+  - Auto-generated (hex) from `vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h`
   - Each file contains `vectors` plus `sanity_buffer_max_len` (so no separate meta file is required)
   - Regenerate with: `crystal scripts/generate_vectors.cr`
   - Consumed by `spec/support/vector_loader.cr` and `spec/vendor_generated_vectors_spec.cr` for parity checks

@@ -24,7 +24,7 @@ Quality
 |===
 | ID | Attribute | Scenario
 | Q1 | Throughput | On a machine with AVX2 support, hashing a 1GB buffer must exceed 10GB/s using the `XXH3` implementation.
-| Q2 | Correctness | The test suite must pass all test vectors from `vendor/xxHash/tests/sanity_test.c` on both ARM64 and x86_64.
+| Q2 | Correctness | The test suite must pass all test vectors from `vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test.c` on both ARM64 and x86_64.
 | Q3 | Stability | The internal state size and alignment must remain stable across different Crystal compiler versions (tracked via CI).
 | Q4 | Safety | Use of `Pointer` arithmetic must be encapsulated within `private` or `protected` methods, preventing memory corruption from the public API.
 | Q5 | CLI Parity | The `xxhsum` CLI tool must produce output formats and hashes byte-identical to the vendor xxHash reference implementation for all 4 algorithms.
@@ -49,7 +49,7 @@ The migration includes comprehensive test suites validating all requirements:
 - 3 test files: README.md (4.0 KB), LICENSE (1.1 KB), shard.yml (0.8 KB)
 - 4 algorithms: XXH32 (32-bit), XXH64 (64-bit), XXH128 (128-bit), XXH3 (64-bit optimized)
 - Total combinations: 12 test cases
-- All hashes verified against vendor `vendor/xxHash/xxhsum` output
+- All hashes verified against vendor `vendor/xxhash-wrapper/vendor/xxHash/xxhsum` output
 - Output format matching: GNU convention (`hash  filename`) with exact byte-level parity
 
 **Benchmark Features Implemented**:

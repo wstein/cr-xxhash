@@ -1,10 +1,10 @@
 #!/usr/bin/env crystal
 require "json"
 
-# Generates JSON test-vector data from vendor/xxHash/tests/sanity_test_vectors.h
+# Generates JSON test-vector data from vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h
 # - output: spec/fixtures/vendor_vectors.json
 
-VENDOR_HEADER    = "vendor/xxHash/tests/sanity_test_vectors.h"
+VENDOR_HEADER    = "vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h"
 OUT_FIXTURES_DIR = "spec/fixtures"
 
 content = File.read(VENDOR_HEADER)

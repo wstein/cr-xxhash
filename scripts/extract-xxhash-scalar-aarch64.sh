@@ -3,12 +3,12 @@ set -euo pipefail
 
 # Reproduce preprocessed ARM64 scalar extraction (no NEON)
 # Output files:
-#  - vendor/xxHash/xxhash.aarch64.scalar.i    (full preprocessed header)
-#  - vendor/xxHash/xxhash.aarch64.scalar.impl.c (trimmed implementation, NEON lines removed)
+#  - vendor/xxhash-wrapper/vendor/xxHash/xxhash.aarch64.scalar.i    (full preprocessed header)
+#  - vendor/xxhash-wrapper/vendor/xxHash/xxhash.aarch64.scalar.impl.c (trimmed implementation, NEON lines removed)
 
-HEADER=vendor/xxHash/xxhash.h
-PREOUT=vendor/xxHash/xxhash.aarch64.scalar.i
-IMPLOUT=vendor/xxHash/xxhash.aarch64.scalar.impl.c
+HEADER=vendor/xxhash-wrapper/vendor/xxHash/xxhash.h
+PREOUT=vendor/xxhash-wrapper/vendor/xxHash/xxhash.aarch64.scalar.i
+IMPLOUT=vendor/xxhash-wrapper/vendor/xxHash/xxhash.aarch64.scalar.impl.c
 
 echo "Preprocessing $HEADER -> $PREOUT (ARM64 scalar, no NEON)"
 clang -E -P -x c -std=c99 -DXXH_IMPLEMENTATION -DXXH_VECTOR=XXH_SCALAR -D__aarch64__ "$HEADER" -o "$PREOUT"

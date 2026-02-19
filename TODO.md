@@ -319,18 +319,18 @@ end
 
 **Priority**: ⭐⭐⭐⭐⭐ | **Effort**: 30min | **Complexity**: Low
 
-**Objective**: Ensure xxhash.o is built correctly with SIMD support
+**Objective**: Ensure xxhash-wrapper static library is built correctly with SIMD support
 
 **Tasks**:
 
 - [x] Run `shards install` (triggers postinstall) ✅ DONE
-- [x] Verify `vendor/xxHash/xxhash.o` exists ✅ 39KB object file
-- [x] Verify `vendor/xxHash/libxxhash.a` exists (✓ not needed, using .o)
+- [x] Verify `vendor/xxhash-wrapper/build/libxxh3_wrapper.a` exists ✅ static wrapper archive
+- [x] Verify Meson/Ninja build artifacts are generated in `vendor/xxhash-wrapper/build`
 - [x] Check compilation flags used:
 
   ```bash
-  nm vendor/xxHash/xxhash.o | grep -i avx
-  objdump -d vendor/xxHash/xxhash.o | head -100
+  nm vendor/xxhash-wrapper/build/libxxh3_wrapper.a | grep -i avx
+  objdump -d vendor/xxhash-wrapper/build/libxxh3_wrapper.a | head -100
   ```
 
 - [ ] Document detected SIMD instructions (SSE2/AVX2/AVX512/NEON)
@@ -669,9 +669,7 @@ include XXH::SpecHelper
   *.a
 
   # Vendor compiled artifacts
-  vendor/xxHash/xxhash.o
-  vendor/xxHash/libxxhash.a
-  vendor/xxHash/xxhsum
+  vendor/xxhash-wrapper/build/
 
   # Crystal cache
   .crystal/
@@ -1155,7 +1153,7 @@ end
 - [x] `spec/vendor_parity_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 1.0h
   - Extended vendor-parity across many input sizes, alignment invariants, and seed-boundary checks (XXH32/XXH64/XXH3)
 - [x] `scripts/generate_vectors.cr` → per-algorithm fixtures + `spec/support/vector_loader.cr` — Priority: ⭐⭐⭐ — Effort: 30m
-  - Parses `vendor/xxHash/tests/sanity_test_vectors.h`, emits per-algorithm hex fixtures under `spec/fixtures/`, and exposes `XXH::VectorLoader` (lazy) for tests; consumed by `spec/vendor_generated_vectors_spec.cr`
+  - Parses `vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h`, emits per-algorithm hex fixtures under `spec/fixtures/`, and exposes `XXH::VectorLoader` (lazy) for tests; consumed by `spec/vendor_generated_vectors_spec.cr`
 
 - [x] `spec/xxh32_canonical_spec.cr` — Priority: ⭐⭐⭐⭐ — Effort: 0.5h
   - Canonical round-trip and invalid-length assertions
@@ -2506,8 +2504,8 @@ XXHASH_CFLAGS="-O3 -march=armv8-a" \
 Check generated SIMD instructions:
 
 ```bash
-objdump -d vendor/xxHash/xxhash.o | grep -E "(vmov|vpadd|vpxor)"  # ARM NEON
-objdump -d vendor/xxHash/xxhash.o | grep -E "(vmov|vpadd|vpxor)"  # x86 AVX
+objdump -d vendor/xxhash-wrapper/build/libxxh3_wrapper.a | grep -E "(vmov|vpadd|vpxor)"  # ARM NEON
+objdump -d vendor/xxhash-wrapper/build/libxxh3_wrapper.a | grep -E "(vmov|vpadd|vpxor)"  # x86 AVX
 ```
 
 ```

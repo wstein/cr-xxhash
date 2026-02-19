@@ -7,7 +7,7 @@ require "../spec_helper"
 module VendorParityHelper
   FIXTURES_DIR   = File.expand_path("../fixtures", __DIR__)
   CORPUS_PATH    = File.expand_path("../corpus/cli_cases.json", __DIR__)
-  VENDOR_XXHSUM  = File.expand_path("../../../../vendor/xxHash/xxhsum", __DIR__)
+  VENDOR_XXHSUM  = File.expand_path("../../../../vendor/xxhash-wrapper/vendor/xxHash/xxhsum", __DIR__)
   CRYSTAL_XXHSUM = File.expand_path("../../bin/xxhsum", __DIR__)
 
   record ParityResult,

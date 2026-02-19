@@ -21,19 +21,19 @@ module XXH
       end
 
       def reset(seed : Seed64)
-        ErrorHandler.check!(LibXXH.XXH3_64bits_reset_withSeed(@state, seed), "XXH3_64 reset with seed")
+        LibXXH.XXH3_64bits_reset_withSeed(@state, seed)
         self
       end
 
       def reset
-        ErrorHandler.check!(LibXXH.XXH3_64bits_reset(@state), "XXH3_64 reset")
+        LibXXH.XXH3_64bits_reset(@state, 0_u64)
         self
       end
 
       def dispose
         return if @state.null?
-        ErrorHandler.check!(LibXXH.XXH3_freeState(@state), "XXH3 free state")
-        @state = Pointer(LibXXH::XXH3_state_t).null
+        LibXXH.XXH3_freeState(@state)
+        @state = Pointer(LibXXH::XXH_state_t).null
       end
 
       def finalize

@@ -8,7 +8,7 @@ Welcome to the `cr-xxhash` project. As a high-performance migration study, we ma
 
 This project aims to bridge the gap between low-level C optimization and High-level Crystal abstractions. Contributions should prioritize:
 1. **Performance**: Avoid heap allocations in hot paths. Use `Pointer` and `Intrinsics` where justified.
-2. **Correctness**: Every change must pass the reference test vectors from `vendor/xxHash`.
+2. **Correctness**: Every change must pass the reference test vectors from `vendor/xxhash-wrapper/vendor/xxHash`.
 3. **Clarity**: Use Crystal-idiomatic wrappers around unsafe operations to ensure the public API remains pleasant to use.
 
 == Workflow
@@ -20,9 +20,9 @@ This project aims to bridge the gap between low-level C optimization and High-le
 3. **Validation**:
     * Run `crystal spec` to ensure zero regressions.
     * Run the integration tests: `crystal spec/integration_test.cr` (validates vendor parity).
-    * Test FFI bindings: The test suite uses the canonical `src/xxh/bindings.cr` file to load `LibXXH`. When vendor C behavior changes, update that file and rebuild the library (`make -C vendor/xxHash libxxhash.a`) before running specs.
+    * Test FFI bindings: The test suite uses the canonical `src/xxh/bindings.cr` file to load `LibXXH`. When vendor C behavior changes, update that file and rebuild the library (`meson setup vendor/xxhash-wrapper/build --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs.
 
-    * Maintenance note: Keep `src/xxh/bindings.cr` synchronized with `vendor/xxHash`. When updating vendor C code, refreshing or adding specs that compare `XXH::*` results with the vendor helpers (e.g., `XXH::XXH3.hash128_stream`) ensures CI and local runs validate the change. Rebuild the vendor library after any C-side updates to keep the binding and tests aligned.
+    * Maintenance note: Keep `src/xxh/bindings.cr` synchronized with `vendor/xxhash-wrapper`. When updating vendor C code, refreshing or adding specs that compare `XXH::*` results with the vendor helpers (e.g., `XXH::XXH3.hash128_stream`) ensures CI and local runs validate the change. Rebuild the vendor library after any C-side updates to keep the binding and tests aligned.
     * Run the benchmark and include results in your PR when performance changes are involved:
         **`./bin/xxhsum -b`** (all variants) or **`./bin/xxhsum -bX`** (vendor-style variant id; e.g., `-b3`, `-b11`).
     * Use `scripts/tool_versions.cr` (run with `crystal run`) to document your environment in the PR description.
@@ -47,7 +47,8 @@ These aliases are created by the `postinstall` script defined in `shard.yml` (ru
 
 [source,shell]
 ----
-make -C vendor/xxHash libxxhash.a
+meson setup vendor/xxhash-wrapper/build --wipe
+meson compile -C vendor/xxhash-wrapper/build
 mkdir -p bin
 ln -sf ./bin/xxhsum ./bin/xxh32sum
 ln -sf ./bin/xxhsum ./bin/xxh64sum

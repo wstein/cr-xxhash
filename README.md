@@ -14,7 +14,7 @@ High-performance Crystal implementation and migration study of Yann Collet's xxH
 
 ## ⚠️ Important: C bindings (FFI) available / hybrid default
 
-This shard now ships and exposes full `LibXXH` C99 bindings (vendored `vendor/xxHash`) and uses the C implementation for core one-shot paths by default (hybrid approach). Small Crystal helpers and streaming states remain available in Crystal.
+This shard now ships and exposes full `LibXXH` C99 bindings (vendored `vendor/xxhash-wrapper`) and uses the C implementation for core one-shot paths by default (hybrid approach). Small Crystal helpers and streaming states remain available in Crystal.
 
 ```crystal
 # Recommended: public Crystal API (C-backed for one-shot)
@@ -30,7 +30,7 @@ LibXXH.XXH3_64bits(ptr, len)
 
 Notes:
 
-* `vendor/xxHash` is built automatically in `shards install` (see `postinstall`).
+* `vendor/xxhash-wrapper` is built automatically in `shards install` via Meson/Ninja (see `postinstall`).
 * Streaming/State APIs remain implemented in Crystal for parity and low-overhead streaming; we can switch those to C on request.
 
 **CLI SIMD Control**: Use `--simd=MODE` flag to select implementation:
@@ -221,7 +221,7 @@ Follow this convention for any future algorithm folders to ensure consistency an
 
 * Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
 * Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
-* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical FFI binding lives at `src/bindings/lib_xxh.cr`. If you need to update the FFI definitions, edit that file and ensure `vendor/xxHash` is rebuilt (e.g., `make -C vendor/xxHash libxxhash.a`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers.
+* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical FFI binding lives at `src/bindings/lib_xxh.cr`. If you need to update the FFI definitions, edit that file and rebuild `vendor/xxhash-wrapper` (e.g., `meson setup vendor/xxhash-wrapper/build --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers.
 
 ## Migration Paper
 
@@ -433,7 +433,7 @@ This repository includes a Nix development configuration to get a reproducible s
 
 ### Regenerating vendor test vectors
 
-* Vendor sanity vectors are imported from `vendor/xxHash/tests/sanity_test_vectors.h` and emitted to per-algorithm fixtures under `spec/fixtures/` (files named `vendor_vectors_xxh32.json`, `vendor_vectors_xxh64.json`, `vendor_vectors_xxh3.json`, `vendor_vectors_xxh128.json`, plus `vendor_vectors_meta.json`). The runtime loader `spec/support/vector_loader.cr` exposes the vectors to specs (lazy‑loaded to avoid compile‑time bloat).
+* Vendor sanity vectors are imported from `vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h` and emitted to per-algorithm fixtures under `spec/fixtures/` (files named `vendor_vectors_xxh32.json`, `vendor_vectors_xxh64.json`, `vendor_vectors_xxh3.json`, `vendor_vectors_xxh128.json`, plus `vendor_vectors_meta.json`). The runtime loader `spec/support/vector_loader.cr` exposes the vectors to specs (lazy‑loaded to avoid compile‑time bloat).
 * To regenerate after upstream updates run:
 
 ```bash
@@ -451,7 +451,7 @@ The JSON fixture is consumed by `spec/support/vector_loader.cr` and used by `spe
 
 ## Notes
 
-* `shard.yml` runs `make -C vendor/xxHash libxxhash.a` during `shards install` (see `postinstall`) so the dev shell includes `gcc` and `make`.
+* `shard.yml` runs a Meson/Ninja build in `vendor/xxhash-wrapper/build` during `shards install` (see `postinstall`) so the dev shell includes `meson` and `ninja`.
 * The `CRYSTAL_PATH` environment variable is set in the shell so the local sources are visible to Crystal.
 
 ### GitHub Actions Workflows ✅
@@ -638,7 +638,7 @@ See the [Scripts README](scripts/README.md) for tooling help. Contributors shoul
 
 ## Third-party components
 
-This repository is based on the outstanding work of Yann Collet and the xxHash project. Portions of the implementation are vendored from `xxHash` and are included under the **BSD 2‑Clause** License — see `vendor/xxHash/LICENSE` for the original license text and attribution.
+This repository is based on the outstanding work of Yann Collet and the xxHash project. Portions of the implementation are vendored from `xxHash` via `vendor/xxhash-wrapper` and are included under the **BSD 2‑Clause** License — see `vendor/xxhash-wrapper/vendor/xxHash/LICENSE` for the original license text and attribution.
 
 ## Contributors
 

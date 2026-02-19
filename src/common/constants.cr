@@ -1,4 +1,4 @@
-# Auto-generated from vendor/xxHash/xxhash.h
+# Auto-generated from vendor/xxhash-wrapper/vendor/xxHash/xxhash.h
 # DO NOT EDIT - run `crystal scripts/generate_constants.cr` to regenerate
 
 lib LibXXH

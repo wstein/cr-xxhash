@@ -10,24 +10,28 @@ authors:
 
 crystal: ">= 1.19.0"
 
-# Automatically compile vendored xxHash C library and create CLI aliases
-# Build uses conservative, overrideable performance flags and parallel make.
+# Automatically compile vendored xxhash-wrapper C library and create CLI aliases.
+# Build uses Meson/Ninja in vendor/xxhash-wrapper/build.
 scripts:
   postinstall: |
-    # Determine CPU cores (portable fallback)
-    NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
+    # Build xxhash-wrapper via Meson/Ninja
+    WRAPPER_DIR="vendor/xxhash-wrapper"
+    BUILD_DIR="build"
 
-    # Defaults: tuned for runtime performance but can be overridden by env vars
-    : "${XXHASH_CFLAGS:=-O3 -march=native -mtune=native -DNDEBUG -fomit-frame-pointer -funroll-loops}"
-    : "${XXHASH_LDFLAGS:=-Wl,-O1}"
-    : "${XXHASH_MAKEFLAGS:=-j$NPROC}"
+    # Ensure nested upstream submodule used by wrapper is available
+    if [ -d .git ]; then
+      git submodule update --init --recursive "$WRAPPER_DIR" || true
+    fi
 
-    echo "Building vendor/xxHash (CFLAGS=\"$XXHASH_CFLAGS\", MAKEFLAGS=\"$XXHASH_MAKEFLAGS\")"
+    cd "$WRAPPER_DIR"
+    meson setup build --wipe 2>/dev/null || meson setup build
+    meson compile -C build
 
-    export CFLAGS="$XXHASH_CFLAGS" LDFLAGS="$XXHASH_LDFLAGS" MAKEFLAGS="$XXHASH_MAKEFLAGS"
-
-    # Build object & static library (Makefile in vendor/xxHash picks up CFLAGS/LDFLAGS)
-    make -C vendor/xxHash xxhash.o libxxhash.a
+    # Keep a stable static archive path expected by Crystal link flags
+    if [ -f "$BUILD_DIR/libxxh3_wrapper_static.a" ] && [ ! -f "$BUILD_DIR/libxxh3_wrapper.a" ]; then
+      ln -sf libxxh3_wrapper_static.a "$BUILD_DIR/libxxh3_wrapper.a"
+    fi
+    cd - >/dev/null
 
     # CLI symlinks
     mkdir -p bin

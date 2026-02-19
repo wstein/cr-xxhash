@@ -67,7 +67,7 @@ module XXHSum
 
           begin
             # Compute hash of the file
-            computed_hash = compute_hash(filename, algo, options.seed)
+            computed_hash = compute_hash(filename, algo, options.seed, options.simd_mode)
             # If file format is LE, reverse the computed hash for comparison
             hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
@@ -177,7 +177,7 @@ module XXHSum
 
               begin
                 # Compute hash of the file
-                computed_hash = compute_hash(filename, algo, options.seed)
+                computed_hash = compute_hash(filename, algo, options.seed, options.simd_mode)
                 # If file format is LE, reverse the computed hash for comparison
                 hash_to_compare = is_le ? reverse_hex_bytes(computed_hash) : computed_hash
 
@@ -356,7 +356,7 @@ module XXHSum
       end
 
       # Compute hash of a file using the specified algorithm
-      private def self.compute_hash(path : String, algorithm : CLI::Algorithm, seed : UInt64?) : String
+      private def self.compute_hash(path : String, algorithm : CLI::Algorithm, seed : UInt64?, simd_mode : String?) : String
         case algorithm
         when CLI::Algorithm::XXH32
           val = seed ? XXH::XXH32.hash_file(path, seed.to_u32) : XXH::XXH32.hash_file(path)
@@ -365,11 +365,11 @@ module XXHSum
           val = seed ? XXH::XXH64.hash_file(path, seed) : XXH::XXH64.hash_file(path)
           val.to_s(16).rjust(16, '0')
         when CLI::Algorithm::XXH128
-          val = seed ? XXH::XXH3.hash128_file(path, seed) : XXH::XXH3.hash128_file(path)
-          val.to_hex32
+          val = Hasher.hash_path(path, algorithm, seed, simd_mode)
+          val
         when CLI::Algorithm::XXH3_64
-          val = seed ? XXH::XXH3.hash64_file(path, seed) : XXH::XXH3.hash64_file(path)
-          val.to_s(16).rjust(16, '0')
+          val = Hasher.hash_path(path, algorithm, seed, simd_mode)
+          val
         else
           raise "Unknown algorithm"
         end

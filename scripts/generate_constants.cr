@@ -5,7 +5,7 @@
 require "regex"
 require "file"
 
-HEADER_PATH = "vendor/xxHash/xxhash.h"
+HEADER_PATH = "vendor/xxhash-wrapper/vendor/xxHash/xxhash.h"
 OUTPUT_PATH = "src/common/constants.cr"
 
 # Patterns to extract (name => crystal_type)
@@ -67,7 +67,7 @@ def generate_crystal_file(constants : Hash(String, String)) : String
   max_val = constants.values.max_by(&.size).size
 
   lines = [] of String
-  lines << "# Auto-generated from vendor/xxHash/xxhash.h"
+  lines << "# Auto-generated from vendor/xxhash-wrapper/vendor/xxHash/xxhash.h"
   lines << "# DO NOT EDIT - run `crystal scripts/generate_constants.cr` to regenerate"
   lines << ""
   lines << "lib LibXXH"

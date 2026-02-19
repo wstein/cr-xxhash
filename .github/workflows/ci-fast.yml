@@ -46,10 +46,12 @@ jobs:
 
           shards install --ignore-crystal-version || true
 
-          # Ensure vendored C library is present — some CI images skip postinstall hooks
-          if [ -f vendor/xxHash/Makefile ]; then
-            echo "Building vendored xxHash C library (ensure xxhash.o/libxxhash.a)..."
-            make -C vendor/xxHash xxhash.o libxxhash.a
+          # Ensure wrapper static library is present — some CI images skip postinstall hooks
+          if [ -f vendor/xxhash-wrapper/meson.build ]; then
+            echo "Building vendored xxhash-wrapper static library..."
+            meson setup vendor/xxhash-wrapper/build --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build
+            meson compile -C vendor/xxhash-wrapper/build
+            ln -sf libxxh3_wrapper_static.a vendor/xxhash-wrapper/build/libxxh3_wrapper.a || true
           fi
 
       - name: Run unit tests

@@ -86,7 +86,7 @@ The CLI includes comprehensive test suites:
 ----
 Test: Hash README.md with XXH64
 Crystal command: ./bin/xxhsum -H1 README.md
-Vendor command:  vendor/xxHash/xxhsum -H1 README.md
+Vendor command:  vendor/xxhash-wrapper/vendor/xxHash/xxhsum -H1 README.md
 Crystal output:  a8fe69ba5ce06d72  README.md
 Vendor output:   a8fe69ba5ce06d72  README.md
 Result: ✅ PASS (byte-for-byte identical)

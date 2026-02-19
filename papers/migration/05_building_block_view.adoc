@@ -5,7 +5,7 @@
 
 The Crystal implementation mirrors the modular structure of the original C library but adapts it to the Shard eco-system.
 
-### 5.2 Analysis of vendor/xxHash (Upstream C99)
+### 5.2 Analysis of vendor/xxhash-wrapper/vendor/xxHash (Upstream C99)
 
 Before migration, we evaluate the upstream structure to identify critical code segments for LLVM optimization.
 
@@ -24,7 +24,7 @@ Before migration, we evaluate the upstream structure to identify critical code s
 
 [source,text]
 ----
-vendor/xxHash/
+vendor/xxhash-wrapper/vendor/xxHash/
 ├── build/          # Build artifacts for CMake/Make
 ├── cli/            # xxhsum utility - Reference for benchmark design
 ├── doc/            # Formal specifications (Essential for verification)

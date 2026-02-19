@@ -3,7 +3,7 @@ require "../src/xxh"
 require "./support/vector_loader.cr"
 
 # Official test vectors from vendored xxHash repository
-# Source: vendor/xxHash/tests/sanity_test_vectors.h
+# Source: vendor/xxhash-wrapper/vendor/xxHash/tests/sanity_test_vectors.h
 
 # XXH32 test vectors: (input, seed) => expected_hash
 TEST_VECTORS_XXH32 = {
