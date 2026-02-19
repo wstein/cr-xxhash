@@ -33,15 +33,18 @@ Notes:
 * `vendor/xxhash-wrapper` is built automatically in `shards install` via Meson/Ninja (see `postinstall`).
 * Streaming/State APIs remain implemented in Crystal for parity and low-overhead streaming; we can switch those to C on request.
 
-**CLI SIMD Control**: Use `--simd=MODE` flag to select implementation:
+**CLI SIMD Control**: Use `--simd BACKEND` flag to select a specific SIMD variant:
 
 ```bash
-./bin/xxhsum --simd=auto     # Auto-detect (default)
-./bin/xxhsum --simd=scalar   # Force scalar (no SIMD)
-./bin/xxhsum --simd=neon     # Force ARM NEON (Apple Silicon, etc)
-./bin/xxhsum --simd=avx2     # Force x86 AVX2
-./bin/xxhsum --simd=sse2     # Force x86 SSE2
+./bin/xxhsum --simd scalar   # Force scalar (no SIMD, always works)
+./bin/xxhsum --simd neon     # Force ARM NEON (aarch64, requires CPU support)
+./bin/xxhsum --simd sve      # Force ARM SVE (aarch64, requires CPU support)
+./bin/xxhsum --simd sse2     # Force x86 SSE2 (x86_64, requires CPU support)
+./bin/xxhsum --simd avx2     # Force x86 AVX2 (x86_64, requires CPU support)
+./bin/xxhsum --simd avx512   # Force x86 AVX-512 (x86_64, requires CPU support)
 ```
+
+**Note**: After the xxhash-wrapper refactor, SIMD variants are compiled unconditionally with platform-specific CPU flags. If your CPU doesn't support the requested variant, the process will raise `SIGILL`. Always use `--simd scalar` if CPU support is unknown, or use a high-level API that hides variant selection.
 
 ## Native Implementation Roadmap
 

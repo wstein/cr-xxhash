@@ -20,6 +20,10 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   - Ignore missing files: `--ignore-missing`
   - Strict mode: `--strict` (non-zero exit on format errors)
 - Seeding: `-s SEED` or `--seed SEED` (decimal or 0xHEX format)
+- SIMD backend selection: `--simd BACKEND` (affects XXH3_64 and XXH128 one-shot hashing)
+  - aarch64: `scalar`, `neon`, `sve`
+  - x86_64: `scalar`, `sse2`, `avx2`, `avx512`
+  - Both `--simd=neon` and `--simd neon` forms are supported
 - Version & help: `--version`, `-h`, `--help`
 - Benchmark mode: `-b`, `-b#`, `-i#`, `-B#`
 
@@ -41,6 +45,10 @@ This directory contains a minimal Crystal example CLI demonstrating how to use t
   ./bin/xxhsum -b1-3 -i1 -B64K                     # Run benchmark variants 1 through 3 (range)
   ./bin/xxhsum -bi1 -B64K                          # Compact form: -b with iterations (vendor-style -bi1)
   ./bin/xxhsum -b7 -i3 -B1M                       # Run one benchmark variant
+  ./bin/xxhsum --simd neon file.txt               # Use NEON SIMD for XXH3_64/XXH128 (aarch64)
+  ./bin/xxhsum --simd=avx2 file.txt              # Use AVX2 SIMD for XXH3_64/XXH128 (x86_64)
+  ./bin/xxhsum -H3 --simd neon file.txt          # XXH3_64 with NEON backend
+  ./bin/xxhsum -b --simd neon -i1 -B1M           # Benchmark with NEON SIMD dispatch
 
 **Format Parity:**
 
@@ -53,7 +61,7 @@ Output format matches the official vendor `xxhsum` for all P0 features:
 
 - `src/options.cr` — command-line argument parsing (OptionParser)
 - `src/cli.cr` — main CLI orchestration and mode routing
-- `src/hasher.cr` — delegates to `XXH::*` library APIs (uses streaming/file APIs)
+- `src/hasher.cr` — delegates to `XXH::*` library APIs and `LibXXH` FFI for SIMD dispatch (uses streaming/file APIs)
 - `src/formatter.cr` — output formatting (GNU/BSD modes, algorithm prefixes)
 - `src/checker.cr` — checksum verification mode implementation
 - `src/benchmark.cr` — benchmark mode implementation (28 variants with time-based calibration). Exposes `Benchmark::Variant` record (`kind : Symbol`) for variant metadata. Optimized for zero-copy data generation and stack-allocated secret buffers.
@@ -71,7 +79,7 @@ This Crystal implementation has achieved **100% behavioral parity with the offic
 - **Output formats**: GNU and BSD modes match exactly
 - **Error handling**: Same error messages, summary format, and missing file behavior
 - **Modes**: Quiet mode, ignore-missing, strict mode, seeding all confirmed compatible
-- **All 354 tests passing**: main library (305) + example CLI (49) including 17 vendor parity cases
+- **All tests passing**: main library + example CLI including 17 vendor parity cases
 
 See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 
@@ -83,12 +91,38 @@ See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 - `-b0` (or IDs `>=29`) runs all 28 variants (vendor-compatible behavior)
 - `-i#` number of timing iterations (default: `3`)
 - `-B#` sample size with suffixes (`K/KB/M/MB/G/GB` — 1024-based)
+- `--simd BACKEND` selects the SIMD dispatch path for XXH3_64 and XXH128 one-shot (`:basic`) benchmark variants; seeded/secret/streaming variants use the default path
 
 Output format follows vendor style:
 
 - `ID#Name : Size -> it/s (MB/s)`
 
+**SIMD Variant Selection (xxhash-wrapper refactor)**
+
+With the xxhash-wrapper library update, SIMD variant compilation has changed:
+
+- **All SIMD variants are unconditionally compiled** into separate translation units with platform-specific CPU flags (SSE2, AVX2, AVX512 for x86_64; NEON, SVE for aarch64)
+- **No global runtime `simd_backend` selection** — each variant is compiled with its own flags; the consumer explicitly calls the desired variant
+- **CPU feature detection is consumer's responsibility** — if your CPU doesn't support the requested variant, the OS will raise `SIGILL` (illegal instruction signal)
+
+**Usage and CPU Requirements:**
+
+```bash
+# These variants require specific CPU features:
+./bin/xxhsum --simd scalar file.txt    # Always works (pure scalar)
+./bin/xxhsum --simd neon file.txt      # aarch64 only; requires NEON CPU feature
+./bin/xxhsum --simd sve file.txt       # aarch64 only; requires Scalable Vector Extension
+./bin/xxhsum --simd sse2 file.txt      # x86_64 only; requires SSE2 (widely supported)
+./bin/xxhsum --simd avx2 file.txt      # x86_64 only; requires AVX2 (Intel Haswell+, AMD Excavator+)
+./bin/xxhsum --simd avx512 file.txt    # x86_64 only; requires AVX-512 (Intel Skylake Xeon+, newer Intel desktop)
+```
+
+**Graceful Degradation:**
+
+If you request an unsupported variant, the process will crash with SIGILL. For production use, validate your CPU capabilities before selecting a variant. The `--simd scalar` option always works on any platform.
+
 **Benchmark Smoke Test Mode (for CI/Tests)**
+
 
 For faster benchmark testing, benchmark specs automatically enable smoke test mode during test runs via `spec_helper.cr`:
 

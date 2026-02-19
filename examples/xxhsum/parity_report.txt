@@ -1,8 +1,163 @@
 Vendor Parity Report
 ====================
 
-Summary: 18/18 cases match vendor xxhsum
-Pass rate: 100.0%
+Summary: 0/18 cases match vendor xxhsum
+Pass rate: 0.0%
 
-✅ All cases match vendor xxhsum perfectly!
+Mismatches:
+-----------
+
+❌ hashes a file with default algorithm
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "e56631e04077c052  alpha.txt\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ hashes a file with xxh3
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "XXH3_3bddaa0189adc31f  alpha.txt\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ hashes piped stdin payload
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "5d362316e58573e1  stdin\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ verifies checksums from checksum file
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: OK\nbeta.txt: OK\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ verifies checksums from piped stdin
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: OK\nbeta.txt: OK\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ fails strict mode on malformed checksum line
+  Exit code: vendor=127, crystal=1
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   "checksums_bad.txt: no properly formatted xxHash checksum lines found\n"
+
+❌ check: warn on malformed checksum lines (vendor parity — exit when no properly formatted lines)
+  Exit code: vendor=127, crystal=1
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   "checksums_bad.txt:1: Error: Improperly formatted checksum line.\nchecksums_bad.txt: no properly formatted xxHash checksum lines found\n"
+
+❌ detects modified file in checksum verification
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "mutable.txt: FAILED\n1 computed checksum did NOT match\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ detects multiple modified files in batch check
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: FAILED\nbeta.txt: FAILED\n2 computed checksums did NOT match\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ detects single corruption in H3 batch via stdin
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: FAILED\nbeta.txt: OK\n1 computed checksum did NOT match\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: missing file without --ignore-missing
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "checksums_missing.txt:1: Could not open or read 'missing.txt': No such file or directory.\n1 listed file could not be read\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: missing file with --ignore-missing
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "checksums_missing.txt: no file was verified\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: missing file with -q (quiet)
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "checksums_missing.txt:1: Could not open or read 'missing.txt': No such file or directory.\n1 listed file could not be read\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: missing file with --ignore-missing + -q
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "checksums_missing.txt: no file was verified\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: mixed present + missing without flags
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: OK\nchecksums_mixed_missing.txt:2: Could not open or read 'missing.txt': No such file or directory.\n1 listed file could not be read\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: mixed present + missing with --ignore-missing
+  Exit code: vendor=127, crystal=0
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "alpha.txt: OK\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: mixed present + missing with -q
+  Exit code: vendor=127, crystal=1
+  Stdout mismatch:
+    Expected: ""
+    Actual:   "checksums_mixed_missing.txt:2: Could not open or read 'missing.txt': No such file or directory.\n1 listed file could not be read\n"
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
+❌ check: mixed present + missing with --ignore-missing + -q
+  Exit code: vendor=127, crystal=0
+  Stderr mismatch:
+    Expected: "sh: /Users/werner/github.com/wstein/cr-xxhash/vendor/xxhash-wrapper/vendor/xxHash/xxhsum: No such file or directory\n"
+    Actual:   ""
+
 

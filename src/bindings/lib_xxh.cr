@@ -1,4 +1,4 @@
-@[Link(ldflags: "#{__DIR__}/../../vendor/xxhash-wrapper/build/libxxh3_wrapper.a")]
+@[Link(ldflags: "#{__DIR__}/../../vendor/xxhash-wrapper/build/libxxh3_wrapper_static.a")]
 lib LibXXH
   enum XXHErrorcode : Int32
     XXH_OK    = 0

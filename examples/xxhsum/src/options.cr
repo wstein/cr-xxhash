@@ -189,8 +189,8 @@ module XXHSum
                      end
           opts_ptr.value.seed = seed_val.to_u64
         end
-        parser.on("--simd [BACKEND]", "Select SIMD backend for XXH3/XXH128 one-shot hashing (available: " + Options.simd_backends.join(", ") + ")") do |value|
-          unless value.nil? || Options.simd_backends.includes?(value)
+        parser.on("--simd BACKEND", "Select SIMD backend for XXH3/XXH128 one-shot hashing (requires CPU support: scalar always works)\nAvailable: " + Options.simd_backends.join(", ")) do |value|
+          unless Options.simd_backends.includes?(value)
             STDERR.puts "Error: invalid SIMD backend '#{value}' (available: #{Options.simd_backends.join(", ")})"
             exit 1
           end

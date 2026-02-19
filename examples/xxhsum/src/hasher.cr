@@ -1,8 +1,16 @@
 require "../../../src/xxh"
+require "../../../src/bindings/simd_handler"
 
 module XXHSum
   module CLI
     module Hasher
+      # SIMD Dispatch Notes (xxhash-wrapper refactor):
+      # - All SIMD variants (scalar, neon, sve, sse2, avx2, avx512) are unconditionally compiled
+      # - Each variant has its own CPU flags set during compilation (no runtime simd_backend selection)
+      # - Consumer (this code) explicitly calls the desired variant via LibXXH function
+      # - If CPU doesn't support the target variant, OS raises SIGILL (process crash)
+      # - URL options validation in options.cr ensures only supported variants are selectable
+      
       private def self.pad_hex(value : UInt32, width = 8)
         value.to_s(16).rjust(width, '0')
       end

@@ -1,6 +1,7 @@
 require "../../../src/xxh"
 require "../../../src/common/constants"
 require "../../../src/common/types"
+require "../../../src/bindings/lib_xxh"
 require "./options"
 
 module XXHSum::CLI::Benchmark
@@ -64,7 +65,7 @@ module XXHSum::CLI::Benchmark
                       end
 
     variants_to_run.each do |variant|
-      run_single_benchmark(aligned_data, unaligned_data, variant, options.benchmark_iterations, io)
+      run_single_benchmark(aligned_data, unaligned_data, variant, options.benchmark_iterations, options.simd_mode, io)
     end
 
     0
@@ -109,13 +110,13 @@ module XXHSum::CLI::Benchmark
     io.flush
   end
 
-  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : Variant, user_iterations : Int32 = 0, io : IO = STDOUT)
+  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : Variant, user_iterations : Int32 = 0, simd_mode : String? = nil, io : IO = STDOUT)
     data = variant.aligned ? aligned_data : unaligned_data
     max_calibrations = user_iterations > 0 ? user_iterations : 3
-    run_time_based_benchmark(data, variant, max_calibrations, io)
+    run_time_based_benchmark(data, variant, max_calibrations, simd_mode, io)
   end
 
-  private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, io : IO = STDOUT)
+  private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, simd_mode : String? = nil, io : IO = STDOUT)
     target_duration = ENV["BENCHMARK_SMOKE"]? ? SMOKE_SECONDS : TARGET_SECONDS
     min_duration = MIN_SECONDS
     initial_throughput = FIRST_MBPS * 1024_u64 * 1024_u64
@@ -129,7 +130,7 @@ module XXHSum::CLI::Benchmark
       iteration_number = 0_u32
 
       while (Time.instant - start_time).total_seconds < target_duration
-        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration)
+        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration, simd_mode)
         actual_iterations += nbh_per_iteration
         iteration_number += 1
       end
@@ -167,18 +168,18 @@ module XXHSum::CLI::Benchmark
       variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
   end
 
-  private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32) : UInt64
+  private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32, simd_mode : String? = nil) : UInt64
     result = 0_u64
     nbh_per_iteration.times do |hash_idx|
       seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
-      result = run_single_hash(data, variant, seed)
+      result = run_single_hash(data, variant, seed, simd_mode)
     end
     result
   end
 
-  private def self.run_single_hash(data : Bytes, variant : Variant, seed : UInt32) : UInt64
+  private def self.run_single_hash(data : Bytes, variant : Variant, seed : UInt32, simd_mode : String? = nil) : UInt64
     case variant.kind
-    when :basic  then run_basic_benchmark_one(data, variant.algorithm, seed)
+    when :basic  then run_basic_benchmark_one(data, variant.algorithm, seed, simd_mode)
     when :seeded then run_seeded_benchmark_one(data, variant.algorithm, seed)
     when :secret then run_secret_benchmark_one(data, variant.algorithm, seed)
     when :stream then run_streaming_benchmark_one(data, variant.algorithm, seed)
@@ -186,20 +187,79 @@ module XXHSum::CLI::Benchmark
     end
   end
 
-  private def self.run_basic_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
+  private def self.run_basic_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32, simd_mode : String? = nil) : UInt64
     case algorithm
     when Algorithm::XXH32
       XXH::XXH32.hash(data, seed_u).to_u64
     when Algorithm::XXH64
       XXH::XXH64.hash(data, seed_u.to_u64)
     when Algorithm::XXH3_64
-      XXH::XXH3.hash64(data, seed_u.to_u64)
+      seed = seed_u.to_u64
+      if simd_mode.nil?
+        XXH::XXH3.hash64(data, seed)
+      else
+        dispatch_xxh3_64_simd(data, seed, simd_mode)
+      end
     when Algorithm::XXH128
-      result = XXH::XXH3.hash128(data, 0_u64)
-      result.high64 ^ result.low64
+      seed = seed_u.to_u64
+      if simd_mode.nil?
+        result = XXH::XXH3.hash128(data, seed)
+        result.high64 ^ result.low64
+      else
+        result = dispatch_xxh128_simd(data, seed, simd_mode)
+        result.high64 ^ result.low64
+      end
     else
       0_u64
     end
+  end
+
+  private def self.dispatch_xxh3_64_simd(data : Bytes, seed : UInt64, simd_mode : String) : UInt64
+    if simd_mode == "scalar"
+      return LibXXH.xxh3_64_scalar(data.to_unsafe, data.size, seed)
+    end
+
+    {% if flag?(:x86_64) %}
+    if simd_mode == "sse2"
+      return LibXXH.xxh3_64_sse2(data.to_unsafe, data.size, seed)
+    elsif simd_mode == "avx2"
+      return LibXXH.xxh3_64_avx2(data.to_unsafe, data.size, seed)
+    elsif simd_mode == "avx512"
+      return LibXXH.xxh3_64_avx512(data.to_unsafe, data.size, seed)
+    end
+    {% elsif flag?(:aarch64) %}
+    if simd_mode == "neon"
+      return LibXXH.xxh3_64_neon(data.to_unsafe, data.size, seed)
+    elsif simd_mode == "sve"
+      return LibXXH.xxh3_64_sve(data.to_unsafe, data.size, seed)
+    end
+    {% end %}
+
+    XXH::XXH3.hash64(data, seed)
+  end
+
+  private def self.dispatch_xxh128_simd(data : Bytes, seed : UInt64, simd_mode : String) : UInt128
+    if simd_mode == "scalar"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_scalar(data.to_unsafe, data.size, seed))
+    end
+
+    {% if flag?(:x86_64) %}
+    if simd_mode == "sse2"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_sse2(data.to_unsafe, data.size, seed))
+    elsif simd_mode == "avx2"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_avx2(data.to_unsafe, data.size, seed))
+    elsif simd_mode == "avx512"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_avx512(data.to_unsafe, data.size, seed))
+    end
+    {% elsif flag?(:aarch64) %}
+    if simd_mode == "neon"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_neon(data.to_unsafe, data.size, seed))
+    elsif simd_mode == "sve"
+      return UInt128.from_c_hash(LibXXH.xxh3_128_sve(data.to_unsafe, data.size, seed))
+    end
+    {% end %}
+
+    XXH::XXH3.hash128(data, seed)
   end
 
   private def self.run_seeded_benchmark_one(data : Bytes, algorithm : Algorithm, seed_u : UInt32) : UInt64
