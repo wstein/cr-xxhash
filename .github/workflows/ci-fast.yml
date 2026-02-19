@@ -44,6 +44,14 @@ jobs:
             fi
           fi
 
+          # Initialize nested xxHash submodule inside xxhash-wrapper
+          # (shards install may skip postinstall hooks in CI)
+          if [ -d vendor/xxhash-wrapper ]; then
+            cd vendor/xxhash-wrapper
+            git submodule update --init --recursive vendor/xxHash || true
+            cd - >/dev/null
+          fi
+
           shards install --ignore-crystal-version || true
 
           # Ensure wrapper static library is present — some CI images skip postinstall hooks
