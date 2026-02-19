@@ -9,6 +9,8 @@ in pkgs.mkShell {
     xxHash
     gcc
     gnumake
+    meson
+    ninja
   ];
 
   shellHook = ''
