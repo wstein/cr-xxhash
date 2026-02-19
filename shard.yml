@@ -18,11 +18,18 @@ scripts:
     WRAPPER_DIR="vendor/xxhash-wrapper"
     BUILD_DIR="build"
 
-    # Ensure nested upstream submodule used by wrapper is available
+    # Step 1: Initialize and update outer submodule (xxhash-wrapper)
     if [ -d .git ]; then
       git submodule update --init --recursive "$WRAPPER_DIR" || true
     fi
 
+    # Step 2: Initialize the NESTED xxHash submodule inside xxhash-wrapper
+    # xxhash-wrapper has its own vendor/xxHash which contains the actual xxHash source
+    cd "$WRAPPER_DIR"
+    git submodule update --init --recursive vendor/xxHash || true
+    cd - >/dev/null
+
+    # Step 3: Build with Meson
     cd "$WRAPPER_DIR"
     meson setup build --wipe 2>/dev/null || meson setup build
     meson compile -C build
