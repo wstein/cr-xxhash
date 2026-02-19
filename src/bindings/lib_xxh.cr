@@ -100,7 +100,4 @@ lib LibXXH
   alias XXH32_state_t = XXH_state_t
   alias XXH64_state_t = XXH_state_t
   alias XXH3_state_t = XXH_state_t
-
-  XXH3_SECRET_SIZE_MIN     = 136
-  XXH3_SECRET_DEFAULT_SIZE = 192
 end
