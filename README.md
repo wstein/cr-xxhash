@@ -293,6 +293,24 @@ state64.reset(123_u64)
 state64.update("bar")
 puts "XXH3_64 streaming with seed: #{state64.digest.to_s(16)}"
 
+# State copying: branch from one state to compute multiple hashes
+state_base = XXH::XXH3::State64.new
+state_base.update("common prefix")
+
+# Create independent copy for branch 1
+branch1 = state_base.copy
+branch1.update(" branch 1 suffix")
+hash1 = branch1.digest
+
+# Create independent copy for branch 2
+branch2 = state_base.copy
+branch2.update(" branch 2 suffix")
+hash2 = branch2.digest
+
+puts "Branch 1: #{hash1.to_s(16)}"
+puts "Branch 2: #{hash2.to_s(16)}"
+# Both branches started from same state but produced different results
+
 > Tip: `State#update` accepts both `String` and `Bytes` directly (`update(data : Bytes | String)`), so you can pass `String` values without calling `to_slice`.
 
 ### API overloads & examples — quick reference 🔧
@@ -311,6 +329,7 @@ puts "XXH3_64 streaming with seed: #{state64.digest.to_s(16)}"
   - `state = XXH::XXH3::State128.new` or `XXH::XXH3::State128.new(42_u64)`
   - `state.update("chunk")` accepts `String` or `Bytes`
   - `state.reset(seed)`, `state.digest` (returns `UInt128`)
+  - `copy_state = state.copy` — creates an independent deep copy for branching workflows
 
 - `UInt128` helpers:
   - `h = XXH::XXH3.hash128("x")` → accessors: `h.low64`, `h.high64`, `h.to_hex32`, `h.to_bytes`

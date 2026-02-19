@@ -240,4 +240,59 @@ describe XXH::XXH32::State do
       streaming_hash.should eq(oneshot_hash)
     end
   end
-end
+
+  describe "#copy" do
+    it "creates independent deep copy of state" do
+      original = XXH::XXH32::State.new(0x12345678_u32)
+      original.update("initial data")
+      
+      # Copy the state
+      copy = original.copy
+      
+      # Verify copy is a different object
+      copy.should_not be(original)
+      
+      # Verify both states produce the same hash after copying
+      original.digest.should eq(copy.digest)
+    end
+
+    it "copy can be mutated independently" do
+      original = XXH::XXH32::State.new
+      original.update("base")
+      
+      # Create a copy
+      copy = original.copy
+      
+      # Mutate the copy with additional data
+      copy.update(" extension")
+      
+      # Verify original and copy produce different hashes
+      original.digest.should_not eq(copy.digest)
+      
+      # Verify original still matches expected value
+      original.digest.should eq(XXH::XXH32.hash("base"))
+    end
+
+    it "multiple levels of copying work correctly" do
+      state1 = XXH::XXH32::State.new
+      state1.update("data")
+      
+      # Create copy 1
+      state2 = state1.copy
+      
+      # Create copy 2 from copy 1
+      state3 = state2.copy
+      
+      # All should have identical digests at this point
+      state1.digest.should eq(state2.digest)
+      state2.digest.should eq(state3.digest)
+      
+      # Mutate state3
+      state3.update("more")
+      
+      # Now state3 should differ
+      state1.digest.should_not eq(state3.digest)
+      state2.digest.should_not eq(state3.digest)
+      state1.digest.should eq(state2.digest)
+    end
+  end

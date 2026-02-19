@@ -30,6 +30,26 @@ module XXH
         self
       end
 
+      def copy : State64
+        # Create destination state for copying
+        copy_state = LibXXH.XXH3_createState
+        raise StateError.new("Failed to allocate XXH3 state for copy") if copy_state.null?
+        
+        begin
+          # Deep copy the source state into the destination
+          ErrorHandler.check!(LibXXH.XXH3_copyState(copy_state, @state), "XXH3 copyState")
+          
+          # Create a new Ruby-side object wrapping the copied C state
+          copied = self.class.allocate
+          copied.instance_variable_set(:@state, copy_state)
+          copied
+        rescue
+          # Clean up on error
+          LibXXH.XXH3_freeState(copy_state)
+          raise
+        end
+      end
+
       def dispose
         return if @state.null?
         LibXXH.XXH3_freeState(@state)

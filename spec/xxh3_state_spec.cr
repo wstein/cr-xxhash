@@ -196,4 +196,88 @@ describe XXH::XXH3::State128 do
     (hash64 != hash128.high64).should be_true
     (hash64 != hash128.low64).should be_true
   end
-end
+
+  it "copy creates independent deep copy of State64" do
+    original = XXH::XXH3::State64.new(0x1234567890ABCDEF_u64)
+    original.update("first part")
+    
+    # Copy the state
+    copy = original.copy
+    
+    # Verify copy is a different object
+    copy.should_not be(original)
+    
+    # Verify both states produce the same hash after copying
+    original.digest.should eq(copy.digest)
+  end
+
+  it "copy of State64 can be mutated independently" do
+    original = XXH::XXH3::State64.new
+    original.update("test data")
+    
+    # Create a copy
+    copy = original.copy
+    
+    # Mutate the copy with additional data
+    copy.update(" more data")
+    
+    # Verify original and copy produce different hashes
+    original.digest.should_not eq(copy.digest)
+    
+    # Verify original still matches expected value
+    original.digest.should eq(XXH::XXH3.hash64("test data"))
+  end
+
+  it "copy of State128 preserves state correctly" do
+    original = XXH::XXH3::State128.new(0x9876543210FEDCBA_u64)
+    original.update("test content")
+    
+    # Copy the state
+    copy = original.copy
+    
+    # Verify copy is a different object
+    copy.should_not be(original)
+    
+    # Verify both produce identical hash values
+    original.digest.should eq(copy.digest)
+  end
+
+  it "copy of State128 can be mutated independently" do
+    original = XXH::XXH3::State128.new
+    original.update("initial data")
+    
+    # Create a copy
+    copy = original.copy
+    
+    # Mutate the copy
+    copy.update(" appended")
+    
+    # Verify they produce different results
+    original.digest.should_not eq(copy.digest)
+    
+    # Verify original matches expected value
+    original.digest.should eq(XXH::XXH3.hash128("initial data"))
+  end
+
+  it "multiple levels of copying work correctly" do
+    state1 = XXH::XXH3::State64.new
+    state1.update("data1")
+    
+    # Create copy 1
+    state2 = state1.copy
+    
+    # Create copy 2 from copy 1
+    state3 = state2.copy
+    
+    # All should have identical digests at this point
+    state1.digest.should eq(state2.digest)
+    state2.digest.should eq(state3.digest)
+    
+    # Mutate state3
+    state3.update("extra")
+    
+    # Now state3 should differ
+    state1.digest.should_not eq(state3.digest)
+    state2.digest.should_not eq(state3.digest)
+    state1.digest.should eq(state2.digest)
+  end

@@ -57,6 +57,7 @@ lib LibXXH
 
   fun XXH3_createState = "xxh3_createState" : XXH3_state_t*
   fun XXH3_freeState = "xxh3_freeState"(state : XXH3_state_t*) : Nil
+  fun XXH3_copyState = "xxh3_copyState"(dst : XXH3_state_t*, src : XXH3_state_t*) : Int32
   fun XXH3_64bits_reset = "xxh3_64_reset"(state : XXH3_state_t*, seed : XXH64HashT) : Nil
   fun XXH3_64bits_reset_withSeed = "xxh3_64_reset"(state : XXH3_state_t*, seed : XXH64HashT) : Nil
   fun XXH3_64bits_reset_withSecret = "xxh3_64_reset_withSecret"(state : XXH3_state_t*, secret : Void*, secretSize : LibC::SizeT) : Nil
