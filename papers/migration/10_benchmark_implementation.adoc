@@ -166,7 +166,7 @@ end
 
 === 5. Streaming Variant Support
 
-Streaming variants use the streaming API with proper state management:
+Streaming variants use the streaming API with proper state management (allocate/reset/update/digest/free):
 
 [source,crystal]
 ----
@@ -191,6 +191,8 @@ private def self.run_streaming_benchmark(data : Bytes, algorithm : Algorithm, it
   end
 end
 ----
+
+NOTE: earlier benchmark implementations sometimes allocated a fresh streaming `State` per hash iteration, which measured allocation overhead rather than pure hashing throughput. The `XXH128_stream` benchmark was corrected to use `State128` (streaming path). For realistic streaming measurements, reuse a single state across many `update()` calls (an "amortized" streaming variant) or use a pooled-state pattern to isolate hashing performance from allocation costs.
 
 == Variant Selection
 

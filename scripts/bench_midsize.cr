@@ -19,6 +19,8 @@ def bench(name : String, size : Int32, &block)
   input = Bytes.new(size) { |i| (i & 0xFF).to_u8 }
   # sanity check correctness
   native = XXH::XXH3.hash128(input)
+  # `LibXXH.XXH3_128bits` is bound to the wrapper's scalar unseeded variant by default
+  # (the wrapper exports per-variant symbols such as `xxh3_128_scalar_unseeded`).
   ffi_r = LibXXH.XXH3_128bits(input.to_unsafe, size)
   if native.low64 != ffi_r.low64 || native.high64 != ffi_r.high64
     puts "[WARN] correctness mismatch for size=#{size} (native != ffi)"

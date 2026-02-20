@@ -10,7 +10,7 @@
 ### ADR 2: SIMD Strategy
 
 *   **Context**: xxHash speed comes from SIMD instructions (unrolling and vectorization).
-*   **Decision**: Use Crystal's LLVM-backed intrinsics where possible. Fall back to `LibC` hardware detection logic via `vendor/xxhash-wrapper/vendor/xxHash/xxh_x86dispatch.c` if needed for runtime dispatch.
+*   **Decision**: Prefer Crystal's LLVM-backed intrinsics when practical. The vendor wrapper exports named per-variant SIMD symbols (no internal runtime dispatcher); consumers select the desired per-variant function. The Crystal shard binds one-shot calls to the scalar variant by default and may call per-variant FFI symbols for explicit SIMD dispatch.
 *   **Goal**: Ensure `XXH3` reaches 10+ GB/s on modern x86_64 hardware.
 
 ### ADR 3: CLI Output Format - Match Vendor Implementation Exactly

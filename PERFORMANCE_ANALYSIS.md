@@ -126,7 +126,7 @@ xxh3_state_t* xxh3_createState(void);
 ```
 
 The C library offers both:
-1. **One-shot**: Direct call to `xxh3_64()` — no state allocation
+1. **One-shot**: Direct call to a per-variant one-shot function. The wrapper now exports per-variant symbols (e.g. `xxh3_64_scalar`, `xxh3_64_avx2`); the Crystal bindings expose `LibXXH.XXH3_64bits()` which maps to the `scalar` variant by default — use per-variant FFI symbols to select SIMD implementations.
 2. **Streaming**: Allocate state, call `update()`, then `digest()` — one allocation per stream
 
 ### Crystal Wrapper (`src/xxh3/state64.cr`)

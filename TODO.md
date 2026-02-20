@@ -2246,10 +2246,11 @@ Override with:
 XXHASH_CFLAGS="-O3 -march=x86-64-v3" shards install
 ```
 
-## Runtime Detection (Future)
+## Runtime Detection (Current state)
 
-Currently using compile-time selection. Runtime CPU dispatch could be added
-in future versions.
+The vendor `xxhash-wrapper` exports per-variant SIMD functions compiled with platform-specific CPU flags. The wrapper intentionally does **not** perform internal runtime dispatch; consumers are responsible for selecting a variant or implementing CPU feature detection if runtime dispatch is required. The previous `XXH3_FORCE_SCALAR` test override was removed in favor of explicit per-variant calls.
+
+If desired, the project may provide a consumer-side runtime dispatcher in a future release (deferred).
 
 ```
 

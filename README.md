@@ -28,6 +28,11 @@ LibXXH.XXH64(ptr, len, seed)
 LibXXH.XXH3_64bits(ptr, len)
 ```
 
+# Wrapper ABI notes
+- The vendored `xxhash-wrapper` exports *per-variant* one-shot symbols (for example: `xxh3_64_scalar()`, `xxh3_64_avx2()`, `xxh3_64_neon()`).
+- For backward compatibility the Crystal bindings expose `LibXXH.XXH3_64bits(...)` which is bound to the `scalar` variant by default.
+- To call a specific SIMD implementation directly use the per-variant FFI symbol, e.g. `LibXXH.xxh3_64_avx2(ptr, len, seed)`.
+
 Notes:
 
 * `vendor/xxhash-wrapper` is built automatically in `shards install` via Meson/Ninja (see `postinstall`).
