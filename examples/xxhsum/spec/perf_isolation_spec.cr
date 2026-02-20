@@ -125,16 +125,16 @@ describe "Performance Isolation (Amortized vs Per-Iteration)" do
     # Warm up
     100.times { XXH::XXH64.hash(data) }
 
-    start_per = Time.monotonic
+    start_per = Time.instant
     iterations.times do |i|
       s = XXH::XXH64::State.new(i.to_u64)
       s.update(data)
       _ = s.digest
       s.dispose
     end
-    elapsed_per = Time.monotonic - start_per
+    elapsed_per = Time.instant - start_per
 
-    start_amort = Time.monotonic
+    start_amort = Time.instant
     s_amort = XXH::XXH64::State.new(0_u64)
     iterations.times do |i|
       s_amort.reset(i.to_u64)
@@ -142,7 +142,7 @@ describe "Performance Isolation (Amortized vs Per-Iteration)" do
       _ = s_amort.digest
     end
     s_amort.dispose
-    elapsed_amort = Time.monotonic - start_amort
+    elapsed_amort = Time.instant - start_amort
 
     # Amortized path should be faster by at least some margin, 
     # even on 1KB blocks where hashing dominates, due to zero GC pressure.
