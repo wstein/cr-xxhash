@@ -169,7 +169,8 @@ jobs:
             if command -v apt-get >/dev/null; then
               apt-get update && apt-get install -y meson ninja-build git libevent-dev
             elif command -v brew >/dev/null; then
-              brew install meson ninja git libevent-dev
+              # Homebrew package is simply "libevent" (no "-dev")
+              brew install meson ninja git libevent
             else
               # Fallback to pip if available, or just try apt-get without check
               apt-get update && apt-get install -y meson ninja-build git libevent-dev || true
