@@ -171,7 +171,9 @@ jobs:
             if [ ! -f ../vendor/xxhash-wrapper/build/libxxh3_wrapper_static.a ]; then
               echo "library missing, rebuilding inside example job"
               cd ../vendor/xxhash-wrapper
-              meson setup build vendor/xxhash-wrapper --wipe 2>/dev/null || meson setup build vendor/xxhash-wrapper
+              # ensure submodules are updated if checkout missed them in container context
+              git submodule update --init --recursive
+              meson setup build . --wipe 2>/dev/null || meson setup build .
               meson compile -C build
               cd - >/dev/null
             fi
