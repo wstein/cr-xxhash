@@ -488,7 +488,7 @@ The JSON fixture is consumed by `spec/support/vector_loader.cr` and used by `spe
 - Fast unit tests only (~<1 minute)
 - Verifies generated vectors are up-to-date
 - Generator spec validation
-- Note: the `example-xxhsum` job uses the `crystallang/crystal` container on Linux so `crystal` is available in the runner (fixes "crystal: command not found").
+- Note: the `example-xxhsum` job installs Crystal on all platforms (previous container approach failed on GitHub hosted runners lacking Docker), and additionally the meson build step now specifies its source directory explicitly to avoid `meson.build` errors.
 - **Status**: [![Crystal CI - Fast (PR smoke)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml/badge.svg)](https://github.com/wstein/cr-xxhash/actions/workflows/ci-fast.yml)
 
 **Vector Generation Check** (`check-generated-vectors.yml`):

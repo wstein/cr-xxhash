@@ -57,6 +57,7 @@ jobs:
           # Ensure wrapper static library is present — some CI images skip postinstall hooks
           if [ -f vendor/xxhash-wrapper/meson.build ]; then
             echo "Building vendored xxhash-wrapper static library..."
+            # specify source directory explicitly so meson can find meson.build on CI
             meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper
             meson compile -C vendor/xxhash-wrapper/build
             ln -sf libxxh3_wrapper_static.a vendor/xxhash-wrapper/build/libxxh3_wrapper.a || true
@@ -121,7 +122,7 @@ jobs:
           submodules: recursive
 
       - name: Setup Crystal
-        if: ${{ runner.os != 'Linux' }}
+        # Install Crystal on all platforms so `crystal` is available (Linux host runners lack Docker)
         uses: crystal-lang/install-crystal@v1
         with:
           crystal: latest
