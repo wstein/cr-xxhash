@@ -53,6 +53,7 @@ lib LibXXH
   fun XXH64_hashFromCanonical(src : XXH64_canonical_t*) : XXH64HashT
 
   fun XXH3_64bits_withSeed = "xxh3_64"(input : Void*, length : LibC::SizeT, seed : XXH64HashT) : XXH64HashT
+  fun XXH3_64bits = "xxh3_64"(input : Void*, length : LibC::SizeT, seed : XXH64HashT) : XXH64HashT
   fun XXH3_64bits_withSecret = "xxh3_64_withSecret"(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT) : XXH64HashT
 
   fun XXH3_createState = "xxh3_createState" : XXH3_state_t*
@@ -67,6 +68,7 @@ lib LibXXH
   fun XXH3_generateSecret = "xxh3_generateSecret"(secretBuffer : Void*, secretSize : LibC::SizeT, seed : XXH64HashT) : Nil
 
   fun XXH3_128bits_withSeed = "xxh3_128"(input : Void*, length : LibC::SizeT, seed : XXH64HashT) : XXH3_128_hash_t
+  fun XXH3_128bits = "xxh3_128"(input : Void*, length : LibC::SizeT, seed : XXH64HashT) : XXH3_128_hash_t
   fun XXH3_128bits_withSecret = "xxh3_128_withSecret"(input : Void*, length : LibC::SizeT, secret : Void*, secretSize : LibC::SizeT) : XXH3_128_hash_t
   fun XXH128 = "xxh3_128"(input : Void*, length : LibC::SizeT, seed : XXH64HashT) : XXH3_128_hash_t
 

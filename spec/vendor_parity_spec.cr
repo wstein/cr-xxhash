@@ -37,13 +37,13 @@ describe "Vendor-parity & extended vectors" do
         data = incremental_bytes(n)
 
         # hash64
-        expected64 = LibXXH.XXH3_64bits(data.to_slice.to_unsafe, data.size)
+        expected64 = LibXXH.XXH3_64bits(data.to_slice.to_unsafe, data.size, 0_u64)
         XXH::Bindings::XXH3_64.hash(data).should eq(expected64)
         XXH::XXH3.hash64(data).should eq(expected64)
 
         # hash128
-        c_hash = LibXXH.XXH3_128bits(data.to_slice.to_unsafe, data.size)
-        expected128 = UInt128.from_halves(c_hash.high64, c_hash.low64)
+        c_hash = LibXXH.XXH3_128bits(data.to_slice.to_unsafe, data.size, 0_u64)
+        expected128 = UInt128.from_halves(c_hash.high, c_hash.low)
         XXH::Bindings::XXH3_128.hash(data).should eq(expected128)
         XXH::XXH3.hash128(data).should eq(expected128)
       end
@@ -59,7 +59,7 @@ describe "Vendor-parity & extended vectors" do
           XXH::XXH3.hash64(data, seed).should eq(lib64)
 
           c_hash = LibXXH.XXH3_128bits_withSeed(data.to_slice.to_unsafe, data.size, seed)
-          expect_hash = UInt128.from_halves(c_hash.high64, c_hash.low64)
+          expect_hash = UInt128.from_halves(c_hash.high, c_hash.low)
           XXH::Bindings::XXH3_128.hash(data, seed).should eq(expect_hash)
           XXH::XXH3.hash128(data, seed).should eq(expect_hash)
         end
