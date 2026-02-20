@@ -123,11 +123,14 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - name: Setup Crystal
-        # Install Crystal on all platforms so `crystal` is available (Linux host runners lack Docker)
-        uses: crystal-lang/install-crystal@v1
-        with:
-          crystal: latest
+      - name: Install Crystal via official script
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Installing Crystal using the upstream installer (works on all OSes)"
+          curl -fsSL https://crystal-lang.org/install.sh | bash
+          # ensure new bin directory is on PATH if script modified it
+          export PATH="$HOME/.local/bin:$PATH"
 
       - name: Mark repository safe for Git (Linux only)
         if: ${{ runner.os == 'Linux' }}
