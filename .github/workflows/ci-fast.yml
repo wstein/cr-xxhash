@@ -107,6 +107,8 @@ jobs:
   example-xxhsum:
     name: "Example: xxhsum corpus [${{ matrix.os }}]"
     runs-on: ${{ matrix.os }}
+    container:
+      image: crystallang/crystal
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]

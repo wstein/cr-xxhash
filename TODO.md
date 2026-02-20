@@ -586,6 +586,7 @@ include XXH::SpecHelper
   - Unit tests targeting `spec/unit/` + safe bindings + version tests
   - Generator check via `crystal scripts/generate_vectors.cr`
   - Generator spec validation
+  - The `example-xxhsum` job now uses the `crystallang/crystal` container on Linux to ensure `crystal` is present (resolves "crystal: command not found").
   - Clear summary output for PR reviewers
 - Kept manual placeholder workflow at `.github/workflows/ci.yml` (manual `workflow_dispatch` only) for Phase 3 full matrix.
 
