@@ -123,13 +123,22 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - name: Install Crystal via official script
+      - name: Install Crystal
         shell: bash
         run: |
           set -euo pipefail
-          echo "Installing Crystal using the upstream installer (works on all OSes)"
-          curl -fsSL https://crystal-lang.org/install.sh | bash
-          # ensure new bin directory is on PATH if script modified it
+          echo "Installing Crystal for "/"$(uname)"""
+          if [ "$(uname)" = "Darwin" ]; then
+            # macOS: use Homebrew (runner already has brew)
+            brew update || true
+            brew install crystal-lang || true
+          elif [ "$(uname)" = "Linux" ]; then
+            # Linux: installer script needs root
+            curl -fsSL https://crystal-lang.org/install.sh | sudo bash
+          else
+            # Windows (Git Bash) – fallback to script without sudo
+            curl -fsSL https://crystal-lang.org/install.sh | bash
+          fi
           export PATH="$HOME/.local/bin:$PATH"
 
       - name: Mark repository safe for Git (Linux only)
