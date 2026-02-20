@@ -123,24 +123,32 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - name: Install Crystal
+      - name: Ensure Crystal is installed
         shell: bash
         run: |
           set -euo pipefail
-          echo "Installing Crystal for "/"$(uname)"""
-          if [ "$(uname)" = "Darwin" ]; then
-            # macOS: use Homebrew (runner already has brew)
-            brew update || true
-            brew install crystal-lang || true
-          elif [ "$(uname)" = "Linux" ]; then
-            # Linux: installer script needs root
-            curl -fsSL https://crystal-lang.org/install.sh | sudo bash
-          elif [[ "$(uname)" == MINGW* || "$(uname)" == MSYS* ]]; then
-            # Windows: use chocolatey (preinstalled on hosted runners)
-            choco install -y crystal
+          if command -v crystal >/dev/null 2>&1; then
+            echo "Crystal already available: $(crystal --version)"
           else
-            # Fallback (unknown/unix-like)
-            curl -fsSL https://crystal-lang.org/install.sh | bash
+            echo "Installing Crystal for "/"$(uname)"""
+            if [ "$(uname)" = "Darwin" ]; then
+              # macOS: use Homebrew (runner already has brew)
+              brew update || true
+              brew install crystal-lang || true
+            elif [ "$(uname)" = "Linux" ]; then
+              # Container image already provides crystal in most cases;
+              # if not, fall back to installer but assume root access.
+              if ! command -v curl >/dev/null 2>&1; then
+                apt-get update && apt-get install -y curl
+              fi
+              curl -fsSL https://crystal-lang.org/install.sh | bash
+            elif [[ "$(uname)" == MINGW* || "$(uname)" == MSYS* ]]; then
+              # Windows: use chocolatey (preinstalled on hosted runners)
+              choco install -y crystal
+            else
+              # Fallback (unknown/unix-like)
+              curl -fsSL https://crystal-lang.org/install.sh | bash
+            fi
           fi
           export PATH="$HOME/.local/bin:$PATH"
 
