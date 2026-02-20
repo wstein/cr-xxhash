@@ -57,7 +57,7 @@ jobs:
           # Ensure wrapper static library is present — some CI images skip postinstall hooks
           if [ -f vendor/xxhash-wrapper/meson.build ]; then
             echo "Building vendored xxhash-wrapper static library..."
-            meson setup vendor/xxhash-wrapper/build --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build
+            meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper
             meson compile -C vendor/xxhash-wrapper/build
             ln -sf libxxh3_wrapper_static.a vendor/xxhash-wrapper/build/libxxh3_wrapper.a || true
           fi

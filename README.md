@@ -229,7 +229,7 @@ Follow this convention for any future algorithm folders to ensure consistency an
 
 * Interested in porting SIMD paths? See [papers/CONTRIBUTING.adoc](papers/CONTRIBUTING.adoc) for intrinsic patterns
 * Want to benchmark? Run `./bin/xxhsum -b -Dnative` (future: switches to native when P1 complete)
-* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical FFI binding lives at `src/bindings/lib_xxh.cr`. If you need to update the FFI definitions, edit that file and rebuild `vendor/xxhash-wrapper` (e.g., `meson setup vendor/xxhash-wrapper/build --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers.
+* Found issues? Validate against the FFI baseline (`LibXXH.*`) for reference — the canonical FFI binding lives at `src/bindings/lib_xxh.cr`. If you need to update the FFI definitions, edit that file and rebuild `vendor/xxhash-wrapper` (e.g., `meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs. Prefer native implementation parity checks via the public `XXH::*` helpers.
 
 ## Migration Paper
 

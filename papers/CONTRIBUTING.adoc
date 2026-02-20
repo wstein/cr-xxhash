@@ -20,7 +20,7 @@ This project aims to bridge the gap between low-level C optimization and High-le
 3. **Validation**:
     * Run `crystal spec` to ensure zero regressions.
     * Run the integration tests: `crystal spec/integration_test.cr` (validates vendor parity).
-    * Test FFI bindings: The test suite uses the canonical `src/xxh/bindings.cr` file to load `LibXXH`. When vendor C behavior changes, update that file and rebuild the library (`meson setup vendor/xxhash-wrapper/build --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs.
+    * Test FFI bindings: The test suite uses the canonical `src/xxh/bindings.cr` file to load `LibXXH`. When vendor C behavior changes, update that file and rebuild the library (`meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe && meson compile -C vendor/xxhash-wrapper/build`) before running specs.
 
     * Maintenance note: Keep `src/xxh/bindings.cr` synchronized with `vendor/xxhash-wrapper`. When updating vendor C code, refreshing or adding specs that compare `XXH::*` results with the vendor helpers (e.g., `XXH::XXH3.hash128_stream`) ensures CI and local runs validate the change. Rebuild the vendor library after any C-side updates to keep the binding and tests aligned.
     * Run the benchmark and include results in your PR when performance changes are involved:
@@ -48,7 +48,7 @@ These aliases are created by the `postinstall` script defined in `shard.yml` (ru
 
 [source,shell]
 ----
-meson setup vendor/xxhash-wrapper/build --wipe
+meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe
 meson compile -C vendor/xxhash-wrapper/build
 mkdir -p bin
 ln -sf ./bin/xxhsum ./bin/xxh32sum

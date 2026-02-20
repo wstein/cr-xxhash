@@ -49,7 +49,7 @@ jobs:
           shards install --ignore-crystal-version || true
           # Build vendored wrapper library used by FFI bindings (best-effort)
           if [ -f vendor/xxhash-wrapper/meson.build ]; then
-            meson setup vendor/xxhash-wrapper/build --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build
+            meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper --wipe 2>/dev/null || meson setup vendor/xxhash-wrapper/build vendor/xxhash-wrapper
             meson compile -C vendor/xxhash-wrapper/build || true
             ln -sf libxxh3_wrapper_static.a vendor/xxhash-wrapper/build/libxxh3_wrapper.a || true
           fi
