@@ -46,11 +46,12 @@ The 28 variants are organized into four categories:
 - IDs 9–10: XXH3_64b w/secret aligned/unaligned
 - IDs 15–16: XXH128 w/secret aligned/unaligned
 
-**Streaming Variants (17–28)**: Using streaming API
+**Streaming Variants (17–30)**: Using streaming API
 - IDs 17–18: XXH32_stream aligned/unaligned
 - IDs 19–20: XXH64_stream aligned/unaligned
 - IDs 21–22: XXH3_stream aligned/unaligned
 - IDs 25–26: XXH128_stream aligned/unaligned
+- IDs 29–30: XXH3_stream amortized aligned/unaligned (example-only; reuses State to measure real streaming throughput)
 
 == Feature Implementation Details
 

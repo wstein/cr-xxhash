@@ -31,6 +31,18 @@ describe "XXHSum benchmark mode" do
     stderr.to_s.should eq("")
   end
 
+  it "runs amortized streaming XXH3 with -b29" do
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    code = XXHSum::CLI.run(["-b29", "-i1", "-B1K", "-q"], stdout: stdout, stderr: stderr, stdin_tty: true)
+
+    code.should eq(0)
+    output = stdout.to_s
+    output.should contain("29#XXH3_stream amortized")
+    stderr.to_s.should eq("")
+  end
+
   it "runs all variants with -b0" do
     stdout = IO::Memory.new
     stderr = IO::Memory.new
@@ -41,6 +53,9 @@ describe "XXHSum benchmark mode" do
     output = stdout.to_s
     output.should contain(" 1#XXH32")
     output.should contain("28#XXH128_stream w/seed unaligned")
+    # New amortized streaming variants (realistic streaming throughput)
+    output.should contain("29#XXH3_stream amortized")
+    output.should contain("30#XXH3_stream amortized unaligned")
     stderr.to_s.should eq("")
   end
 

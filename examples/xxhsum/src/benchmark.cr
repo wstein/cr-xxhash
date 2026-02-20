@@ -101,6 +101,10 @@ module XXHSum::CLI::Benchmark
       Variant.new(26, "XXH128_stream unaligned", false, :stream, Algorithm::XXH128),
       Variant.new(27, "XXH128_stream w/seed", true, :stream, Algorithm::XXH128),
       Variant.new(28, "XXH128_stream w/seed unaligned", false, :stream, Algorithm::XXH128),
+      # Amortized streaming variants: reuse State across many update() calls to
+      # measure realistic streaming throughput (avoid per-iteration allocation)
+      Variant.new(29, "XXH3_stream amortized", true, :stream_amortized, Algorithm::XXH3_64),
+      Variant.new(30, "XXH3_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH3_64),
     ]
   end
 
@@ -170,6 +174,30 @@ module XXHSum::CLI::Benchmark
 
   private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32, simd_mode : String? = nil) : UInt64
     result = 0_u64
+
+    # Amortized streaming path: allocate streaming state once and reuse across the
+    # inner loop to eliminate allocation/free overhead and measure real hashing
+    # throughput. Currently implemented for XXH3 streaming variants.
+    if variant.kind == :stream_amortized
+      case variant.algorithm
+      when Algorithm::XXH3_64
+        state = XXH::XXH3::State64.new(0_u64)
+        begin
+          nbh_per_iteration.times do |hash_idx|
+            seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+            state.reset(seed.to_u64)
+            state.update(data)
+            result = state.digest
+          end
+        ensure
+          state.dispose
+        end
+        return result
+      else
+        # Fallback to regular per-iteration behavior for other algorithms
+      end
+    end
+
     nbh_per_iteration.times do |hash_idx|
       seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
       result = run_single_hash(data, variant, seed, simd_mode)
