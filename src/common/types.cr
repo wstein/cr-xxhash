@@ -15,14 +15,33 @@ module XXH
     # Big-endian bytes (high64 first, then low64)
     def to_bytes : Bytes
       bytes = Bytes.new(16)
-      IO::ByteFormat::BigEndian.encode(high64, bytes[0, 8])
-      IO::ByteFormat::BigEndian.encode(low64, bytes[8, 8])
+      write_to_bytes(bytes)
       bytes
     end
 
-    # 32-hex-digit canonical representation (zero-padded)
+    # Write big-endian bytes into the provided destination buffer (16 bytes)
+    def write_to_bytes(dst : Bytes) : Nil
+      raise ArgumentError.new("Destination buffer too small") if dst.size < 16
+      IO::ByteFormat::BigEndian.encode(high64, dst[0, 8])
+      IO::ByteFormat::BigEndian.encode(low64, dst[8, 8])
+    end
+
+    # Optimized 32-hex-digit canonical representation (zero-padded)
+    # Avoids multiple intermediate string allocations.
     def to_hex32 : String
-      high64.to_s(16).rjust(16, '0') + low64.to_s(16).rjust(16, '0')
+      String.new(32) do |buffer|
+        (0..15).each do |i|
+          # High 64
+          nibble = ((high64 >> (4 * (15 - i))) & 0xF).to_u8
+          buffer[i] = (nibble < 10) ? (48_u8 + nibble) : (87_u8 + nibble)
+        end
+        (0..15).each do |i|
+          # Low 64
+          nibble = ((low64 >> (4 * (15 - i))) & 0xF).to_u8
+          buffer[16 + i] = (nibble < 10) ? (48_u8 + nibble) : (87_u8 + nibble)
+        end
+        {32, 32}
+      end
     end
 
     # Inspect for debugging (keeps the representation explicit)

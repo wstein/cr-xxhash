@@ -3,7 +3,9 @@ require "../common/errors"
 require "../common/types"
 
 module XXH
-  BUFFER_SIZE = 8192
+  # Default buffer size for IO-based hashing (128 KB)
+  # Balanced for modern NVMe and CPU caching to maximize throughput.
+  BUFFER_SIZE = 128 * 1024
 
   # Safe wrapper layer over low-level FFI bindings
   # Handles:

@@ -360,10 +360,10 @@ module XXHSum
         case algorithm
         when CLI::Algorithm::XXH32
           val = seed ? XXH::XXH32.hash_file(path, seed.to_u32) : XXH::XXH32.hash_file(path)
-          val.to_s(16).rjust(8, '0')
+          Hasher.pad_hex(val, 8)
         when CLI::Algorithm::XXH64
           val = seed ? XXH::XXH64.hash_file(path, seed) : XXH::XXH64.hash_file(path)
-          val.to_s(16).rjust(16, '0')
+          Hasher.pad_hex(val, 16)
         when CLI::Algorithm::XXH128
           val = Hasher.hash_path(path, algorithm, seed, simd_mode)
           val

@@ -31,6 +31,7 @@ Advanced:
                                      Available: scalar, neon, sve
     -q, --quiet                      Don't display version header in benchmark mode
                                      Don't print OK for each successfully verified hash
+    --amortized                      Use amortized streaming in benchmark mode (isolates hashing core from allocation)
 
 The following five options are useful only when using lists in [files] to verify or generate checksums:
     --status                         Don't output anything, status code shows success

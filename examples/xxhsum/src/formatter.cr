@@ -4,7 +4,17 @@ module XXHSum
       # Reverse hex string bytes (e.g., "aabbccdd" -> "ddccbbaa")
       # Assumes input is valid hex with even length
       private def self.reverse_hex_bytes(hex : String) : String
-        hex.chars.each_slice(2).map { |slice| slice.join }.to_a.reverse.join
+        len = hex.bytesize
+        return hex if len < 2
+        String.new(len) do |buffer|
+          (0...(len // 2)).each do |i|
+            src_i = len - (i + 1) * 2
+            dst_i = i * 2
+            buffer[dst_i] = hex.unsafe_byte_at(src_i)
+            buffer[dst_i + 1] = hex.unsafe_byte_at(src_i + 1)
+          end
+          {len, len}
+        end
       end
 
       def self.format_gnu(hex : String, filename : String?, algorithm : CLI::Algorithm, little_endian : Bool = false) : String

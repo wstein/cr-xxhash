@@ -11,12 +11,24 @@ module XXHSum
       # - If CPU doesn't support the target variant, OS raises SIGILL (process crash)
       # - URL options validation in options.cr ensures only supported variants are selectable
       
-      private def self.pad_hex(value : UInt32, width = 8)
-        value.to_s(16).rjust(width, '0')
+      def self.pad_hex(value : UInt32, width = 8)
+        String.new(width) do |buffer|
+          (0...width).each do |i|
+            nibble = ((value >> (4 * (width - 1 - i))) & 0xF).to_u8
+            buffer[i] = (nibble < 10) ? (48_u8 + nibble) : (87_u8 + nibble)
+          end
+          {width, width}
+        end
       end
 
-      private def self.pad_hex(value : UInt64, width = 16)
-        value.to_s(16).rjust(width, '0')
+      def self.pad_hex(value : UInt64, width = 16)
+        String.new(width) do |buffer|
+          (0...width).each do |i|
+            nibble = ((value >> (4 * (width - 1 - i))) & 0xF).to_u8
+            buffer[i] = (nibble < 10) ? (48_u8 + nibble) : (87_u8 + nibble)
+          end
+          {width, width}
+        end
       end
 
       private def self.read_all_bytes(io : IO) : Bytes
