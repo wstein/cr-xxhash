@@ -164,6 +164,19 @@ jobs:
           set -euo pipefail
           cd examples/xxhsum
           shards install --ignore-crystal-version || true
+          # sanity-check: make sure vendor library exists or rebuild it
+          if [ -d ../vendor/xxhash-wrapper ]; then
+            echo "=== vendor library directory contents ==="
+            ls -l ../vendor/xxhash-wrapper/build || true
+            if [ ! -f ../vendor/xxhash-wrapper/build/libxxh3_wrapper_static.a ]; then
+              echo "library missing, rebuilding inside example job"
+              cd ../vendor/xxhash-wrapper
+              meson setup build vendor/xxhash-wrapper --wipe 2>/dev/null || meson setup build vendor/xxhash-wrapper
+              meson compile -C build
+              cd - >/dev/null
+            fi
+            ls -l ../vendor/xxhash-wrapper/build
+          fi
 
       - name: Run xxhsum example corpus (NORMALIZE_EOL=1)
         shell: bash
