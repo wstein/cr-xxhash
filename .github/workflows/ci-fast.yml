@@ -162,22 +162,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # install meson/ninja if not already present (needed for C wrapper build)
+          if ! command -v meson >/dev/null 2>&1; then
+            echo "Installing meson and ninja..."
+            if command -v apt-get >/dev/null; then
+              apt-get update && apt-get install -y meson ninja-build git libevent-dev
+            elif command -v brew >/dev/null; then
+              brew install meson ninja git libevent-dev
+            else
+              # Fallback to pip if available, or just try apt-get without check
+              apt-get update && apt-get install -y meson ninja-build git libevent-dev || true
+            fi
+          fi
+
           cd examples/xxhsum
           shards install --ignore-crystal-version || true
           # sanity-check: make sure vendor library exists or rebuild it
-          if [ -d ../vendor/xxhash-wrapper ]; then
+          if [ -d ../../vendor/xxhash-wrapper ]; then
             echo "=== vendor library directory contents ==="
-            ls -l ../vendor/xxhash-wrapper/build || true
-            if [ ! -f ../vendor/xxhash-wrapper/build/libxxh3_wrapper_static.a ]; then
+            ls -l ../../vendor/xxhash-wrapper/build || true
+            if [ ! -f ../../vendor/xxhash-wrapper/build/libxxh3_wrapper_static.a ]; then
               echo "library missing, rebuilding inside example job"
-              cd ../vendor/xxhash-wrapper
+              cd ../../vendor/xxhash-wrapper
               # ensure submodules are updated if checkout missed them in container context
               git submodule update --init --recursive
               meson setup build . --wipe 2>/dev/null || meson setup build .
               meson compile -C build
               cd - >/dev/null
             fi
-            ls -l ../vendor/xxhash-wrapper/build
+            ls -l ../../vendor/xxhash-wrapper/build
           fi
 
       - name: Run xxhsum example corpus (NORMALIZE_EOL=1)
