@@ -105,6 +105,10 @@ module XXHSum::CLI::Benchmark
       # measure realistic streaming throughput (avoid per-iteration allocation)
       Variant.new(29, "XXH3_stream amortized", true, :stream_amortized, Algorithm::XXH3_64),
       Variant.new(30, "XXH3_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH3_64),
+      Variant.new(31, "XXH64_stream amortized", true, :stream_amortized, Algorithm::XXH64),
+      Variant.new(32, "XXH64_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH64),
+      Variant.new(33, "XXH128_stream amortized", true, :stream_amortized, Algorithm::XXH128),
+      Variant.new(34, "XXH128_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH128),
     ]
   end
 
@@ -193,6 +197,36 @@ module XXHSum::CLI::Benchmark
           state.dispose
         end
         return result
+
+      when Algorithm::XXH64
+        state = XXH::XXH64::State.new(0_u64)
+        begin
+          nbh_per_iteration.times do |hash_idx|
+            seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+            state.reset(seed.to_u64)
+            state.update(data)
+            result = state.digest
+          end
+        ensure
+          state.dispose
+        end
+        return result
+
+      when Algorithm::XXH128
+        state = XXH::XXH3::State128.new(0_u64)
+        begin
+          nbh_per_iteration.times do |hash_idx|
+            seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+            state.reset(seed.to_u64)
+            state.update(data)
+            c_hash = state.digest
+            result = c_hash.high64 ^ c_hash.low64
+          end
+        ensure
+          state.dispose
+        end
+        return result
+
       else
         # Fallback to regular per-iteration behavior for other algorithms
       end
