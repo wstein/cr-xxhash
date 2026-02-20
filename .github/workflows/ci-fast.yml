@@ -114,7 +114,7 @@ jobs:
     container: ${{ matrix.os == 'ubuntu-latest' && 'crystallang/crystal' || '' }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]  # windows dropped; Crystal installation there was unreliable
 
     steps:
       - name: Checkout

@@ -586,7 +586,7 @@ include XXH::SpecHelper
   - Unit tests targeting `spec/unit/` + safe bindings + version tests
   - Generator check via `crystal scripts/generate_vectors.cr`
   - Generator spec validation
-  - The `example-xxhsum` job now installs Crystal on all platforms (resolves "crystal: command not found" on Linux runners). It also runs inside a `crystallang/crystal` container only on `ubuntu-latest` (containers aren’t supported on Windows/macOS). The meson build invocation was corrected to specify the source dir, fixing occasional build failures.
+  - The `example-xxhsum` job now installs Crystal on all supported platforms. It runs inside a `crystallang/crystal` container only on `ubuntu-latest`. Windows support was removed after install issues; the matrix now includes only ubuntu and macOS.
   - Clear summary output for PR reviewers
 - Kept manual placeholder workflow at `.github/workflows/ci.yml` (manual `workflow_dispatch` only) for Phase 3 full matrix.
 
