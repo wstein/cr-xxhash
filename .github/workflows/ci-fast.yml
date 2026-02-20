@@ -135,8 +135,11 @@ jobs:
           elif [ "$(uname)" = "Linux" ]; then
             # Linux: installer script needs root
             curl -fsSL https://crystal-lang.org/install.sh | sudo bash
+          elif [[ "$(uname)" == MINGW* || "$(uname)" == MSYS* ]]; then
+            # Windows: use chocolatey (preinstalled on hosted runners)
+            choco install -y crystal
           else
-            # Windows (Git Bash) – fallback to script without sudo
+            # Fallback (unknown/unix-like)
             curl -fsSL https://crystal-lang.org/install.sh | bash
           fi
           export PATH="$HOME/.local/bin:$PATH"
