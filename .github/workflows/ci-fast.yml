@@ -33,7 +33,9 @@ jobs:
           # Install meson and ninja (APT/APK/DNF/pip fallback) so C build steps work in the container
           if ! command -v meson >/dev/null || ! command -v ninja >/dev/null; then
             if command -v apt-get >/dev/null; then
-              apt-get update && apt-get install -y meson ninja-build
+              # ensure package lists are fresh (fix missing libevent-dev error)
+              sudo apt-get update
+              apt-get install -y meson ninja-build
             elif command -v apk >/dev/null; then
               apk add --no-cache meson ninja
             elif command -v dnf >/dev/null; then
