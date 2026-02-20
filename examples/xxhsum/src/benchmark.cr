@@ -109,6 +109,8 @@ module XXHSum::CLI::Benchmark
       Variant.new(32, "XXH64_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH64),
       Variant.new(33, "XXH128_stream amortized", true, :stream_amortized, Algorithm::XXH128),
       Variant.new(34, "XXH128_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH128),
+      Variant.new(35, "XXH32_stream amortized", true, :stream_amortized, Algorithm::XXH32),
+      Variant.new(36, "XXH32_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH32),
     ]
   end
 
@@ -221,6 +223,20 @@ module XXHSum::CLI::Benchmark
             state.update(data)
             c_hash = state.digest
             result = c_hash.high64 ^ c_hash.low64
+          end
+        ensure
+          state.dispose
+        end
+        return result
+
+      when Algorithm::XXH32
+        state = XXH::XXH32::State.new(0_u32)
+        begin
+          nbh_per_iteration.times do |hash_idx|
+            seed = (batch_seed &* nbh_per_iteration) + hash_idx.to_u32
+            state.reset(seed.to_u32)
+            state.update(data)
+            result = state.digest.to_u64
           end
         ensure
           state.dispose

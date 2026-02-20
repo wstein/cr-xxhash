@@ -67,6 +67,30 @@ describe "XXHSum benchmark mode" do
     stderr.to_s.should eq("")
   end
 
+  it "runs amortized streaming XXH32 with -b35" do
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    code = XXHSum::CLI.run(["-b35", "-i1", "-B1K", "-q"], stdout: stdout, stderr: stderr, stdin_tty: true)
+
+    code.should eq(0)
+    output = stdout.to_s
+    output.should contain("35#XXH32_stream amortized")
+    stderr.to_s.should eq("")
+  end
+
+  it "runs amortized streaming XXH32 unaligned with -b36" do
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    code = XXHSum::CLI.run(["-b36", "-i1", "-B1K", "-q"], stdout: stdout, stderr: stderr, stdin_tty: true)
+
+    code.should eq(0)
+    output = stdout.to_s
+    output.should contain("36#XXH32_stream amortized unaligned")
+    stderr.to_s.should eq("")
+  end
+
   it "runs all variants with -b0" do
     stdout = IO::Memory.new
     stderr = IO::Memory.new
@@ -84,6 +108,8 @@ describe "XXHSum benchmark mode" do
     output.should contain("32#XXH64_stream amortized unaligned")
     output.should contain("33#XXH128_stream amortized")
     output.should contain("34#XXH128_stream amortized unaligned")
+    output.should contain("35#XXH32_stream amortized")
+    output.should contain("36#XXH32_stream amortized unaligned")
     stderr.to_s.should eq("")
   end
 

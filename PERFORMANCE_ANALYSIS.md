@@ -221,7 +221,7 @@ when :stream_amortized
   end
 ```
 
-Observed effect: amortized variants match one-shot throughput for the hashing core while isolating allocation overhead. Use the amortized variants (IDs 29–34) to validate real-world streaming performance.
+Observed effect: amortized variants match one-shot throughput for the hashing core while isolating allocation overhead. Use the amortized variants (IDs 29–36) to validate real-world streaming performance.
 
 ### 4. Cache State Objects in Benchmark (Alternative)
 
