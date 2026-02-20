@@ -313,7 +313,9 @@ module XXHSum::CLI::Benchmark
       state.update(data)
       state.digest
     when Algorithm::XXH128
-      result = XXH::XXH3.hash128(data, seed_u.to_u64)
+      state = XXH::XXH3::State128.new(seed_u.to_u64)
+      state.update(data)
+      result = state.digest
       result.high64 ^ result.low64
     else
       0_u64
