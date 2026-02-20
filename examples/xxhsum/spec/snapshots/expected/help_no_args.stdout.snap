@@ -28,7 +28,7 @@ Advanced:
     -B [SIZE]                        Benchmark sample size (supports K,KB,M,MB,G,GB — 1024-based)
     -s SEED, --seed SEED             Seed (decimal or 0xHEX)
     --simd BACKEND                   Select SIMD backend for XXH3/XXH128 one-shot hashing (requires CPU support: scalar always works)
-                                     Available: scalar, neon, sve
+                                     Available: [SIMD_BACKENDS]
     -q, --quiet                      Don't display version header in benchmark mode
                                      Don't print OK for each successfully verified hash
     --amortized                      Use amortized streaming in benchmark mode (isolates hashing core from allocation)

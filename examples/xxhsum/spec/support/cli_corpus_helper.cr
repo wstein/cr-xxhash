@@ -137,6 +137,14 @@ module CLICorpusHelper
       actual = normalize_eol(actual)
     end
 
+    # Normalize SIMD backends in help message which varies by processor architecture
+    if snapshot_name.includes?("help")
+      # Mask the list of backends after "Available: "
+      simd_mask = /Available: .+/
+      expected = expected.gsub(simd_mask, "Available: [SIMD_BACKENDS]")
+      actual = actual.gsub(simd_mask, "Available: [SIMD_BACKENDS]")
+    end
+
     actual.should eq(expected)
   end
 

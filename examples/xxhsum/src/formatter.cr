@@ -10,8 +10,8 @@ module XXHSum
           (0...(len // 2)).each do |i|
             src_i = len - (i + 1) * 2
             dst_i = i * 2
-            buffer[dst_i] = hex.unsafe_byte_at(src_i)
-            buffer[dst_i + 1] = hex.unsafe_byte_at(src_i + 1)
+            buffer[dst_i] = hex.to_unsafe[src_i]
+            buffer[dst_i + 1] = hex.to_unsafe[src_i + 1]
           end
           {len, len}
         end
