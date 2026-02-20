@@ -88,7 +88,8 @@ See [VENDOR_PARITY.md](VENDOR_PARITY.md) for the detailed compatibility report.
 - `-b` run benchmark with vendor default variants: `1, 3, 5, 11`
 - `-b#` run selected benchmark variant(s), e.g. `-b7`, `-b1,3,5,11` — accepts `comma-separated` lists or `ranges` such as `-b1-3`
 - `-bi#` compact vendor-style form to set iterations together with `-b` (e.g. `-bi1` behaves like `-b -i1`)
-- `-b0` runs all benchmark variants (vendor-compatible IDs 1–28, plus additional example-only amortized streaming variants 29–36)
+- `-b0` runs all benchmark variants (vendor-compatible IDs 1–28)
+- `--amortized` enables **amortized streaming** for the streaming variants (IDs 17–28). This reuses the `XXH::State` object across many updates to measure the raw hashing core performance without Crystal object allocation overhead.
 - `-i#` number of timing iterations (default: `3`)
 - `-B#` sample size with suffixes (`K/KB/M/MB/G/GB` — 1024-based)
 - `--simd BACKEND` selects the SIMD dispatch path for XXH3_64 and XXH128 one-shot (`:basic`) benchmark variants; seeded/secret/streaming variants use the default path

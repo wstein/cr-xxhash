@@ -27,6 +27,7 @@ module XXHSum
       property benchmark_ids : Array(Int32) = [] of Int32
       property benchmark_iterations : Int32 = 3
       property benchmark_size : UInt64 = 100_u64 * 1024_u64
+      property benchmark_amortized : Bool = false
       property simd_mode : String? = nil
 
       def self.program_name : String
@@ -197,6 +198,7 @@ module XXHSum
           opts_ptr.value.simd_mode = value
         end
         parser.on("-q", "--quiet", "Don't display version header in benchmark mode\nDon't print OK for each successfully verified hash") { opts_ptr.value.quiet = true }
+        parser.on("--amortized", "Use amortized streaming in benchmark mode (isolates hashing core from allocation)") { opts_ptr.value.benchmark_amortized = true }
 
         parser.separator
         parser.separator "The following five options are useful only when using lists in [files] to verify or generate checksums:"

@@ -205,13 +205,13 @@ For fair comparison:
 - Streaming: State allocation amortized across multiple updates (typical usage)
 ```
 
-### 3. Add "Streaming Amortized" Variant (Implemented)
+### 3. Add "Streaming Amortized" Flag (Implemented)
 
-Amortized streaming benchmark variants have been implemented for `XXH3`, `XXH64`, and `XXH128` in the example CLI. Each amortized variant allocates a single streaming `State` and then resets/updates/digests it repeatedly inside the inner benchmark loop. This eliminates allocation/free noise and reports realistic streaming throughput.
+Amortized streaming benchmark mode has been implemented for all streaming algorithms. By using the `--amortized` flag with any streaming variant (IDs 17–28), the benchmark allocates a single streaming `State` and then resets/updates/digests it repeatedly inside the inner benchmark loop. This eliminates allocation/free noise and reports realistic streaming throughput.
 
 Example implementation (concept):
 ```crystal
-when :stream_amortized
+if options.benchmark_amortized && variant.kind == :stream
   # Allocate once, reset + update many times
   state = XXH::XXH3::State64.new(seed)
   n.times do
@@ -219,9 +219,10 @@ when :stream_amortized
     state.update(data)
     state.digest
   end
+end
 ```
 
-Observed effect: amortized variants match one-shot throughput for the hashing core while isolating allocation overhead. Use the amortized variants (IDs 29–36) to validate real-world streaming performance.
+Observed effect: amortized streaming matches one-shot throughput for the hashing core while isolating allocation overhead. Use `--amortized` to validate real-world streaming performance.
 
 ### 4. Cache State Objects in Benchmark (Alternative)
 

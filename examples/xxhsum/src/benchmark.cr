@@ -65,7 +65,7 @@ module XXHSum::CLI::Benchmark
                       end
 
     variants_to_run.each do |variant|
-      run_single_benchmark(aligned_data, unaligned_data, variant, options.benchmark_iterations, options.simd_mode, io)
+      run_single_benchmark(aligned_data, unaligned_data, variant, options.benchmark_iterations, options.simd_mode, options.benchmark_amortized, io)
     end
 
     0
@@ -101,16 +101,6 @@ module XXHSum::CLI::Benchmark
       Variant.new(26, "XXH128_stream unaligned", false, :stream, Algorithm::XXH128),
       Variant.new(27, "XXH128_stream w/seed", true, :stream, Algorithm::XXH128),
       Variant.new(28, "XXH128_stream w/seed unaligned", false, :stream, Algorithm::XXH128),
-      # Amortized streaming variants: reuse State across many update() calls to
-      # measure realistic streaming throughput (avoid per-iteration allocation)
-      Variant.new(29, "XXH3_stream amortized", true, :stream_amortized, Algorithm::XXH3_64),
-      Variant.new(30, "XXH3_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH3_64),
-      Variant.new(31, "XXH64_stream amortized", true, :stream_amortized, Algorithm::XXH64),
-      Variant.new(32, "XXH64_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH64),
-      Variant.new(33, "XXH128_stream amortized", true, :stream_amortized, Algorithm::XXH128),
-      Variant.new(34, "XXH128_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH128),
-      Variant.new(35, "XXH32_stream amortized", true, :stream_amortized, Algorithm::XXH32),
-      Variant.new(36, "XXH32_stream amortized unaligned", false, :stream_amortized, Algorithm::XXH32),
     ]
   end
 
@@ -120,13 +110,13 @@ module XXHSum::CLI::Benchmark
     io.flush
   end
 
-  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : Variant, user_iterations : Int32 = 0, simd_mode : String? = nil, io : IO = STDOUT)
+  private def self.run_single_benchmark(aligned_data : Bytes, unaligned_data : Bytes, variant : Variant, user_iterations : Int32 = 0, simd_mode : String? = nil, amortized : Bool = false, io : IO = STDOUT)
     data = variant.aligned ? aligned_data : unaligned_data
     max_calibrations = user_iterations > 0 ? user_iterations : 3
-    run_time_based_benchmark(data, variant, max_calibrations, simd_mode, io)
+    run_time_based_benchmark(data, variant, max_calibrations, simd_mode, amortized, io)
   end
 
-  private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, simd_mode : String? = nil, io : IO = STDOUT)
+  private def self.run_time_based_benchmark(data : Bytes, variant : Variant, max_calibrations : Int32 = 3, simd_mode : String? = nil, amortized : Bool = false, io : IO = STDOUT)
     target_duration = ENV["BENCHMARK_SMOKE"]? ? SMOKE_SECONDS : TARGET_SECONDS
     min_duration = MIN_SECONDS
     initial_throughput = FIRST_MBPS * 1024_u64 * 1024_u64
@@ -140,7 +130,7 @@ module XXHSum::CLI::Benchmark
       iteration_number = 0_u32
 
       while (Time.instant - start_time).total_seconds < target_duration
-        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration, simd_mode)
+        result = run_one_hash_batch(data, variant, iteration_number, nbh_per_iteration, simd_mode, amortized)
         actual_iterations += nbh_per_iteration
         iteration_number += 1
       end
@@ -175,16 +165,16 @@ module XXHSum::CLI::Benchmark
     throughput_mb = (iterations_per_sec * data.size.to_f) / (1024_f64 * 1024_f64)
     io.printf("%80s\r", "")
     io.printf("%2d#%-30s: %10d -> %8.0f it/s (%7.1f MB/s)\n",
-      variant.id, variant.name, data.size, iterations_per_sec, throughput_mb)
+      variant.id, "#{variant.name}#{amortized ? " (amortized)" : ""}", data.size, iterations_per_sec, throughput_mb)
   end
 
-  private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32, simd_mode : String? = nil) : UInt64
+  private def self.run_one_hash_batch(data : Bytes, variant : Variant, batch_seed : UInt32, nbh_per_iteration : UInt32, simd_mode : String? = nil, amortized : Bool = false) : UInt64
     result = 0_u64
 
     # Amortized streaming path: allocate streaming state once and reuse across the
     # inner loop to eliminate allocation/free overhead and measure real hashing
-    # throughput. Currently implemented for XXH3 streaming variants.
-    if variant.kind == :stream_amortized
+    # throughput.
+    if amortized && (variant.kind == :stream || variant.kind == :stream_amortized)
       case variant.algorithm
       when Algorithm::XXH3_64
         state = XXH::XXH3::State64.new(0_u64)
